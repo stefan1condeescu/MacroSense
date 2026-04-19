@@ -12,7 +12,7 @@ st.set_page_config(page_title="MacroSense", layout="centered")
 if 'logged_in_email' not in st.session_state:
     
     # --- GUEST MENU (LOGIN / REGISTER) ---
-    st.title("MacroSense")
+    st.sidebar.title("MacroSense")
     menu = ["Autentificare", "Creare Cont"]
     choice = st.sidebar.selectbox("Navigație", menu)
     
@@ -31,9 +31,9 @@ if 'logged_in_email' not in st.session_state:
                 gender = st.selectbox("Sex", ["M", "F"])
                 goal = st.selectbox("Obiectiv", ["slăbire", "menținere", "creștere"])
                 
-            submit = st.form_submit_button("Înregistrează-te")
+            submit_register = st.form_submit_button("Înregistrează-te")
             
-            if submit:
+            if submit_register:
                 # OOP Integration: Instantiate a User object
                 new_user = User(email, full_name, height, age, gender, goal)
                 if new_user.register(password):
@@ -43,28 +43,48 @@ if 'logged_in_email' not in st.session_state:
 
     elif choice == "Autentificare":
         st.subheader("Intră în contul tău")
-        email = st.text_input("Email")
-        password = st.text_input("Parolă", type="password")
         
-        if st.button("Login"):
-            # OOP Integration: Instantiate a generic UserAccount to authenticate
-            account = UserAccount(email)
-            if account.authenticate(password):
-                # Fetch full user details after successful auth
-                logged_user = User.get_user_by_email(email)
-                if logged_user:
-                    st.session_state['logged_in_email'] = logged_user.email
-                    st.session_state['user_full_name'] = logged_user.full_name
-                    st.rerun()
-            else:
-                st.error("Email sau parolă incorecte.")
+        # Wrapping login inside a form to prevent Streamlit refresh issues
+        with st.form("login_form"):
+            email = st.text_input("Email")
+            password = st.text_input("Parolă", type="password")
+            submit_login = st.form_submit_button("Login")
+            
+            if submit_login:
+                print(f"DEBUG: Incercare login pentru adresa {email}...") # We will see this in VS Code terminal
+                account = UserAccount(email)
+                
+                # Verify password against the database
+                if account.authenticate(password):
+                    print("DEBUG: Parola este corecta. Preiau datele de profil...")
+                    # Fetch full user profile data
+                    logged_user = User.get_user_by_email(email)
+                    
+                    if logged_user:
+                        print("DEBUG: Date preluate cu succes. Schimbam interfata!")
+                        st.session_state['logged_in_email'] = logged_user.email
+                        st.session_state['user_full_name'] = logged_user.full_name
+                        st.rerun()
+                    else:
+                        print("DEBUG: Eroare la preluarea obiectului User din BD.")
+                        st.error("Eroare: Autentificarea a reușit, dar nu pot prelua datele!")
+                else:
+                    print("DEBUG: Autentificare esuata. Parola sau email gresit.")
+                    st.error("Email sau parolă incorecte.")
 
 else:
     # --- LOGGED IN MENU ---
     st.sidebar.title(f"Salut, {st.session_state['user_full_name']}!")
-    menu = ["Deconectare"]
+    
+    # Meniul noului utilizator logat
+    menu = ["Acasă", "Deconectare"]
     choice = st.sidebar.selectbox("Meniu Principal", menu)
         
-    if choice == "Deconectare":
+    if choice == "Acasă":
+        st.title("🏠 Dashboard")
+        st.success("Autentificare realizată cu succes!")
+        st.info("Aici vom construi jurnalele și graficele tale. Acesta este ecranul tău principal.")
+        
+    elif choice == "Deconectare":
         st.session_state.clear()
         st.rerun()
