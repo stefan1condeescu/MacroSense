@@ -8,12 +8,13 @@
 - [x] Rularea scriptului final `schema.sql` în pgAdmin.
 - [x] Refactorizare OOP: Crearea arhitecturii de foldere (`/models`).
 - [x] Implementarea pachetului de Autentificare (`UserAccount`, `User`) respectând Diagrama de Clase.
-- [x] Conectarea interfeței Streamlit `app.py` la modelele OOP.
+- [x] Conectarea interfeței Streamlit `app.py` la modelele OOP (Login/Register funcțional cu sesiuni).
 
 ## 🟡 La ce lucrăm acum (Focus curent):
 - [ ] Implementarea pachetului Tracking (`FoodItem`, `Activity`) folosind arhitectura OOP.
 
 ## 🔴 Ce urmează (Backlog):
+- [ ] Construirea interfeței pentru cataloage (adaugare și vizualizare alimente/activități).
 - [ ] Jurnalul alimentar, formularul de activități și calculul balanței energetice.
 - [ ] Modulul de Machine Learning (What-if și predicția greutății).
 - [ ] Dashboard și generare grafice pentru progres.
