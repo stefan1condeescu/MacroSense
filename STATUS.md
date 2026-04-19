@@ -7,10 +7,11 @@
 - [x] Crearea bazei de date `macrosense_db` în PostgreSQL.
 - [x] Rularea scriptului final `schema.sql` în pgAdmin.
 - [x] Refactorizare OOP: Crearea arhitecturii de foldere (`/models`).
-- [x] Implementarea pachetului de Autentificare (`UserAccount`, `User`).
-- [x] Conectarea interfeței Streamlit `app.py` la modelele OOP (Login/Register).
+- [x] Implementarea pachetului de Autentificare (`UserAccount`, `User`, `Admin`).
+- [x] Conectarea interfeței Streamlit `app.py` la modelele OOP.
 - [x] Implementarea claselor `FoodItem` și `Activity` în pachetul Tracking, respectând Diagrama de Clase OOP.
 - [x] Construirea interfeței pentru cataloage (adăugare și vizualizare date).
+- [x] Refactorizare Autentificare (UI + OOP): Formular de login unificat cu rutare inteligentă bazată pe roluri, rezolvarea instanțierilor abstracte și restricționarea drepturilor de editare strict pentru Administrator.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
 - [ ] Implementarea Jurnalului Alimentar (Preluarea datelor din catalog și adăugarea lor pe zile).

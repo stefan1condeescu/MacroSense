@@ -18,8 +18,33 @@ class UserAccount:
 
     def authenticate(self, plain_password: str) -> bool:
         """
-        Authenticates the user against the database.
+        Base authentication logic. Overridden by child classes.
         Maps to +authenticate(): boolean from the UML diagram.
+        """
+        return False  # Base class does not implement authentication
+
+    def logout(self):
+        """
+        Handles user logout logic. 
+        Maps to +logout(): void from the UML diagram.
+        (Implementation hooked to Streamlit session state in app.py)
+        """
+        pass
+
+
+class Admin(UserAccount):
+    """
+    Concrete class representing a system administrator.
+    Inherits from UserAccount. Maps to Admin in the UML Class Diagram.
+    """
+    def __init__(self, email: str, access_level: int = 1, password_hash: str = None):
+        super().__init__(email, password_hash)
+        self.access_level = access_level
+
+    def authenticate(self, plain_password: str) -> bool:
+        """
+        Overrides the base authenticate method to check the admins table.
+        Populates access_level on success.
         """
         conn = get_connection()
         if not conn:
@@ -29,25 +54,20 @@ class UserAccount:
             cursor = conn.cursor()
             hashed_pw = self._hash_password(plain_password)
             cursor.execute(
-                "SELECT id FROM users WHERE email = %s AND password_hash = %s",
+                "SELECT id, access_level FROM admins WHERE email = %s AND password_hash = %s",
                 (self.email, hashed_pw)
             )
             result = cursor.fetchone()
-            return result is not None
+            if result:
+                self.access_level = result[1]
+                return True
+            return False
         except Exception as e:
-            print(f"Authentication failed: {e}")
+            print(f"Admin authentication failed: {e}")
             return False
         finally:
             if conn:
                 conn.close()
-
-    def logout(self):
-        """
-        Handles user logout logic. 
-        Maps to +logout(): void from the UML diagram.
-        (Implementation will be hooked to Streamlit session state)
-        """
-        pass
 
 
 class User(UserAccount):
@@ -55,13 +75,46 @@ class User(UserAccount):
     Concrete class representing a standard application user.
     Inherits from UserAccount. Maps to User in the UML Class Diagram.
     """
-    def __init__(self, email: str, full_name: str, height_cm: float, age: int, gender: str, goal: str, password_hash: str = None):
+    # Default values (=None) allow instantiation with just the email for login purposes
+    def __init__(self, email: str, full_name: str = None, height_cm: float = None, age: int = None, gender: str = None, goal: str = None, password_hash: str = None):
         super().__init__(email, password_hash)
         self.full_name = full_name
         self.height_cm = height_cm
         self.age = age
         self.gender = gender
         self.goal = goal
+
+    def authenticate(self, plain_password: str) -> bool:
+        """
+        Overrides the base authenticate method.
+        Validates password and populates profile attributes in a single DB query.
+        """
+        conn = get_connection()
+        if not conn:
+            return False
+        
+        try:
+            cursor = conn.cursor()
+            hashed_pw = self._hash_password(plain_password)
+            cursor.execute(
+                "SELECT full_name, height_cm, age, gender, goal FROM users WHERE email = %s AND password_hash = %s",
+                (self.email, hashed_pw)
+            )
+            result = cursor.fetchone()
+            if result:
+                self.full_name = result[0]
+                self.height_cm = result[1]
+                self.age = result[2]
+                self.gender = result[3]
+                self.goal = result[4]
+                return True
+            return False
+        except Exception as e:
+            print(f"User authentication failed: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
 
     def calculateDailyCaloricNeeds(self) -> float:
         """
@@ -90,27 +143,6 @@ class User(UserAccount):
         except Exception as e:
             print(f"Registration failed: {e}")
             return False
-        finally:
-            if conn:
-                conn.close()
-
-    @classmethod
-    def get_user_by_email(cls, email: str):
-        """Class method to fetch user data and instantiate a User object."""
-        conn = get_connection()
-        if not conn:
-            return None
-        
-        try:
-            cursor = conn.cursor()
-            cursor.execute(
-                "SELECT email, full_name, height_cm, age, gender, goal FROM users WHERE email = %s",
-                (email,)
-            )
-            row = cursor.fetchone()
-            if row:
-                return cls(email=row[0], full_name=row[1], height_cm=row[2], age=row[3], gender=row[4], goal=row[5])
-            return None
         finally:
             if conn:
                 conn.close()
