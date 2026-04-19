@@ -7,14 +7,16 @@
 - [x] Crearea bazei de date `macrosense_db` în PostgreSQL.
 - [x] Rularea scriptului final `schema.sql` în pgAdmin.
 - [x] Refactorizare OOP: Crearea arhitecturii de foldere (`/models`).
-- [x] Implementarea pachetului de Autentificare (`UserAccount`, `User`) respectând Diagrama de Clase.
-- [x] Conectarea interfeței Streamlit `app.py` la modelele OOP (Login/Register funcțional cu sesiuni).
+- [x] Implementarea pachetului de Autentificare (`UserAccount`, `User`).
+- [x] Conectarea interfeței Streamlit `app.py` la modelele OOP (Login/Register).
+- [x] Implementarea claselor `FoodItem` și `Activity` în pachetul Tracking, respectând Diagrama de Clase OOP.
+- [x] Construirea interfeței pentru cataloage (adăugare și vizualizare date).
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Implementarea pachetului Tracking (`FoodItem`, `Activity`) folosind arhitectura OOP.
+- [ ] Implementarea Jurnalului Alimentar (Preluarea datelor din catalog și adăugarea lor pe zile).
 
 ## 🔴 Ce urmează (Backlog):
-- [ ] Construirea interfeței pentru cataloage (adaugare și vizualizare alimente/activități).
-- [ ] Jurnalul alimentar, formularul de activități și calculul balanței energetice.
+- [ ] Logica pentru Mese Personalizate (CustomMeals).
+- [ ] Formularul de activități și calculul balanței energetice.
 - [ ] Modulul de Machine Learning (What-if și predicția greutății).
 - [ ] Dashboard și generare grafice pentru progres.
