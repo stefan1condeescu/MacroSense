@@ -126,6 +126,12 @@ class User(UserAccount):
 
     def register(self, plain_password: str) -> bool:
         """Saves the new user object to the PostgreSQL database."""
+        
+        # Backend validation guard (Defense in Depth)
+        if not self.email or not self.full_name or not plain_password:
+            print("Registration blocked: Missing mandatory fields.")
+            return False
+            
         conn = get_connection()
         if not conn:
             return False

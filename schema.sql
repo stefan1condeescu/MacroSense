@@ -99,3 +99,11 @@ CREATE TABLE food_logs (
         (food_id IS NULL AND custom_meal_id IS NOT NULL)
     )
 );
+
+-- Seed default admin account using native PostgreSQL hashing
+INSERT INTO admins (email, password_hash, access_level) 
+VALUES (
+    'admin@test.com', 
+    encode(sha256('parola123'::bytea), 'hex'), 
+    1
+);
