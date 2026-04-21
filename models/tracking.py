@@ -1,3 +1,4 @@
+import datetime
 import pandas as pd
 from database import get_connection
 
@@ -104,6 +105,53 @@ class Activity:
                 columns = ["Denumire", "Coeficient MET", "Categorie"]
                 return pd.DataFrame(rows, columns=columns)
             return pd.DataFrame()
+        finally:
+            if conn:
+                conn.close()
+
+class FoodLog:
+    """
+    Represents a specific food consumption event in a user's daily log.
+    Maps to the FoodLog class in the UML Class Diagram.
+    """
+    def __init__(self, log_id: int, quantity_g: float, meal_type: str, meal_time: datetime.time, 
+                 food_id: int = None, custom_meal_id: int = None, log_entry_id: int = None):
+        self.id = log_entry_id
+        self.log_id = log_id
+        self.quantity_g = quantity_g
+        self.meal_type = meal_type
+        self.meal_time = meal_time
+        
+        # XOR Enforcement at Object Level: A log must be EITHER a basic food item OR a custom meal
+        if (food_id is None and custom_meal_id is None) or (food_id is not None and custom_meal_id is not None):
+            raise ValueError("FoodLog must reference exactly one: either food_id OR custom_meal_id.")
+            
+        self.food_id = food_id
+        self.custom_meal_id = custom_meal_id
+
+    def save(self) -> bool:
+        """
+        Saves the FoodLog entry to the PostgreSQL database 
+        and updates the instance with the generated ID.
+        """
+        conn = get_connection()
+        if not conn:
+            return False
+        
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO food_logs (log_id, food_id, custom_meal_id, quantity_g, meal_type, meal_time) 
+                   VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
+                (self.log_id, self.food_id, self.custom_meal_id, self.quantity_g, self.meal_type, self.meal_time)
+            )
+            # Retrieve the auto-generated primary key
+            self.id = cursor.fetchone()[0]
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error saving food log: {e}")
+            return False
         finally:
             if conn:
                 conn.close()

@@ -12,9 +12,10 @@
 - [x] Implementarea claselor `FoodItem` și `Activity` în pachetul Tracking, respectând Diagrama de Clase OOP.
 - [x] Construirea interfeței pentru cataloage (adăugare și vizualizare date).
 - [x] Refactorizare Autentificare (UI + OOP): Formular de login unificat cu rutare inteligentă bazată pe roluri, rezolvarea instanțierilor abstracte și restricționarea drepturilor de editare strict pentru Administrator.
+- [x] Sincronizare Arhitectură-Documentație: Adăugare `quantity_g` în clasa și tabela `FoodLog` și impunerea duratei obligatorii (`duration_min`) în `activity_logs` pentru acuratețea formulei MET.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Implementarea Jurnalului Alimentar (Preluarea datelor din catalog și adăugarea lor pe zile).
+- [ ] Implementarea Jurnalului Alimentar (Preluarea datelor din catalog și adăugarea lor pe zile - clasa `DailyLog`).
 
 ## 🔴 Ce urmează (Backlog):
 - [ ] Logica pentru Mese Personalizate (CustomMeals).
