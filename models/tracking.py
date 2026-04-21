@@ -155,3 +155,151 @@ class FoodLog:
         finally:
             if conn:
                 conn.close()
+
+class DailyLog:
+    """
+    Represents the daily nutritional and fitness summary for a user.
+    Maps to the DailyLog class in the UML Class Diagram and the daily_logs table.
+    """
+    def __init__(self, user_id: int, log_date: datetime.date, 
+                 total_calories_in: float = 0.0, 
+                 total_calories_burned: float = 0.0, 
+                 log_id: int = None):
+        self.id = log_id
+        self.user_id = user_id
+        self.log_date = log_date
+        self.total_calories_in = total_calories_in
+        self.total_calories_burned = total_calories_burned
+
+    def calculate_energy_balance(self) -> float:
+        """Returns the net caloric balance for the day (calories_in - calories_burned)."""
+        return round(self.total_calories_in - self.total_calories_burned, 2)
+
+    @classmethod
+    def get_or_create(cls, user_id: int, log_date: datetime.date) -> "DailyLog | None":
+        """
+        Fetches the DailyLog for the given user and date.
+        If it does not exist, creates a new empty record and returns it.
+        Uses the UNIQUE constraint (user_id, log_date) to avoid duplicates.
+        """
+        conn = get_connection()
+        if not conn:
+            return None
+        
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO daily_logs (user_id, log_date, total_calories_in, total_calories_burned)
+                VALUES (%s, %s, 0, 0)
+                ON CONFLICT ON CONSTRAINT uq_daily_log DO NOTHING
+                """,
+                (user_id, log_date)
+            )
+            conn.commit()
+            
+            cursor.execute(
+                """
+                SELECT id, user_id, log_date, total_calories_in, total_calories_burned
+                FROM daily_logs
+                WHERE user_id = %s AND log_date = %s
+                """,
+                (user_id, log_date)
+            )
+            row = cursor.fetchone()
+            if row:
+                return cls(
+                    user_id=row[1],
+                    log_date=row[2],
+                    total_calories_in=float(row[3]),
+                    total_calories_burned=float(row[4]),
+                    log_id=row[0]
+                )
+            return None
+        except Exception as e:
+            print(f"Error in DailyLog.get_or_create: {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
+
+    def recalculate_totals(self) -> bool:
+        """
+        Recomputes total_calories_in from all FoodLog entries belonging to this DailyLog
+        and updates the daily_logs record in the database.
+        """
+        conn = get_connection()
+        if not conn:
+            return False
+        
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT COALESCE(SUM(fi.calories_100g * fl.quantity_g / 100.0), 0)
+                FROM food_logs fl
+                JOIN food_items fi ON fi.id = fl.food_id
+                WHERE fl.log_id = %s AND fl.food_id IS NOT NULL
+                """,
+                (self.id,)
+            )
+            calories_from_food = float(cursor.fetchone()[0])
+            
+            # TODO: delegate to CustomMeal.calculateTotalMacros() when implemented
+            calories_from_meals = 0.0 
+
+            self.total_calories_in = round(calories_from_food + calories_from_meals, 2)
+            
+            cursor.execute(
+                "UPDATE daily_logs SET total_calories_in = %s WHERE id = %s",
+                (self.total_calories_in, self.id)
+            )
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error recalculating DailyLog totals: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
+    def get_food_entries(cls, log_id: int) -> "pd.DataFrame":
+        """
+        Returns all food-item FoodLog entries for a given daily_log id as a DataFrame,
+        joined with food_items to show human-readable names and computed calories.
+        """
+        conn = get_connection()
+        if not conn:
+            return pd.DataFrame()
+        
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT 
+                    fl.id, 
+                    fi.name                                              AS "Aliment",
+                    fl.quantity_g                                        AS "Cantitate (g)",
+                    ROUND(fi.calories_100g * fl.quantity_g / 100.0, 2)  AS "Calorii",
+                    fl.meal_type                                         AS "Masă",
+                    fl.meal_time                                         AS "Ora"
+                FROM food_logs fl
+                JOIN food_items fi ON fi.id = fl.food_id
+                WHERE fl.log_id = %s AND fl.food_id IS NOT NULL
+                ORDER BY fl.meal_time ASC NULLS LAST
+                """,
+                (log_id,)
+            )
+            rows = cursor.fetchall()
+            if rows:
+                columns = ["id", "Aliment", "Cantitate (g)", "Calorii", "Masă", "Ora"]
+                df = pd.DataFrame(rows, columns=columns)
+                return df.set_index("id")
+            return pd.DataFrame()
+        except Exception as e:
+            print(f"Error fetching food entries: {e}")
+            return pd.DataFrame()
+        finally:
+            if conn:
+                conn.close()
