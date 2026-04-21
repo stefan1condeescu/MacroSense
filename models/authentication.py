@@ -75,9 +75,9 @@ class User(UserAccount):
     Concrete class representing a standard application user.
     Inherits from UserAccount. Maps to User in the UML Class Diagram.
     """
-    # Default values (=None) allow instantiation with just the email for login purposes
     def __init__(self, email: str, full_name: str = None, height_cm: float = None, age: int = None, gender: str = None, goal: str = None, password_hash: str = None):
         super().__init__(email, password_hash)
+        self.id = None  # populated on successful authenticate()
         self.full_name = full_name
         self.height_cm = height_cm
         self.age = age
@@ -87,7 +87,7 @@ class User(UserAccount):
     def authenticate(self, plain_password: str) -> bool:
         """
         Overrides the base authenticate method.
-        Validates password and populates profile attributes in a single DB query.
+        Validates password and populates profile attributes (including ID) in a single DB query.
         """
         conn = get_connection()
         if not conn:
@@ -97,16 +97,17 @@ class User(UserAccount):
             cursor = conn.cursor()
             hashed_pw = self._hash_password(plain_password)
             cursor.execute(
-                "SELECT full_name, height_cm, age, gender, goal FROM users WHERE email = %s AND password_hash = %s",
+                "SELECT id, full_name, height_cm, age, gender, goal FROM users WHERE email = %s AND password_hash = %s",
                 (self.email, hashed_pw)
             )
             result = cursor.fetchone()
             if result:
-                self.full_name = result[0]
-                self.height_cm = result[1]
-                self.age = result[2]
-                self.gender = result[3]
-                self.goal = result[4]
+                self.id = result[0]
+                self.full_name = result[1]
+                self.height_cm = result[2]
+                self.age = result[3]
+                self.gender = result[4]
+                self.goal = result[5]
                 return True
             return False
         except Exception as e:
@@ -121,13 +122,10 @@ class User(UserAccount):
         Calculates TDEE (Total Daily Energy Expenditure).
         Maps to +calculateDailyCaloricNeeds(): double from the UML diagram.
         """
-        # TODO: We will implement the actual BMR mathematical formula later
         return 2000.0 
 
     def register(self, plain_password: str) -> bool:
         """Saves the new user object to the PostgreSQL database."""
-        
-        # Backend validation guard (Defense in Depth)
         if not self.email or not self.full_name or not plain_password:
             print("Registration blocked: Missing mandatory fields.")
             return False

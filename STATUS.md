@@ -13,12 +13,12 @@
 - [x] Construirea interfeței pentru cataloage (adăugare și vizualizare date).
 - [x] Refactorizare Autentificare (UI + OOP): Formular de login unificat cu rutare inteligentă bazată pe roluri, rezolvarea instanțierilor abstracte și restricționarea drepturilor de editare strict pentru Administrator.
 - [x] Sincronizare Arhitectură-Documentație: Adăugare `quantity_g` în clasa și tabela `FoodLog` și impunerea duratei obligatorii (`duration_min`) în `activity_logs` pentru acuratețea formulei MET.
+- [x] Implementarea Jurnalului Alimentar (Preluarea datelor din catalog și adăugarea lor pe zile - clasa `DailyLog`), optimizarea stocării `user_id` în sesiune și rezolvarea avertismentelor UI/UX.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Implementarea Jurnalului Alimentar (Preluarea datelor din catalog și adăugarea lor pe zile - clasa `DailyLog`).
+- [ ] Implementarea Jurnalului de Activități (`ActivityLog`) - înregistrarea antrenamentelor, obligativitatea duratei și calculul corect al caloriilor arse (MET) integrat în balanța energetică.
 
 ## 🔴 Ce urmează (Backlog):
-- [ ] Logica pentru Mese Personalizate (CustomMeals).
-- [ ] Formularul de activități și calculul balanței energetice.
+- [ ] Logica pentru Mese Personalizate (CustomMeals) - crearea rețetelor cu ingrediente și calculul macronutrienților.
 - [ ] Modulul de Machine Learning (What-if și predicția greutății).
 - [ ] Dashboard și generare grafice pentru progres.

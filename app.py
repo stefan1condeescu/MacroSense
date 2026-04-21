@@ -1,6 +1,8 @@
 import streamlit as st
+import datetime
+from database import get_connection
 from models.authentication import User, Admin
-from models.tracking import FoodItem, Activity
+from models.tracking import FoodItem, Activity, FoodLog, DailyLog
 
 # ==========================================
 # UI CONFIGURATION
@@ -83,6 +85,7 @@ if st.session_state['role'] is None:
                             st.session_state['role'] = 'user'
                             st.session_state['logged_in_email'] = user_account.email
                             st.session_state['user_full_name'] = user_account.full_name
+                            st.session_state['user_id'] = user_account.id  # SALVAM ID-ul
                             st.rerun()
                         else:
                             st.error("Email sau parolă incorecte.")
@@ -156,7 +159,7 @@ elif st.session_state['role'] == 'admin':
             
     # Admin Logout Button
     st.sidebar.divider()
-    if st.sidebar.button("Deconectare", use_container_width=True):
+    if st.sidebar.button("Deconectare", width="stretch"):
         st.session_state.clear()
         st.rerun()
 
@@ -167,14 +170,102 @@ elif st.session_state['role'] == 'user':
     
     st.sidebar.title(f"Salut, {st.session_state['user_full_name']}!")
     
-    menu = ["Acasă", "Catalog Alimente", "Catalog Activități"]
+    menu = ["Acasă", "Jurnal Alimentar", "Catalog Alimente", "Catalog Activități"]
     choice = st.sidebar.selectbox("Meniu Principal", menu)
         
     if choice == "Acasă":
         st.title("🏠 Dashboard")
         st.success("Autentificare realizată cu succes!")
         st.info("Aici vom construi jurnalele și graficele tale.")
-        
+
+
+    elif choice == "Jurnal Alimentar":
+        st.header("📔 Jurnal Alimentar")
+
+        selected_date = st.date_input("Selectează ziua:", value=datetime.date.today())
+
+        user_id = st.session_state.get('user_id')
+        if not user_id:
+            st.error("Sesiune invalidă. Te rugăm să te reautentifici.")
+            st.stop()
+
+        daily_log = DailyLog.get_or_create(user_id, selected_date)
+        if not daily_log:
+            st.error("Eroare la accesarea jurnalului zilnic.")
+            st.stop()
+
+        st.subheader("➕ Adaugă aliment consumat")
+        food_conn = get_connection()
+        food_options = {}
+        if food_conn:
+            try:
+                cur = food_conn.cursor()
+                cur.execute("SELECT id, name, calories_100g FROM food_items ORDER BY name ASC")
+                for row in cur.fetchall():
+                    food_options[row[1]] = {"id": row[0], "calories_100g": float(row[2])}
+            except Exception as e:
+                st.error(f"Eroare la preluarea alimentelor: {e}") # Adaugam si eroarea pe ecran ca sa nu mai treaca neobservata
+            finally:
+                food_conn.close()
+
+        if not food_options:
+            st.warning("Catalogul de alimente este gol. Administratorul trebuie să adauge alimente mai întâi.")
+        else:
+            with st.form("add_food_log_form", clear_on_submit=True):
+                col1, col2 = st.columns(2)
+                with col1:
+                    selected_food_name = st.selectbox("Aliment", options=list(food_options.keys()))
+                    quantity = st.number_input("Cantitate (g)", min_value=1.0, max_value=5000.0,
+                                               value=100.0, step=1.0)
+                with col2:
+                    meal_type = st.selectbox("Masă", ["Mic dejun", "Prânz", "Cină", "Gustare"])
+                    meal_time = st.time_input("Ora consumului", value=datetime.time(12, 0))
+
+                selected_food = food_options[selected_food_name]
+                estimated_calories = round(selected_food["calories_100g"] * float(quantity) / 100.0, 2)
+                st.caption(f"🔥 Calorii estimate: **{estimated_calories} kcal**")
+
+                submit_food = st.form_submit_button("Salvează înregistrarea", width="stretch")
+
+            if submit_food:
+                food_log_entry = FoodLog(
+                    log_id=daily_log.id,
+                    quantity_g=quantity,
+                    meal_type=meal_type,
+                    meal_time=meal_time,
+                    food_id=selected_food["id"]
+                )
+                if food_log_entry.save():
+                    daily_log.recalculate_totals()
+                    st.success(f"✅ {selected_food_name} ({quantity}g) adăugat cu succes!")
+                    st.rerun()
+                else:
+                    st.error("Eroare la salvarea înregistrării.")
+
+        st.divider()
+        # Map months to Romanian to ensure consistent localization regardless of the OS locale
+        romanian_months = {
+            1: "Ianuarie", 2: "Februarie", 3: "Martie", 4: "Aprilie",
+            5: "Mai", 6: "Iunie", 7: "Iulie", 8: "August",
+            9: "Septembrie", 10: "Octombrie", 11: "Noiembrie", 12: "Decembrie"
+        }
+        formatted_date = f"{selected_date.day} {romanian_months[selected_date.month]} {selected_date.year}"
+        st.subheader(f"📋 Alimente consumate pe {formatted_date}")
+        df_entries = DailyLog.get_food_entries(daily_log.id)
+
+        if not df_entries.empty:
+           # Hide the index column (database ID) from the UI
+            st.dataframe(df_entries, width="stretch", hide_index=True)
+            st.divider()
+            col1, col2, col3 = st.columns(3)
+            col1.metric("🍽️ Calorii consumate", f"{daily_log.total_calories_in:.0f} kcal")
+            col2.metric("🔥 Calorii arse", f"{daily_log.total_calories_burned:.0f} kcal")
+            col3.metric("⚖️ Balanță energetică",
+                        f"{daily_log.calculate_energy_balance():.0f} kcal",
+                        delta=f"{daily_log.calculate_energy_balance():.0f}")
+        else:
+            st.info("Nu există înregistrări pentru această zi. Adaugă primul aliment folosind formularul de mai sus.")
+
     elif choice == "Catalog Alimente":
         st.header("🍎 Catalog Alimente")
         st.subheader("Baza de date nutrițională")
@@ -195,6 +286,6 @@ elif st.session_state['role'] == 'user':
             
     # User Logout Button
     st.sidebar.divider()
-    if st.sidebar.button("Deconectare", use_container_width=True):
+    if st.sidebar.button("Deconectare", width="stretch"):
         st.session_state.clear()
         st.rerun()
