@@ -1,5 +1,5 @@
 -- ==========================================
--- 1. TABELE INDEPENDENTE (Fără chei externe)
+-- 1. INDEPENDENT TABLES (No foreign keys)
 -- ==========================================
 
 CREATE TABLE users (
@@ -40,7 +40,7 @@ CREATE TABLE activities (
 );
 
 -- ==========================================
--- 2. TABELE DEPENDENTE DE NIVEL 1
+-- 2. LEVEL 1 DEPENDENT TABLES
 -- ==========================================
 
 CREATE TABLE weight_logs (
@@ -68,21 +68,21 @@ CREATE TABLE custom_meals (
 );
 
 -- ==========================================
--- 3. TABELE DEPENDENTE DE NIVEL 2 (Tabele de legătură)
+-- 3. LEVEL 2 DEPENDENT TABLES (Link tables)
 -- ==========================================
 
 CREATE TABLE recipe_ingredients (
     id SERIAL PRIMARY KEY,
     meal_id INT REFERENCES custom_meals(id) ON DELETE CASCADE,
     food_id INT REFERENCES food_items(id) ON DELETE CASCADE,
-    quantity_g DECIMAL(6,2)
+    quantity_g DECIMAL(6,2) NOT NULL
 );
 
 CREATE TABLE activity_logs (
     id SERIAL PRIMARY KEY,
     log_id INT REFERENCES daily_logs(id) ON DELETE CASCADE,
     activity_id INT REFERENCES activities(id) ON DELETE CASCADE,
-    duration_min INT,
+    duration_min INT NOT NULL, -- Fix: now NOT NULL to support MET formula
     sets INT,
     reps INT
 );
@@ -92,6 +92,7 @@ CREATE TABLE food_logs (
     log_id INT REFERENCES daily_logs(id) ON DELETE CASCADE,
     food_id INT REFERENCES food_items(id) ON DELETE CASCADE,
     custom_meal_id INT REFERENCES custom_meals(id) ON DELETE CASCADE,
+    quantity_g DECIMAL(6,2) NOT NULL, -- Integration of the previously discussed fix
     meal_type VARCHAR(50),
     meal_time TIME,
     CONSTRAINT chk_xor_food_meal CHECK (
@@ -100,7 +101,7 @@ CREATE TABLE food_logs (
     )
 );
 
--- Seed default admin account using native PostgreSQL hashing
+-- Insert default Admin account
 INSERT INTO admins (email, password_hash, access_level) 
 VALUES (
     'admin@test.com', 
