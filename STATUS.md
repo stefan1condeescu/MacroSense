@@ -19,9 +19,15 @@
 - [x] Optimizare sesiune: `user_id` stocat în `st.session_state` la autentificare (eliminat roundtrip DB per render).
 - [x] Fix UI/UX: localizare luni în română, ascundere ID bază de date din tabel, migrare `use_container_width` → `width='stretch'`.
 - [x] Actualizarea fluxului de înregistrare (UI + OOP): Preluarea greutății inițiale a utilizatorului și salvarea atomică în `weight_logs` pentru a suporta corect calculele viitoare bazate pe formula MET. Sincronizare documentație (cap. 3.2).
+- [x] Implementarea clasei `ActivityLog` în pachetul Tracking: validare `duration_min > 0`
+  la nivel de obiect (ValueError), persistență în `activity_logs` via `save()`.
+- [x] Extinderea `DailyLog.recalculate_totals()`: calculează acum atât caloriile IN
+  (food_logs) cât și caloriile BURNED (formula MET × ultima greutate din weight_logs 
+  × durată în ore), cu fallback la 70kg dacă weight_logs e gol.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Implementarea Jurnalului de Activități (`ActivityLog`) — înregistrarea antrenamentelor, obligativitatea `duration_min` și calculul caloriilor arse prin formula MET integrat în `DailyLog.recalculate_totals()`.
+- [ ] Finalizarea UI Jurnal Activități în `app.py`: formular Streamlit pentru logarea
+  antrenamentelor + metoda `DailyLog.get_activity_entries(log_id)` în `tracking.py`.
 
 ## 🔴 Ce urmează (Backlog):
 - [ ] Logica pentru Mese Personalizate (`CustomMeal`) — creare rețete cu ingrediente, `calculateTotalMacros()` conform UML și integrare în `recalculate_totals()`.
