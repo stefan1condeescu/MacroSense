@@ -225,7 +225,7 @@ class DailyLog:
 
     def recalculate_totals(self) -> bool:
         """
-        Recomputes total_calories_in from all FoodLog entries belonging to this DailyLog
+        Recomputes total_calories_in (from food_logs) and total_calories_burned (from activity_logs)
         and updates the daily_logs record in the database.
         """
         conn = get_connection()
@@ -234,6 +234,8 @@ class DailyLog:
         
         try:
             cursor = conn.cursor()
+            
+            # 1. Calculate Calories IN (Food)
             cursor.execute(
                 """
                 SELECT COALESCE(SUM(fi.calories_100g * fl.quantity_g / 100.0), 0)
@@ -244,15 +246,44 @@ class DailyLog:
                 (self.id,)
             )
             calories_from_food = float(cursor.fetchone()[0])
-            
-            # TODO: delegate to CustomMeal.calculateTotalMacros() when implemented
-            calories_from_meals = 0.0 
-
+            calories_from_meals = 0.0 # TODO: Delegate to CustomMeals later
             self.total_calories_in = round(calories_from_food + calories_from_meals, 2)
             
+            # 2. Fetch latest user weight for MET calculation
             cursor.execute(
-                "UPDATE daily_logs SET total_calories_in = %s WHERE id = %s",
-                (self.total_calories_in, self.id)
+                """
+                SELECT weight_kg FROM weight_logs 
+                WHERE user_id = %s AND log_date <= %s 
+                ORDER BY log_date DESC LIMIT 1
+                """,
+                (self.user_id, self.log_date)
+            )
+            weight_row = cursor.fetchone()
+            # Fallback to standard weight if no log exists (safety net)
+            current_weight = float(weight_row[0]) if weight_row else 70.0
+
+            # 3. Calculate Calories BURNED (Activities via MET formula)
+            # Formula: MET * Weight(kg) * (Duration(min) / 60)
+            cursor.execute(
+                """
+                SELECT COALESCE(SUM(a.met_multiplier * (al.duration_min / 60.0)), 0)
+                FROM activity_logs al
+                JOIN activities a ON a.id = al.activity_id
+                WHERE al.log_id = %s
+                """,
+                (self.id,)
+            )
+            met_duration_factor = float(cursor.fetchone()[0])
+            self.total_calories_burned = round(met_duration_factor * current_weight, 2)
+            
+            # 4. Update the DailyLog record
+            cursor.execute(
+                """
+                UPDATE daily_logs 
+                SET total_calories_in = %s, total_calories_burned = %s 
+                WHERE id = %s
+                """,
+                (self.total_calories_in, self.total_calories_burned, self.id)
             )
             conn.commit()
             return True
@@ -300,6 +331,45 @@ class DailyLog:
         except Exception as e:
             print(f"Error fetching food entries: {e}")
             return pd.DataFrame()
+        finally:
+            if conn:
+                conn.close()
+class ActivityLog:
+    """
+    Represents a physical activity event logged by the user in a given day.
+    Maps to the ActivityLog class in the UML Class Diagram.
+    """
+    def __init__(self, log_id: int, activity_id: int, duration_min: int, sets: int = None, reps: int = None, log_entry_id: int = None):
+        self.id = log_entry_id
+        self.log_id = log_id
+        self.activity_id = activity_id
+        self.duration_min = duration_min
+        self.sets = sets
+        self.reps = reps
+
+        # Enforce duration constraint at object level
+        if self.duration_min <= 0:
+            raise ValueError("Duration must be strictly positive for MET calculation.")
+
+    def save(self) -> bool:
+        """Saves the ActivityLog entry to the PostgreSQL database."""
+        conn = get_connection()
+        if not conn:
+            return False
+        
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """INSERT INTO activity_logs (log_id, activity_id, duration_min, sets, reps) 
+                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
+                (self.log_id, self.activity_id, self.duration_min, self.sets, self.reps)
+            )
+            self.id = cursor.fetchone()[0]
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error saving activity log: {e}")
+            return False
         finally:
             if conn:
                 conn.close()

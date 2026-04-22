@@ -2,7 +2,7 @@ import streamlit as st
 import datetime
 from database import get_connection
 from models.authentication import User, Admin
-from models.tracking import FoodItem, Activity, FoodLog, DailyLog
+from models.tracking import FoodItem, Activity, FoodLog, DailyLog, ActivityLog
 
 # ==========================================
 # UI CONFIGURATION
