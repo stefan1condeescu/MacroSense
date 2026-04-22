@@ -124,28 +124,43 @@ class User(UserAccount):
         """
         return 2000.0 
 
-    def register(self, plain_password: str) -> bool:
-        """Saves the new user object to the PostgreSQL database."""
+    def register(self, plain_password: str, initial_weight_kg: float) -> bool:
+        """
+        Saves the new user and their initial weight to the PostgreSQL database.
+        Inserts into both 'users' and 'weight_logs' in a single atomic transaction.
+        """
         if not self.email or not self.full_name or not plain_password:
             print("Registration blocked: Missing mandatory fields.")
             return False
-            
+
         conn = get_connection()
         if not conn:
             return False
-        
+
         try:
             cursor = conn.cursor()
             hashed_pw = self._hash_password(plain_password)
+
             cursor.execute(
-                """INSERT INTO users (email, password_hash, full_name, height_cm, age, gender, goal) 
-                   VALUES (%s, %s, %s, %s, %s, %s, %s)""",
-                (self.email, hashed_pw, self.full_name, self.height_cm, self.age, self.gender, self.goal)
+                """INSERT INTO users (email, password_hash, full_name, height_cm, age, gender, goal)
+                   VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING id""",
+                (self.email, hashed_pw, self.full_name, self.height_cm,
+                 self.age, self.gender, self.goal)
             )
+            new_user_id = cursor.fetchone()[0]
+
+            cursor.execute(
+                """INSERT INTO weight_logs (user_id, log_date, weight_kg)
+                   VALUES (%s, CURRENT_DATE, %s)""",
+                (new_user_id, initial_weight_kg)
+            )
+
             conn.commit()
             return True
         except Exception as e:
             print(f"Registration failed: {e}")
+            if conn:
+                conn.rollback()
             return False
         finally:
             if conn:
