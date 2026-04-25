@@ -24,6 +24,7 @@
 - [x] Implementarea metodelor `DailyLog.get_activity_entries(log_id)` și `DailyLog.get_latest_weight()` în `tracking.py` pentru interogarea istoricului fizic și calcularea dinamică a caloriilor arse per rând.
 - [x] Refactorizare UI Jurnal Activități: `st.selectbox` mutat în afara formularului pentru reactivitate dinamică pe schimbare de categorie; câmpurile Seturi/Repetări afișate exclusiv pentru categoria `Forță` (`min_value=1`) și ascunse complet pentru Cardio/Flexibilitate/Sport de echipă.
 - [x] Corectare metrici UI: Jurnal Activități afișează breakdown Calorii Forță (TUT) vs. Calorii Cardio & Altele (MET); Jurnal Alimentar afișează corect Calorii consumate / Calorii arse / Balanță energetică.
+- [x] Polish UI/UX (Jurnal Alimentar & Activități): Eliminare `st.form` pentru a permite calculul și afișarea în timp real (live preview) a caloriilor estimate consumate/arse direct la interacțiunea cu datele din formulare. Resetarea câmpurilor post-salvare este menținută curat prin `st.rerun()`.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
 - [ ] Polish UI Jurnal Alimentar — ajustări vizuale și de UX rămase.

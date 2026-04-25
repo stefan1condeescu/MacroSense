@@ -207,37 +207,35 @@ elif st.session_state['role'] == 'user':
         if not food_options:
             st.warning("Catalogul de alimente este gol. Administratorul trebuie să adauge alimente mai întâi.")
         else:
-            with st.form("add_food_log_form", clear_on_submit=True):
-                col1, col2 = st.columns(2)
-                with col1:
-                    selected_food_name = st.selectbox("Aliment", options=list(food_options.keys()))
-                    quantity = st.number_input("Cantitate (g)", min_value=1.0, max_value=5000.0,
-                                               value=100.0, step=1.0)
-                with col2:
-                    meal_type = st.selectbox("Masă", ["Mic dejun", "Prânz", "Cină", "Gustare"])
-                    meal_time = st.time_input("Ora consumului", value=datetime.time(12, 0))
+            col1, col2 = st.columns(2)
+            with col1:
+                selected_food_name = st.selectbox("Aliment", options=list(food_options.keys()))
+                quantity = st.number_input("Cantitate (g)", min_value=1.0, max_value=5000.0,value=100.0, step=1.0)
+            with col2:
+                meal_type = st.selectbox("Masă", ["Mic dejun", "Prânz", "Cină", "Gustare"])
+                meal_time = st.time_input("Ora consumului", value=datetime.time(12, 0))
 
-                selected_food = food_options[selected_food_name]
-                estimated_calories = round(selected_food["calories_100g"] * float(quantity) / 100.0, 2)
-                st.caption(f"🔥 Calorii estimate: **{estimated_calories} kcal**")
+            selected_food = food_options[selected_food_name]
+            estimated_calories = round(selected_food["calories_100g"] * float(quantity) / 100.0, 2)
+            st.caption(f"🔥 Calorii estimate: **{estimated_calories} kcal**")
 
-                submit_food = st.form_submit_button("Salvează înregistrarea", width="stretch")
+            submit_food = st.button("Salvează înregistrarea", use_container_width=True, key="btn_save_food")
 
             if submit_food:
                 food_log_entry = FoodLog(
-                    log_id=daily_log.id,
-                    quantity_g=quantity,
-                    meal_type=meal_type,
-                    meal_time=meal_time,
-                    food_id=selected_food["id"]
-                )
+                log_id=daily_log.id,
+                quantity_g=quantity,
+                meal_type=meal_type,
+                meal_time=meal_time,
+                food_id=selected_food["id"]
+        )
                 if food_log_entry.save():
                     daily_log.recalculate_totals()
                     st.success(f"✅ {selected_food_name} ({quantity}g) adăugat cu succes!")
                     st.rerun()
                 else:
                     st.error("Eroare la salvarea înregistrării.")
-
+            
         st.divider()
         # Map months to Romanian to ensure consistent localization regardless of the OS locale
         romanian_months = {
@@ -307,39 +305,39 @@ elif st.session_state['role'] == 'user':
             is_strength = selected_act["category"].strip() == "Forță"
             latest_weight = DailyLog.get_latest_weight(user_id, selected_date)
 
-            with st.form("add_activity_log_form", clear_on_submit=True):
-                col1, col2 = st.columns(2)
+            # --- LIVE PREVIEW FORM: JURNAL ACTIVITĂȚI ---
+            col1, col2 = st.columns(2)
 
-                with col1:
-                    # Duration is mandatory for ALL activity types to compute T_rest in the hybrid TUT model
-                    duration = st.number_input(
-                        "Durată TOTALĂ sesiune (minute)",
-                        min_value=1, max_value=600, value=30, step=5,
-                        help="Timpul total petrecut la acest exercițiu (inclusiv pauzele dintre seturi)."
-                    )
-
-                with col2:
-                    # Sets and reps are rendered only for strength activities; hidden entirely for cardio
-                    if is_strength:
-                        sets = st.number_input("Seturi", min_value=1, max_value=50, value=3, step=1)
-                        reps = st.number_input("Repetări pe set", min_value=1, max_value=200, value=12, step=1)
-                    else:
-                        st.info("📌 Seturile și repetările se aplică doar la exerciții de Forță.")
-                        sets = 0
-                        reps = 0
-
-                # Ensure numeric fallback for the hybrid calories helper when category is cardio
-                calc_sets = sets if is_strength else 0
-                calc_reps = reps if is_strength else 0
-
-                estimated_burned = DailyLog.calculate_hybrid_calories(
-                    selected_act["category"].strip(), selected_act["met"],
-                    latest_weight, duration,
-                    calc_sets, calc_reps
+            with col1:
+                # Duration is mandatory for ALL activity types to compute T_rest in the hybrid TUT model
+                duration = st.number_input(
+                    "Durată TOTALĂ sesiune (minute)",
+                    min_value=1, max_value=600, value=30, step=5,
+                    help="Timpul total petrecut la acest exercițiu (inclusiv pauzele dintre seturi)."
                 )
 
-                st.caption(f"🔥 Calorii estimate consumate: **{estimated_burned} kcal**")
-                submit_act = st.form_submit_button("Salvează antrenamentul", use_container_width=True)
+            with col2:
+                # Sets and reps are rendered only for strength activities; hidden entirely for cardio
+                if is_strength:
+                    sets = st.number_input("Seturi", min_value=1, max_value=50, value=3, step=1)
+                    reps = st.number_input("Repetări pe set", min_value=1, max_value=200, value=12, step=1)
+                else:
+                    st.info("📌 Seturile și repetările se aplică doar la exerciții de Forță.")
+                    sets = 0
+                    reps = 0
+
+            # Ensure numeric fallback for the hybrid calories helper when category is cardio
+            calc_sets = sets if is_strength else 0
+            calc_reps = reps if is_strength else 0
+
+            estimated_burned = DailyLog.calculate_hybrid_calories(
+                selected_act["category"].strip(), selected_act["met"],
+                latest_weight, duration,
+                calc_sets, calc_reps
+            )
+            st.caption(f"🔥 Calorii estimate consumate: **{estimated_burned} kcal**")
+
+            submit_act = st.button("Salvează antrenamentul", use_container_width=True, key="btn_save_act")
 
             if submit_act:
                 # Map 0 to None for DB insertion — schema allows NULL for sets/reps on cardio entries
