@@ -122,7 +122,7 @@ elif st.session_state['role'] == 'admin':
         st.subheader("Baza de date nutrițională")
         df_foods = FoodItem.get_all_as_dataframe()
         if not df_foods.empty:
-            st.dataframe(df_foods, width='stretch')
+            st.dataframe(df_foods, width='stretch', hide_index=True)
         else:
             st.info("Catalogul este gol.")
 
@@ -149,7 +149,7 @@ elif st.session_state['role'] == 'admin':
         st.subheader("Lista activităților disponibile")
         df_activities = Activity.get_all_as_dataframe()
         if not df_activities.empty:
-            st.dataframe(df_activities, width='stretch')
+            st.dataframe(df_activities, width='stretch', hide_index=True)
         else:
             st.info("Catalogul de activități este gol.")
             
@@ -402,7 +402,7 @@ elif st.session_state['role'] == 'user':
         st.subheader("Baza de date nutrițională")
         df_foods = FoodItem.get_all_as_dataframe()
         if not df_foods.empty:
-            st.dataframe(df_foods, width='stretch')
+            st.dataframe(df_foods, width='stretch', hide_index=True)
         else:
             st.info("Catalogul este gol în acest moment. Administratorul va adăuga date în curând.")
 
@@ -411,7 +411,7 @@ elif st.session_state['role'] == 'user':
         st.subheader("Lista activităților disponibile")
         df_activities = Activity.get_all_as_dataframe()
         if not df_activities.empty:
-            st.dataframe(df_activities, width='stretch')
+            st.dataframe(df_activities, width='stretch', hide_index=True)
         else:
             st.info("Catalogul de activități este gol în acest moment.")
             
