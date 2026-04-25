@@ -228,7 +228,8 @@ elif st.session_state['role'] == 'user':
                 meal_type=meal_type,
                 meal_time=meal_time,
                 food_id=selected_food["id"]
-        )
+                )
+
                 if food_log_entry.save():
                     daily_log.recalculate_totals()
                     st.success(f"✅ {selected_food_name} ({quantity}g) adăugat cu succes!")
@@ -275,7 +276,7 @@ elif st.session_state['role'] == 'user':
             st.error("Eroare la accesarea jurnalului zilnic.")
             st.stop()
 
-            st.subheader("➕ Adaugă antrenament")
+        st.subheader("➕ Adaugă antrenament")
         act_conn = get_connection()
         activity_options = {}
         if act_conn:
@@ -379,6 +380,8 @@ elif st.session_state['role'] == 'user':
             col1, col2, col3 = st.columns(3)
             cals_strength = df_entries[df_entries["Categorie"] == "Forță"]["Calorii Arse"].sum()
             cals_cardio_other = df_entries[df_entries["Categorie"] != "Forță"]["Calorii Arse"].sum()
+            total_burned = cals_strength + cals_cardio_other
+            
             col1.metric(
                 "🏋️ Calorii Forță",
                 f"{cals_strength:.0f} kcal",
@@ -390,6 +393,20 @@ elif st.session_state['role'] == 'user':
                 help="Calculate pe baza formulei standard MET × Greutate × Durată."
             )
             col3.metric(
+                "🔥 Total Calorii Arse",
+                f"{total_burned:.0f} kcal",
+                help="Suma tuturor caloriilor arse în această zi (Forță + Cardio & Altele)."
+            )
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            _, col4, col5, _ = st.columns([0.5, 1, 1, 0.5])
+            col4.metric(
+                "🍽️ Calorii Consumate",
+                f"{daily_log.total_calories_in:.0f} kcal",
+                help="Total calorii consumate din alimentație în această zi."
+            )
+            col5.metric(
                 "⚖️ Balanță energetică",
                 f"{daily_log.calculate_energy_balance():.0f} kcal",
                 delta=f"{daily_log.calculate_energy_balance():.0f}"
