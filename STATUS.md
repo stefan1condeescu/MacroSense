@@ -26,10 +26,9 @@
 - [x] Corectare metrici UI: Jurnal Activități afișează breakdown Calorii Forță (TUT) vs. Calorii Cardio & Altele (MET); Jurnal Alimentar afișează corect Calorii consumate / Calorii arse / Balanță energetică.
 - [x] Polish UI/UX (Jurnal Alimentar & Activități): Eliminare `st.form` pentru a permite calculul și afișarea în timp real (live preview) a caloriilor estimate consumate/arse direct la interacțiunea cu datele din formulare. Resetarea câmpurilor post-salvare este menținută curat prin `st.rerun()`.
 - [x] Polish UI/UX (Cataloage Admin & User): Ascunderea indexului (ID-ului bazei de date / indexului Pandas) din toate cele 4 tabele de afișare pentru cataloagele de Alimente și Activități, standardizând aspectul vizual curat în toată aplicația.
+- [x] Polish UI/UX (Jurnal Activități): Redesign secțiune metrici sub formă de piramidă 3+2 — rând 1: Calorii Forță, Calorii Cardio & Altele, Total Calorii Arse; rând 2 centrat: Calorii Consumate și Balanță energetică.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Polish UI Jurnal Alimentar — ajustări vizuale și de UX rămase.
-- [ ] Polish UI Jurnal Activități — ajustări vizuale și de UX rămase.
 - [ ] Logica pentru Mese Personalizate (`CustomMeal`) — creare rețete cu ingrediente, implementarea funcției `calculateTotalMacros()` conform diagramei UML și integrarea în calculele zilnice.
 
 ## 🔴 Ce urmează (Backlog):
