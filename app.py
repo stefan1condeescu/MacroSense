@@ -166,7 +166,7 @@ elif st.session_state['role'] == 'user':
     
     st.sidebar.title(f"Salut, {st.session_state['user_full_name']}!")
     
-    menu = ["Acasă", "Jurnal Alimentar", "Catalog Alimente", "Catalog Activități"]
+    menu = ["Acasă", "Jurnal Alimentar", "Jurnal Activități", "Catalog Alimente", "Catalog Activități"]
     choice = st.sidebar.selectbox("Meniu Principal", menu)
         
     if choice == "Acasă":
@@ -262,6 +262,143 @@ elif st.session_state['role'] == 'user':
         else:
             st.info("Nu există înregistrări pentru această zi. Adaugă primul aliment folosind formularul de mai sus.")
 
+    elif choice == "Jurnal Activități":
+        st.header("🏋️‍♂️ Jurnal Activități Fizice")
+
+        selected_date = st.date_input("Selectează ziua:", value=datetime.date.today())
+
+        user_id = st.session_state.get('user_id')
+        if not user_id:
+            st.error("Sesiune invalidă. Te rugăm să te reautentifici.")
+            st.stop()
+
+        daily_log = DailyLog.get_or_create(user_id, selected_date)
+        if not daily_log:
+            st.error("Eroare la accesarea jurnalului zilnic.")
+            st.stop()
+
+            st.subheader("➕ Adaugă antrenament")
+        act_conn = get_connection()
+        activity_options = {}
+        if act_conn:
+            try:
+                cur = act_conn.cursor()
+                # FETCH CATEGORY TOO
+                cur.execute("SELECT id, name, met_multiplier, category FROM activities ORDER BY name ASC")
+                for row in cur.fetchall():
+                    activity_options[row[1]] = {"id": row[0], "met": float(row[2]), "category": row[3]}
+            except Exception as e:
+                st.error(f"Eroare la preluarea activităților: {e}")
+            finally:
+                act_conn.close()
+
+        if not activity_options:
+            st.warning("Catalogul de activități este gol. Administratorul trebuie să adauge date mai întâi.")
+        else:
+            # Selectbox placed OUTSIDE the form to enable dynamic UI reactivity on category change
+            selected_act_name = st.selectbox(
+                "1. Alege activitatea",
+                options=list(activity_options.keys()),
+                key="activity_select"
+            )
+            selected_act = activity_options[selected_act_name]
+
+            # Defensive .strip() to handle accidental whitespace stored in DB
+            is_strength = selected_act["category"].strip() == "Forță"
+            latest_weight = DailyLog.get_latest_weight(user_id, selected_date)
+
+            with st.form("add_activity_log_form", clear_on_submit=True):
+                col1, col2 = st.columns(2)
+
+                with col1:
+                    # Duration is mandatory for ALL activity types to compute T_rest in the hybrid TUT model
+                    duration = st.number_input(
+                        "Durată TOTALĂ sesiune (minute)",
+                        min_value=1, max_value=600, value=30, step=5,
+                        help="Timpul total petrecut la acest exercițiu (inclusiv pauzele dintre seturi)."
+                    )
+
+                with col2:
+                    # Sets and reps are rendered only for strength activities; hidden entirely for cardio
+                    if is_strength:
+                        sets = st.number_input("Seturi", min_value=1, max_value=50, value=3, step=1)
+                        reps = st.number_input("Repetări pe set", min_value=1, max_value=200, value=12, step=1)
+                    else:
+                        st.info("📌 Seturile și repetările se aplică doar la exerciții de Forță.")
+                        sets = 0
+                        reps = 0
+
+                # Ensure numeric fallback for the hybrid calories helper when category is cardio
+                calc_sets = sets if is_strength else 0
+                calc_reps = reps if is_strength else 0
+
+                estimated_burned = DailyLog.calculate_hybrid_calories(
+                    selected_act["category"].strip(), selected_act["met"],
+                    latest_weight, duration,
+                    calc_sets, calc_reps
+                )
+
+                st.caption(f"🔥 Calorii estimate consumate: **{estimated_burned} kcal**")
+                submit_act = st.form_submit_button("Salvează antrenamentul", use_container_width=True)
+
+            if submit_act:
+                # Map 0 to None for DB insertion — schema allows NULL for sets/reps on cardio entries
+                db_sets = calc_sets if calc_sets > 0 else None
+                db_reps = calc_reps if calc_reps > 0 else None
+
+                try:
+                    act_log_entry = ActivityLog(
+                        log_id=daily_log.id,
+                        activity_id=selected_act["id"],
+                        duration_min=duration,
+                        sets=db_sets,
+                        reps=db_reps
+                    )
+                    if act_log_entry.save():
+                        daily_log.recalculate_totals()
+                        st.success(f"✅ {selected_act_name} adăugat cu succes!")
+                        st.rerun()
+                    else:
+                        st.error("Eroare la salvarea înregistrării.")
+                except ValueError as ve:
+                    st.error(f"Eroare de validare: {ve}")
+
+        st.divider()
+        romanian_months = {
+            1: "Ianuarie", 2: "Februarie", 3: "Martie", 4: "Aprilie",
+            5: "Mai", 6: "Iunie", 7: "Iulie", 8: "August",
+            9: "Septembrie", 10: "Octombrie", 11: "Noiembrie", 12: "Decembrie"
+        }
+        formatted_date = f"{selected_date.day} {romanian_months[selected_date.month]} {selected_date.year}"
+        st.subheader(f"📋 Antrenamente efectuate pe {formatted_date}")
+        
+        df_entries = DailyLog.get_activity_entries(daily_log.id)
+
+        if not df_entries.empty:
+                # Hide the index column (database ID) from the UI
+            st.dataframe(df_entries, width="stretch", hide_index=True) 
+            st.divider()
+            col1, col2, col3 = st.columns(3)
+            cals_strength = df_entries[df_entries["Categorie"] == "Forță"]["Calorii Arse"].sum()
+            cals_cardio_other = df_entries[df_entries["Categorie"] != "Forță"]["Calorii Arse"].sum()
+            col1.metric(
+                "🏋️ Calorii Forță",
+                f"{cals_strength:.0f} kcal",
+                help="Calculate pe baza modelului Time Under Tension (TUT)."
+            )
+            col2.metric(
+                "🏃 Calorii Cardio & Altele",
+                f"{cals_cardio_other:.0f} kcal",
+                help="Calculate pe baza formulei standard MET × Greutate × Durată."
+            )
+            col3.metric(
+                "⚖️ Balanță energetică",
+                f"{daily_log.calculate_energy_balance():.0f} kcal",
+                delta=f"{daily_log.calculate_energy_balance():.0f}"
+            )
+        else:
+            st.info("Nu există antrenamente înregistrate pentru această zi.")
+   
     elif choice == "Catalog Alimente":
         st.header("🍎 Catalog Alimente")
         st.subheader("Baza de date nutrițională")
