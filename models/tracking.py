@@ -223,6 +223,18 @@ class DailyLog:
             if conn:
                 conn.close()
 
+    @staticmethod
+    def calculate_hybrid_calories(category: str, met: float, weight: float, duration_min: int, sets: int, reps: int) -> float:
+        """
+        Helper method to compute calories ensuring DRY logic between UI preview and DB.
+        Applies standard MET for Cardio and Hybrid TUT (Time Under Tension) for Strength training.
+        """
+        if category == 'Forță' and sets and reps and sets > 0 and reps > 0:
+            active_time = min(duration_min, (sets * reps * 3.0) / 60.0)
+            rest_time = max(0, duration_min - active_time)
+            return round((met * weight * (active_time / 60.0)) + (1.5 * weight * (rest_time / 60.0)), 2)
+        return round(met * weight * (duration_min / 60.0), 2)
+
     def recalculate_totals(self) -> bool:
         """
         Recomputes total_calories_in (from food_logs) and total_calories_burned (from activity_logs)
@@ -262,19 +274,27 @@ class DailyLog:
             # Fallback to standard weight if no log exists (safety net)
             current_weight = float(weight_row[0]) if weight_row else 70.0
 
-            # 3. Calculate Calories BURNED (Activities via MET formula)
-            # Formula: MET * Weight(kg) * (Duration(min) / 60)
+            # 3. Calculate Calories BURNED (Hybrid Model TUT)
             cursor.execute(
                 """
-                SELECT COALESCE(SUM(a.met_multiplier * (al.duration_min / 60.0)), 0)
+                SELECT COALESCE(SUM(
+                    CASE 
+                        -- Strength Training: Hybrid TUT Model
+                        WHEN a.category = 'Forță' AND al.sets IS NOT NULL AND al.reps IS NOT NULL THEN
+                            (a.met_multiplier * %s * (LEAST(al.duration_min, (al.sets * al.reps * 3.0)/60.0) / 60.0)) + 
+                            (1.5 * %s * (GREATEST(0, al.duration_min - ((al.sets * al.reps * 3.0)/60.0)) / 60.0))
+                        -- Cardio / Other: Standard MET
+                        ELSE 
+                            (a.met_multiplier * %s * (al.duration_min / 60.0))
+                    END
+                ), 0)
                 FROM activity_logs al
                 JOIN activities a ON a.id = al.activity_id
                 WHERE al.log_id = %s
                 """,
-                (self.id,)
+                (current_weight, current_weight, current_weight, self.id)
             )
-            met_duration_factor = float(cursor.fetchone()[0])
-            self.total_calories_burned = round(met_duration_factor * current_weight, 2)
+            self.total_calories_burned = round(float(cursor.fetchone()[0]), 2)
             
             # 4. Update the DailyLog record
             cursor.execute(
@@ -330,6 +350,101 @@ class DailyLog:
             return pd.DataFrame()
         except Exception as e:
             print(f"Error fetching food entries: {e}")
+            return pd.DataFrame()
+        finally:
+            if conn:
+                conn.close()
+    
+    @staticmethod
+    def get_latest_weight(user_id: int, target_date: datetime.date) -> float:
+        """
+        Helper method to fetch the user's weight on or before a specific date.
+        Useful for real-time MET calorie estimations in the UI.
+        """
+        conn = get_connection()
+        if not conn:
+            return 70.0 # Fallback weight
+        
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT weight_kg FROM weight_logs 
+                WHERE user_id = %s AND log_date <= %s 
+                ORDER BY log_date DESC LIMIT 1
+                """,
+                (user_id, target_date)
+            )
+            row = cursor.fetchone()
+            return float(row[0]) if row else 70.0
+        except Exception as e:
+            print(f"Error fetching latest weight: {e}")
+            return 70.0
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
+    def get_activity_entries(cls, log_id: int) -> "pd.DataFrame":
+        """
+        Returns all ActivityLog entries for a given daily_log id as a DataFrame,
+        joined with activities to show names, categories, and calculated burned calories.
+        """
+        conn = get_connection()
+        if not conn:
+            return pd.DataFrame()
+        
+        try:
+            cursor = conn.cursor()
+            # We use a CTE to get the user's latest weight relative to the log_date
+            # to dynamically calculate the burned calories per activity row.
+            cursor.execute(
+                """
+                WITH user_info AS (
+                    SELECT user_id, log_date FROM daily_logs WHERE id = %s
+                ),
+                latest_weight AS (
+                    SELECT COALESCE(
+                        (SELECT weight_kg FROM weight_logs 
+                         WHERE user_id = (SELECT user_id FROM user_info) 
+                         AND log_date <= (SELECT log_date FROM user_info) 
+                         ORDER BY log_date DESC LIMIT 1), 
+                        70.0) AS weight
+                )
+                SELECT 
+                    al.id, 
+                    a.name AS "Activitate",
+                    a.category AS "Categorie",
+                    al.duration_min AS "Durată (min)",
+                    al.sets AS "Seturi",
+                    al.reps AS "Repetări",
+                    ROUND(
+                        CASE 
+                            WHEN a.category = 'Forță' AND al.sets IS NOT NULL AND al.reps IS NOT NULL THEN
+                                (a.met_multiplier * (SELECT weight FROM latest_weight) * (LEAST(al.duration_min, (al.sets * al.reps * 3.0)/60.0) / 60.0)) + 
+                                (1.5 * (SELECT weight FROM latest_weight) * (GREATEST(0, al.duration_min - ((al.sets * al.reps * 3.0)/60.0)) / 60.0))
+                            ELSE 
+                                (a.met_multiplier * (SELECT weight FROM latest_weight) * (al.duration_min / 60.0))
+                        END
+                    , 2) AS "Calorii Arse"
+                FROM activity_logs al
+                JOIN activities a ON a.id = al.activity_id
+                WHERE al.log_id = %s
+                ORDER BY al.id ASC
+                """,
+                (log_id, log_id)
+            )
+            rows = cursor.fetchall()
+            if rows:
+                columns = ["id", "Activitate", "Categorie", "Durată (min)", "Seturi", "Repetări", "Calorii Arse"]
+                df = pd.DataFrame(rows, columns=columns)
+                # Clean up None/NaN values for Sets and Reps to display cleanly in UI
+                df['Seturi'] = df['Seturi'].fillna('-').astype(str)
+                df['Repetări'] = df['Repetări'].fillna('-').astype(str)
+                return df.set_index("id")
+            return pd.DataFrame()
+        except Exception as e:
+            print(f"Error fetching activity entries: {e}")
             return pd.DataFrame()
         finally:
             if conn:
