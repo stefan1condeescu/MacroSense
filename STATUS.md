@@ -35,6 +35,9 @@
 - [x] Implementarea paginii Streamlit „Mese Personalizate”: creare rețetă, adăugare ingrediente, preview calorii/macronutrienți, salvare și vizualizare ingrediente.
 - [x] Extinderea paginii „Jurnal Alimentar” cu opțiunea de a salva în jurnal fie un aliment din catalog, fie o masă personalizată, respectând constrângerea XOR din `FoodLog`.
 - [x] Fix UI/UX: eliminarea sufixelor tehnice de tip `#id` din selectbox-urile pentru alimente și mese personalizate, păstrând ID-ul doar intern pentru selecție robustă.
+- [x] Polish UI/UX (Mese Personalizate): metrici de preview reorganizate pe două rânduri — Cantitate/Calorii sus, Proteine/Carbohidrați/Grăsimi jos.
+- [x] Validare OOP + UI pentru denumirea meselor personalizate: numele trebuie să înceapă cu literă, nu cu cifră sau caracter special.
+- [x] Hardening DB access: `FoodItem.get_all_as_dataframe()` și `Activity.get_all_as_dataframe()` au acum `try/except/finally`, aliniat cu regula proiectului.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
 - [ ] Stabilizare și testare funcțională pentru fluxul complet Mese Personalizate → Jurnal Alimentar → recalculare totaluri zilnice.
@@ -44,3 +47,4 @@
 - [ ] Recomandări personalizate de mese.
 - [ ] Simulator What-if (scenarii calorice).
 - [ ] Dashboard și generare grafice pentru progres.
+- [ ] Clasă dedicată `WeightLog` cu metoda `save()`.
