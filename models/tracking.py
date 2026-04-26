@@ -198,6 +198,72 @@ class FoodLog:
             if conn:
                 conn.close()
 
+    @classmethod
+    def delete(cls, log_entry_id: int, user_id: int) -> bool:
+        """Deletes a FoodLog entry only if it belongs to the given user."""
+        conn = get_connection()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                DELETE FROM food_logs fl
+                USING daily_logs dl
+                WHERE fl.log_id = dl.id
+                  AND fl.id = %s
+                  AND dl.user_id = %s
+                RETURNING fl.id
+                """,
+                (log_entry_id, user_id)
+            )
+            deleted_row = cursor.fetchone()
+            conn.commit()
+            return deleted_row is not None
+        except Exception as e:
+            print(f"Error deleting food log: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
+    def update(cls, log_entry_id: int, user_id: int, quantity_g: float, meal_type: str, meal_time: datetime.time) -> bool:
+        """Updates editable FoodLog fields only if the entry belongs to the given user."""
+        if quantity_g <= 0:
+            raise ValueError("FoodLog quantity must be strictly positive.")
+
+        conn = get_connection()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE food_logs fl
+                SET quantity_g = %s,
+                    meal_type = %s,
+                    meal_time = %s
+                FROM daily_logs dl
+                WHERE fl.log_id = dl.id
+                  AND fl.id = %s
+                  AND dl.user_id = %s
+                RETURNING fl.id
+                """,
+                (quantity_g, meal_type, meal_time, log_entry_id, user_id)
+            )
+            updated_row = cursor.fetchone()
+            conn.commit()
+            return updated_row is not None
+        except Exception as e:
+            print(f"Error updating food log: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
 
 class RecipeIngredient:
     """

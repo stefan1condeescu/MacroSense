@@ -38,9 +38,12 @@
 - [x] Polish UI/UX (Mese Personalizate): metrici de preview reorganizate pe două rânduri — Cantitate/Calorii sus, Proteine/Carbohidrați/Grăsimi jos.
 - [x] Validare OOP + UI pentru denumirea meselor personalizate: numele trebuie să înceapă cu literă, nu cu cifră sau caracter special.
 - [x] Hardening DB access: `FoodItem.get_all_as_dataframe()` și `Activity.get_all_as_dataframe()` au acum `try/except/finally`, aliniat cu regula proiectului.
+- [x] Implementare ștergere intrare din „Jurnal Alimentar”: `FoodLog.delete()` verifică apartenența la utilizator, iar UI-ul cere confirmare și recalculează totalurile zilnice după ștergere.
+- [x] Implementare editare intrare din „Jurnal Alimentar”: `FoodLog.update()` permite modificarea cantității, mesei și orei consumului, cu verificare pe utilizator și recalculare automată a totalurilor zilnice.
+- [x] Stabilizare UI/UX pentru editare/ștergere în „Jurnal Alimentar”: panouri izolate cu `st.fragment()`, mesaje prin `st.toast()` și eliminarea flicker-ului produs de placeholder-ele de tabel.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Stabilizare și testare funcțională pentru fluxul complet Mese Personalizate → Jurnal Alimentar → recalculare totaluri zilnice.
+- [ ] CRUD incremental pentru „Jurnal Activități”: editare/ștergere activități și recalculare totaluri după fiecare operație.
 
 ## 🔴 Ce urmează (Backlog):
 - [ ] Modulul de Machine Learning — predicția greutății.
