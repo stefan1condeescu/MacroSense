@@ -23,7 +23,8 @@
 - Folosește st.button() cu key explicit pentru submit
 - Niciodată cod parțial sau pseudocod — doar cod funcțional complet
 - Commit-urile sunt făcute MANUAL de developer după fiecare modificare
-  aprobată — AI-ul nu face niciodată commit sau push automat
+  aprobată; AI-ul nu face niciodată commit sau push automat.
+  Excepție: AI-ul poate face commit doar când developerul cere explicit acest lucru.
 
 ## Regula de Aur
 Verifică mereu conformitatea dintre documentația din docs/
@@ -34,7 +35,8 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - DailyLog: get_or_create, recalculate_totals, get_food_entries,
   get_activity_entries, calculate_hybrid_calories (static),
   get_latest_weight (static), calculate_energy_balance
-- FoodLog, ActivityLog: metoda save()
+- FoodLog: save(), update(), delete()
+- ActivityLog: metoda save()
 - RecipeIngredient: metoda save()
 - CustomMeal: save, add_ingredient, create_with_ingredients,
   calculate_total_macros, calculateTotalMacros, get_user_meal_options,
@@ -50,6 +52,10 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - hide_index=True pe toate st.dataframe()
 - Preview caloric live cu st.caption() înainte de butonul de salvare
 - Formulare reactive: st.button() cu key= explicit
+- În Jurnal Alimentar, panourile reactive cu multe widget-uri pot folosi
+  st.fragment() pentru a limita rerender-ul vizual și a evita flicker-ul.
+- Mesajele de succes care urmează după operații cu rerun trebuie păstrate
+  în st.session_state și afișate ca st.toast(), fără să mute tabelul.
 - Selectbox-urile pentru alimente și mese personalizate folosesc ID intern,
   dar afișează utilizatorului doar denumirea, fără sufixe tehnice de tip #id
 - Denumirea unei mese personalizate trebuie să înceapă cu literă;
