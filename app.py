@@ -1,8 +1,9 @@
 import streamlit as st
 import datetime
+import pandas as pd
 from database import get_connection
 from models.authentication import User, Admin
-from models.tracking import FoodItem, Activity, FoodLog, DailyLog, ActivityLog
+from models.tracking import FoodItem, Activity, FoodLog, DailyLog, ActivityLog, CustomMeal
 
 # ==========================================
 # UI CONFIGURATION
@@ -81,7 +82,7 @@ if st.session_state['role'] is None:
                             st.session_state['role'] = 'user'
                             st.session_state['logged_in_email'] = user_account.email
                             st.session_state['user_full_name'] = user_account.full_name
-                            st.session_state['user_id'] = user_account.id  # SALVAM ID-ul
+                            st.session_state['user_id'] = user_account.id
                             st.rerun()
                         else:
                             st.error("Email sau parolă incorecte.")
@@ -166,7 +167,7 @@ elif st.session_state['role'] == 'user':
     
     st.sidebar.title(f"Salut, {st.session_state['user_full_name']}!")
     
-    menu = ["Acasă", "Jurnal Alimentar", "Jurnal Activități", "Catalog Alimente", "Catalog Activități"]
+    menu = ["Acasă", "Jurnal Alimentar", "Jurnal Activități", "Mese Personalizate", "Catalog Alimente", "Catalog Activități"]
     choice = st.sidebar.selectbox("Meniu Principal", menu)
         
     if choice == "Acasă":
@@ -190,52 +191,99 @@ elif st.session_state['role'] == 'user':
             st.error("Eroare la accesarea jurnalului zilnic.")
             st.stop()
 
-        st.subheader("➕ Adaugă aliment consumat")
-        food_conn = get_connection()
-        food_options = {}
-        if food_conn:
-            try:
-                cur = food_conn.cursor()
-                cur.execute("SELECT id, name, calories_100g FROM food_items ORDER BY name ASC")
-                for row in cur.fetchall():
-                    food_options[row[1]] = {"id": row[0], "calories_100g": float(row[2])}
-            except Exception as e:
-                st.error(f"Eroare la preluarea alimentelor: {e}") # Adaugam si eroarea pe ecran ca sa nu mai treaca neobservata
-            finally:
-                food_conn.close()
+        st.subheader("➕ Adaugă consum alimentar")
+        food_options = FoodItem.get_catalog_options()
+        custom_meal_options = CustomMeal.get_user_meal_options(user_id)
 
-        if not food_options:
-            st.warning("Catalogul de alimente este gol. Administratorul trebuie să adauge alimente mai întâi.")
+        entry_type = st.radio(
+            "Tip înregistrare",
+            ["Aliment din catalog", "Masă personalizată"],
+            horizontal=True,
+            key="food_entry_type"
+        )
+
+        if entry_type == "Aliment din catalog":
+            if not food_options:
+                st.warning("Catalogul de alimente este gol. Administratorul trebuie să adauge alimente mai întâi.")
+            else:
+                col1, col2 = st.columns(2)
+                with col1:
+                    selected_food_id = st.selectbox(
+                        "Aliment",
+                        options=list(food_options.keys()),
+                        format_func=lambda food_id: food_options[food_id]["name"],
+                        key="food_log_food_select"
+                    )
+                    quantity = st.number_input("Cantitate (g)", min_value=1.0, max_value=5000.0, value=100.0, step=1.0, key="food_log_food_quantity")
+                with col2:
+                    meal_type = st.selectbox("Masă", ["Mic dejun", "Prânz", "Cină", "Gustare"], key="food_log_food_meal_type")
+                    meal_time = st.time_input("Ora consumului", value=datetime.time(12, 0), key="food_log_food_time")
+
+                selected_food = food_options[selected_food_id]
+                estimated_calories = round(selected_food["calories_100g"] * float(quantity) / 100.0, 2)
+                st.caption(f"🔥 Calorii estimate: **{estimated_calories} kcal**")
+
+                submit_food = st.button("Salvează înregistrarea", width="stretch", key="btn_save_food")
+
+                if submit_food:
+                    try:
+                        food_log_entry = FoodLog(
+                            log_id=daily_log.id,
+                            quantity_g=quantity,
+                            meal_type=meal_type,
+                            meal_time=meal_time,
+                            food_id=selected_food["id"]
+                        )
+
+                        if food_log_entry.save():
+                            daily_log.recalculate_totals()
+                            st.success(f"✅ {selected_food['name']} ({quantity}g) adăugat cu succes!")
+                            st.rerun()
+                        else:
+                            st.error("Eroare la salvarea înregistrării.")
+                    except ValueError as ve:
+                        st.error(f"Eroare de validare: {ve}")
         else:
-            col1, col2 = st.columns(2)
-            with col1:
-                selected_food_name = st.selectbox("Aliment", options=list(food_options.keys()))
-                quantity = st.number_input("Cantitate (g)", min_value=1.0, max_value=5000.0,value=100.0, step=1.0)
-            with col2:
-                meal_type = st.selectbox("Masă", ["Mic dejun", "Prânz", "Cină", "Gustare"])
-                meal_time = st.time_input("Ora consumului", value=datetime.time(12, 0))
+            if not custom_meal_options:
+                st.warning("Nu ai mese personalizate salvate. Creează una în pagina „Mese Personalizate”.")
+            else:
+                col1, col2 = st.columns(2)
+                with col1:
+                    selected_meal_id = st.selectbox(
+                        "Masă personalizată",
+                        options=list(custom_meal_options.keys()),
+                        format_func=lambda meal_id: custom_meal_options[meal_id]["recipe_name"],
+                        key="food_log_custom_meal_select"
+                    )
+                    custom_quantity = st.number_input("Cantitate consumată (g)", min_value=1.0, max_value=5000.0, value=100.0, step=1.0, key="food_log_custom_meal_quantity")
+                with col2:
+                    custom_meal_type = st.selectbox("Masă", ["Mic dejun", "Prânz", "Cină", "Gustare"], key="food_log_custom_meal_type")
+                    custom_meal_time = st.time_input("Ora consumului", value=datetime.time(12, 0), key="food_log_custom_meal_time")
 
-            selected_food = food_options[selected_food_name]
-            estimated_calories = round(selected_food["calories_100g"] * float(quantity) / 100.0, 2)
-            st.caption(f"🔥 Calorii estimate: **{estimated_calories} kcal**")
+                selected_custom_meal = custom_meal_options[selected_meal_id]
+                estimated_custom_calories = round(selected_custom_meal["calories_per_g"] * float(custom_quantity), 2)
+                st.caption(f"🔥 Calorii estimate: **{estimated_custom_calories} kcal**")
 
-            submit_food = st.button("Salvează înregistrarea", use_container_width=True, key="btn_save_food")
+                submit_custom_meal = st.button("Salvează masa în jurnal", width="stretch", key="btn_save_custom_meal_log")
 
-            if submit_food:
-                food_log_entry = FoodLog(
-                log_id=daily_log.id,
-                quantity_g=quantity,
-                meal_type=meal_type,
-                meal_time=meal_time,
-                food_id=selected_food["id"]
-                )
+                if submit_custom_meal:
+                    try:
+                        custom_meal_log_entry = FoodLog(
+                            log_id=daily_log.id,
+                            quantity_g=custom_quantity,
+                            meal_type=custom_meal_type,
+                            meal_time=custom_meal_time,
+                            custom_meal_id=selected_custom_meal["id"]
+                        )
 
-                if food_log_entry.save():
-                    daily_log.recalculate_totals()
-                    st.success(f"✅ {selected_food_name} ({quantity}g) adăugat cu succes!")
-                    st.rerun()
-                else:
-                    st.error("Eroare la salvarea înregistrării.")
+                        if custom_meal_log_entry.save():
+                            daily_log.recalculate_totals()
+                            st.success(f"✅ {selected_custom_meal['recipe_name']} ({custom_quantity}g) adăugată cu succes!")
+                            st.rerun()
+                        else:
+                            st.error("Eroare la salvarea mesei personalizate.")
+                    except ValueError as ve:
+                        st.error(f"Eroare de validare: {ve}")
             
         st.divider()
         # Map months to Romanian to ensure consistent localization regardless of the OS locale
@@ -282,7 +330,6 @@ elif st.session_state['role'] == 'user':
         if act_conn:
             try:
                 cur = act_conn.cursor()
-                # FETCH CATEGORY TOO
                 cur.execute("SELECT id, name, met_multiplier, category FROM activities ORDER BY name ASC")
                 for row in cur.fetchall():
                     activity_options[row[1]] = {"id": row[0], "met": float(row[2]), "category": row[3]}
@@ -306,7 +353,7 @@ elif st.session_state['role'] == 'user':
             is_strength = selected_act["category"].strip() == "Forță"
             latest_weight = DailyLog.get_latest_weight(user_id, selected_date)
 
-            # --- LIVE PREVIEW FORM: JURNAL ACTIVITĂȚI ---
+            # Live preview inputs for the activity journal.
             col1, col2 = st.columns(2)
 
             with col1:
@@ -338,7 +385,7 @@ elif st.session_state['role'] == 'user':
             )
             st.caption(f"🔥 Calorii estimate consumate: **{estimated_burned} kcal**")
 
-            submit_act = st.button("Salvează antrenamentul", use_container_width=True, key="btn_save_act")
+            submit_act = st.button("Salvează antrenamentul", width="stretch", key="btn_save_act")
 
             if submit_act:
                 # Map 0 to None for DB insertion — schema allows NULL for sets/reps on cardio entries
@@ -413,6 +460,140 @@ elif st.session_state['role'] == 'user':
             )
         else:
             st.info("Nu există antrenamente înregistrate pentru această zi.")
+
+    elif choice == "Mese Personalizate":
+        st.header("🥗 Mese Personalizate")
+
+        user_id = st.session_state.get('user_id')
+        if not user_id:
+            st.error("Sesiune invalidă. Te rugăm să te reautentifici.")
+            st.stop()
+
+        if "custom_meal_ingredients" not in st.session_state:
+            st.session_state["custom_meal_ingredients"] = []
+
+        food_options = FoodItem.get_catalog_options()
+
+        st.subheader("➕ Creează o masă personalizată")
+        recipe_name = st.text_input("Denumire masă", key="custom_meal_name")
+
+        if not food_options:
+            st.warning("Catalogul de alimente este gol. Administratorul trebuie să adauge alimente mai întâi.")
+        else:
+            col1, col2 = st.columns(2)
+            with col1:
+                selected_ingredient_id = st.selectbox(
+                    "Ingredient",
+                    options=list(food_options.keys()),
+                    format_func=lambda food_id: food_options[food_id]["name"],
+                    key="custom_meal_ingredient_select"
+                )
+            with col2:
+                ingredient_quantity = st.number_input("Cantitate ingredient (g)", min_value=1.0, max_value=5000.0, value=100.0, step=1.0, key="custom_meal_ingredient_quantity")
+
+            selected_ingredient = food_options[selected_ingredient_id]
+            ingredient_calories = round(selected_ingredient["calories_100g"] * float(ingredient_quantity) / 100.0, 2)
+            st.caption(f"🔥 Ingredient selectat: **{ingredient_calories} kcal**")
+
+            col_add, col_clear = st.columns(2)
+            with col_add:
+                if st.button("Adaugă ingredient", width="stretch", key="btn_add_custom_meal_ingredient"):
+                    st.session_state["custom_meal_ingredients"].append({
+                        "food_id": selected_ingredient["id"],
+                        "name": selected_ingredient["name"],
+                        "quantity_g": float(ingredient_quantity),
+                        "calories_100g": selected_ingredient["calories_100g"],
+                        "protein_g": selected_ingredient["protein_g"],
+                        "carbs_g": selected_ingredient["carbs_g"],
+                        "fats_g": selected_ingredient["fats_g"],
+                    })
+                    st.rerun()
+            with col_clear:
+                if st.button("Golește lista", width="stretch", key="btn_clear_custom_meal_ingredients"):
+                    st.session_state["custom_meal_ingredients"] = []
+                    st.rerun()
+
+        pending_ingredients = st.session_state["custom_meal_ingredients"]
+        if pending_ingredients:
+            rows = []
+            total_quantity = 0.0
+            total_calories = 0.0
+            total_protein = 0.0
+            total_carbs = 0.0
+            total_fats = 0.0
+
+            for ingredient in pending_ingredients:
+                quantity_g = ingredient["quantity_g"]
+                calories = ingredient["calories_100g"] * quantity_g / 100.0
+                protein = ingredient["protein_g"] * quantity_g / 100.0
+                carbs = ingredient["carbs_g"] * quantity_g / 100.0
+                fats = ingredient["fats_g"] * quantity_g / 100.0
+
+                total_quantity += quantity_g
+                total_calories += calories
+                total_protein += protein
+                total_carbs += carbs
+                total_fats += fats
+
+                rows.append([
+                    ingredient["name"],
+                    round(quantity_g, 2),
+                    round(calories, 2),
+                    round(protein, 2),
+                    round(carbs, 2),
+                    round(fats, 2),
+                ])
+
+            df_pending = pd.DataFrame(
+                rows,
+                columns=["Ingredient", "Cantitate (g)", "Calorii", "Proteine (g)", "Carbohidrați (g)", "Grăsimi (g)"]
+            )
+            st.dataframe(df_pending, width="stretch", hide_index=True)
+
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Cantitate", f"{total_quantity:.0f} g")
+            col2.metric("Calorii", f"{total_calories:.0f} kcal")
+            col3.metric("Proteine", f"{total_protein:.1f} g")
+            col4.metric("Carbohidrați", f"{total_carbs:.1f} g")
+            st.caption(f"Grăsimi totale: **{total_fats:.1f} g**")
+
+            if st.button("Salvează masa personalizată", width="stretch", key="btn_save_custom_meal"):
+                if not recipe_name.strip():
+                    st.warning("Introdu o denumire pentru masa personalizată.")
+                else:
+                    saved_meal = CustomMeal.create_with_ingredients(
+                        user_id=user_id,
+                        recipe_name=recipe_name,
+                        ingredients=pending_ingredients
+                    )
+                    if saved_meal:
+                        st.session_state["custom_meal_ingredients"] = []
+                        st.success(f"✅ Masa personalizată „{saved_meal.recipe_name}” a fost salvată.")
+                        st.rerun()
+                    else:
+                        st.error("Eroare la salvarea mesei personalizate.")
+        else:
+            st.info("Adaugă cel puțin un ingredient pentru a salva o masă personalizată.")
+
+        st.divider()
+        st.subheader("📋 Mesele tale personalizate")
+        df_custom_meals = CustomMeal.get_all_as_dataframe(user_id)
+        if not df_custom_meals.empty:
+            st.dataframe(df_custom_meals, width="stretch", hide_index=True)
+
+            custom_meal_options = CustomMeal.get_user_meal_options(user_id)
+            selected_saved_meal_id = st.selectbox(
+                "Vezi ingredientele pentru",
+                options=list(custom_meal_options.keys()),
+                format_func=lambda meal_id: custom_meal_options[meal_id]["recipe_name"],
+                key="custom_meal_details_select"
+            )
+            selected_saved_meal = custom_meal_options[selected_saved_meal_id]
+            df_ingredients = CustomMeal.get_ingredients_as_dataframe(selected_saved_meal["id"], user_id)
+            if not df_ingredients.empty:
+                st.dataframe(df_ingredients, width="stretch", hide_index=True)
+        else:
+            st.info("Nu ai încă mese personalizate salvate.")
    
     elif choice == "Catalog Alimente":
         st.header("🍎 Catalog Alimente")

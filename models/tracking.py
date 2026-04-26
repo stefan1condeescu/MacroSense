@@ -57,6 +57,40 @@ class FoodItem:
             if conn:
                 conn.close()
 
+    @classmethod
+    def get_catalog_options(cls) -> dict:
+        """Fetches food items as option metadata for reactive UI selectors."""
+        conn = get_connection()
+        if not conn:
+            return {}
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, name, calories_100g, protein_g, carbs_g, fats_g
+                FROM food_items
+                ORDER BY name ASC
+                """
+            )
+            options = {}
+            for row in cursor.fetchall():
+                options[row[0]] = {
+                    "id": row[0],
+                    "name": row[1],
+                    "calories_100g": float(row[2] or 0),
+                    "protein_g": float(row[3] or 0),
+                    "carbs_g": float(row[4] or 0),
+                    "fats_g": float(row[5] or 0),
+                }
+            return options
+        except Exception as e:
+            print(f"Error fetching food catalog options: {e}")
+            return {}
+        finally:
+            if conn:
+                conn.close()
+
 
 class Activity:
     """
@@ -121,8 +155,10 @@ class FoodLog:
         self.quantity_g = quantity_g
         self.meal_type = meal_type
         self.meal_time = meal_time
+
+        if self.quantity_g <= 0:
+            raise ValueError("FoodLog quantity must be strictly positive.")
         
-        # XOR Enforcement at Object Level: A log must be EITHER a basic food item OR a custom meal
         if (food_id is None and custom_meal_id is None) or (food_id is not None and custom_meal_id is not None):
             raise ValueError("FoodLog must reference exactly one: either food_id OR custom_meal_id.")
             
@@ -152,6 +188,331 @@ class FoodLog:
         except Exception as e:
             print(f"Error saving food log: {e}")
             return False
+        finally:
+            if conn:
+                conn.close()
+
+
+class RecipeIngredient:
+    """
+    Represents an ingredient line inside a custom meal recipe.
+    Links a CustomMeal to a FoodItem with a specific quantity in grams.
+    """
+    def __init__(self, meal_id: int, food_id: int, quantity_g: float, ingredient_id: int = None):
+        self.id = ingredient_id
+        self.meal_id = meal_id
+        self.food_id = food_id
+        self.quantity_g = quantity_g
+
+        if self.quantity_g <= 0:
+            raise ValueError("Ingredient quantity must be strictly positive.")
+
+    def save(self) -> bool:
+        """Saves the recipe ingredient to the PostgreSQL database."""
+        conn = get_connection()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO recipe_ingredients (meal_id, food_id, quantity_g)
+                VALUES (%s, %s, %s)
+                RETURNING id
+                """,
+                (self.meal_id, self.food_id, self.quantity_g)
+            )
+            self.id = cursor.fetchone()[0]
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error saving recipe ingredient: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+
+class CustomMeal:
+    """
+    Represents a reusable user-defined meal composed of catalog food items.
+    """
+    def __init__(self, user_id: int, recipe_name: str, status: str = "Salvată", meal_id: int = None):
+        self.id = meal_id
+        self.user_id = user_id
+        self.recipe_name = recipe_name.strip() if recipe_name else ""
+        self.status = status
+
+        if not self.recipe_name:
+            raise ValueError("Custom meal name cannot be empty.")
+
+    def save(self) -> bool:
+        """Saves the custom meal header and updates the instance with the generated ID."""
+        conn = get_connection()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO custom_meals (user_id, recipe_name, status)
+                VALUES (%s, %s, %s)
+                RETURNING id
+                """,
+                (self.user_id, self.recipe_name, self.status)
+            )
+            self.id = cursor.fetchone()[0]
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error saving custom meal: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    def add_ingredient(self, food_id: int, quantity_g: float) -> bool:
+        """Adds a food item ingredient to an existing custom meal."""
+        if not self.id:
+            return False
+
+        ingredient = RecipeIngredient(self.id, food_id, quantity_g)
+        return ingredient.save()
+
+    @classmethod
+    def create_with_ingredients(cls, user_id: int, recipe_name: str, ingredients: list, status: str = "Salvată") -> "CustomMeal | None":
+        """Creates a custom meal and all its ingredients in a single transaction."""
+        meal_name = recipe_name.strip() if recipe_name else ""
+        if not meal_name or not ingredients:
+            return None
+
+        conn = get_connection()
+        if not conn:
+            return None
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                INSERT INTO custom_meals (user_id, recipe_name, status)
+                VALUES (%s, %s, %s)
+                RETURNING id
+                """,
+                (user_id, meal_name, status)
+            )
+            meal_id = cursor.fetchone()[0]
+
+            for ingredient in ingredients:
+                quantity_g = float(ingredient["quantity_g"])
+                if quantity_g <= 0:
+                    raise ValueError("Ingredient quantity must be strictly positive.")
+                cursor.execute(
+                    """
+                    INSERT INTO recipe_ingredients (meal_id, food_id, quantity_g)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (meal_id, ingredient["food_id"], quantity_g)
+                )
+
+            conn.commit()
+            return cls(user_id=user_id, recipe_name=meal_name, status=status, meal_id=meal_id)
+        except Exception as e:
+            print(f"Error creating custom meal with ingredients: {e}")
+            if conn:
+                conn.rollback()
+            return None
+        finally:
+            if conn:
+                conn.close()
+
+    def calculate_total_macros(self) -> dict:
+        """Calculates total calories and macronutrients for the full recipe."""
+        if not self.id:
+            return {
+                "quantity_g": 0.0,
+                "calories": 0.0,
+                "protein_g": 0.0,
+                "carbs_g": 0.0,
+                "fats_g": 0.0,
+            }
+
+        return self.calculate_total_macros_by_id(self.id)
+
+    def calculateTotalMacros(self) -> dict:
+        """Compatibility method matching the UML class diagram naming."""
+        return self.calculate_total_macros()
+
+    @staticmethod
+    def calculate_total_macros_by_id(meal_id: int) -> dict:
+        """Calculates total calories and macronutrients for a custom meal by ID."""
+        conn = get_connection()
+        if not conn:
+            return {
+                "quantity_g": 0.0,
+                "calories": 0.0,
+                "protein_g": 0.0,
+                "carbs_g": 0.0,
+                "fats_g": 0.0,
+            }
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT
+                    COALESCE(SUM(ri.quantity_g), 0) AS total_quantity_g,
+                    COALESCE(SUM(fi.calories_100g * ri.quantity_g / 100.0), 0) AS total_calories,
+                    COALESCE(SUM(fi.protein_g * ri.quantity_g / 100.0), 0) AS total_protein_g,
+                    COALESCE(SUM(fi.carbs_g * ri.quantity_g / 100.0), 0) AS total_carbs_g,
+                    COALESCE(SUM(fi.fats_g * ri.quantity_g / 100.0), 0) AS total_fats_g
+                FROM recipe_ingredients ri
+                JOIN food_items fi ON fi.id = ri.food_id
+                WHERE ri.meal_id = %s
+                """,
+                (meal_id,)
+            )
+            row = cursor.fetchone()
+            return {
+                "quantity_g": round(float(row[0]), 2),
+                "calories": round(float(row[1]), 2),
+                "protein_g": round(float(row[2]), 2),
+                "carbs_g": round(float(row[3]), 2),
+                "fats_g": round(float(row[4]), 2),
+            }
+        except Exception as e:
+            print(f"Error calculating custom meal macros: {e}")
+            return {
+                "quantity_g": 0.0,
+                "calories": 0.0,
+                "protein_g": 0.0,
+                "carbs_g": 0.0,
+                "fats_g": 0.0,
+            }
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
+    def get_user_meal_options(cls, user_id: int) -> dict:
+        """Fetches custom meals for a user as option metadata for selectors."""
+        conn = get_connection()
+        if not conn:
+            return {}
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                WITH meal_totals AS (
+                    SELECT
+                        ri.meal_id,
+                        COALESCE(SUM(ri.quantity_g), 0) AS total_quantity_g,
+                        COALESCE(SUM(fi.calories_100g * ri.quantity_g / 100.0), 0) AS total_calories,
+                        COALESCE(SUM(fi.protein_g * ri.quantity_g / 100.0), 0) AS total_protein_g,
+                        COALESCE(SUM(fi.carbs_g * ri.quantity_g / 100.0), 0) AS total_carbs_g,
+                        COALESCE(SUM(fi.fats_g * ri.quantity_g / 100.0), 0) AS total_fats_g
+                    FROM recipe_ingredients ri
+                    JOIN food_items fi ON fi.id = ri.food_id
+                    GROUP BY ri.meal_id
+                )
+                SELECT
+                    cm.id,
+                    cm.recipe_name,
+                    cm.status,
+                    COALESCE(mt.total_quantity_g, 0),
+                    COALESCE(mt.total_calories, 0),
+                    COALESCE(mt.total_protein_g, 0),
+                    COALESCE(mt.total_carbs_g, 0),
+                    COALESCE(mt.total_fats_g, 0)
+                FROM custom_meals cm
+                LEFT JOIN meal_totals mt ON mt.meal_id = cm.id
+                WHERE cm.user_id = %s
+                ORDER BY cm.recipe_name ASC
+                """,
+                (user_id,)
+            )
+            options = {}
+            for row in cursor.fetchall():
+                total_quantity_g = float(row[3] or 0)
+                total_calories = float(row[4] or 0)
+                calories_per_g = total_calories / total_quantity_g if total_quantity_g > 0 else 0.0
+                options[row[0]] = {
+                    "id": row[0],
+                    "recipe_name": row[1],
+                    "status": row[2],
+                    "quantity_g": total_quantity_g,
+                    "calories": total_calories,
+                    "protein_g": float(row[5] or 0),
+                    "carbs_g": float(row[6] or 0),
+                    "fats_g": float(row[7] or 0),
+                    "calories_per_g": calories_per_g,
+                }
+            return options
+        except Exception as e:
+            print(f"Error fetching custom meal options: {e}")
+            return {}
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
+    def get_all_as_dataframe(cls, user_id: int) -> pd.DataFrame:
+        """Fetches all custom meals for a user as a pandas DataFrame."""
+        meal_options = cls.get_user_meal_options(user_id)
+        if not meal_options:
+            return pd.DataFrame()
+
+        rows = []
+        for meal in meal_options.values():
+            rows.append([
+                meal["id"],
+                meal["recipe_name"],
+                round(meal["quantity_g"], 2),
+                round(meal["calories"], 2),
+                round(meal["protein_g"], 2),
+                round(meal["carbs_g"], 2),
+                round(meal["fats_g"], 2),
+                meal["status"],
+            ])
+        columns = ["id", "Denumire", "Cantitate totală (g)", "Calorii", "Proteine (g)", "Carbohidrați (g)", "Grăsimi (g)", "Status"]
+        return pd.DataFrame(rows, columns=columns).set_index("id")
+
+    @classmethod
+    def get_ingredients_as_dataframe(cls, meal_id: int, user_id: int) -> pd.DataFrame:
+        """Fetches the ingredient list for a user's custom meal."""
+        conn = get_connection()
+        if not conn:
+            return pd.DataFrame()
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT
+                    fi.name,
+                    ri.quantity_g,
+                    ROUND(fi.calories_100g * ri.quantity_g / 100.0, 2),
+                    ROUND(fi.protein_g * ri.quantity_g / 100.0, 2),
+                    ROUND(fi.carbs_g * ri.quantity_g / 100.0, 2),
+                    ROUND(fi.fats_g * ri.quantity_g / 100.0, 2)
+                FROM recipe_ingredients ri
+                JOIN food_items fi ON fi.id = ri.food_id
+                JOIN custom_meals cm ON cm.id = ri.meal_id
+                WHERE ri.meal_id = %s AND cm.user_id = %s
+                ORDER BY fi.name ASC
+                """,
+                (meal_id, user_id)
+            )
+            rows = cursor.fetchall()
+            if rows:
+                columns = ["Ingredient", "Cantitate (g)", "Calorii", "Proteine (g)", "Carbohidrați (g)", "Grăsimi (g)"]
+                return pd.DataFrame(rows, columns=columns)
+            return pd.DataFrame()
+        except Exception as e:
+            print(f"Error fetching custom meal ingredients: {e}")
+            return pd.DataFrame()
         finally:
             if conn:
                 conn.close()
@@ -247,7 +608,6 @@ class DailyLog:
         try:
             cursor = conn.cursor()
             
-            # 1. Calculate Calories IN (Food)
             cursor.execute(
                 """
                 SELECT COALESCE(SUM(fi.calories_100g * fl.quantity_g / 100.0), 0)
@@ -258,10 +618,33 @@ class DailyLog:
                 (self.id,)
             )
             calories_from_food = float(cursor.fetchone()[0])
-            calories_from_meals = 0.0 # TODO: Delegate to CustomMeals later
+
+            cursor.execute(
+                """
+                WITH meal_totals AS (
+                    SELECT
+                        ri.meal_id,
+                        COALESCE(SUM(ri.quantity_g), 0) AS total_quantity_g,
+                        COALESCE(SUM(fi.calories_100g * ri.quantity_g / 100.0), 0) AS total_calories
+                    FROM recipe_ingredients ri
+                    JOIN food_items fi ON fi.id = ri.food_id
+                    GROUP BY ri.meal_id
+                )
+                SELECT COALESCE(SUM(
+                    CASE
+                        WHEN mt.total_quantity_g > 0 THEN mt.total_calories * fl.quantity_g / mt.total_quantity_g
+                        ELSE 0
+                    END
+                ), 0)
+                FROM food_logs fl
+                JOIN meal_totals mt ON mt.meal_id = fl.custom_meal_id
+                WHERE fl.log_id = %s AND fl.custom_meal_id IS NOT NULL
+                """,
+                (self.id,)
+            )
+            calories_from_meals = float(cursor.fetchone()[0])
             self.total_calories_in = round(calories_from_food + calories_from_meals, 2)
             
-            # 2. Fetch latest user weight for MET calculation
             cursor.execute(
                 """
                 SELECT weight_kg FROM weight_logs 
@@ -271,10 +654,8 @@ class DailyLog:
                 (self.user_id, self.log_date)
             )
             weight_row = cursor.fetchone()
-            # Fallback to standard weight if no log exists (safety net)
             current_weight = float(weight_row[0]) if weight_row else 70.0
 
-            # 3. Calculate Calories BURNED (Hybrid Model TUT)
             cursor.execute(
                 """
                 SELECT COALESCE(SUM(
@@ -296,7 +677,6 @@ class DailyLog:
             )
             self.total_calories_burned = round(float(cursor.fetchone()[0]), 2)
             
-            # 4. Update the DailyLog record
             cursor.execute(
                 """
                 UPDATE daily_logs 
@@ -317,8 +697,8 @@ class DailyLog:
     @classmethod
     def get_food_entries(cls, log_id: int) -> "pd.DataFrame":
         """
-        Returns all food-item FoodLog entries for a given daily_log id as a DataFrame,
-        joined with food_items to show human-readable names and computed calories.
+        Returns all FoodLog entries for a given daily_log id as a DataFrame,
+        including both catalog food items and custom meals.
         """
         conn = get_connection()
         if not conn:
@@ -328,23 +708,56 @@ class DailyLog:
             cursor = conn.cursor()
             cursor.execute(
                 """
-                SELECT 
-                    fl.id, 
-                    fi.name                                              AS "Aliment",
-                    fl.quantity_g                                        AS "Cantitate (g)",
-                    ROUND(fi.calories_100g * fl.quantity_g / 100.0, 2)  AS "Calorii",
-                    fl.meal_type                                         AS "Masă",
-                    fl.meal_time                                         AS "Ora"
-                FROM food_logs fl
-                JOIN food_items fi ON fi.id = fl.food_id
-                WHERE fl.log_id = %s AND fl.food_id IS NOT NULL
-                ORDER BY fl.meal_time ASC NULLS LAST
+                WITH meal_totals AS (
+                    SELECT
+                        ri.meal_id,
+                        COALESCE(SUM(ri.quantity_g), 0) AS total_quantity_g,
+                        COALESCE(SUM(fi.calories_100g * ri.quantity_g / 100.0), 0) AS total_calories
+                    FROM recipe_ingredients ri
+                    JOIN food_items fi ON fi.id = ri.food_id
+                    GROUP BY ri.meal_id
+                )
+                SELECT *
+                FROM (
+                    SELECT
+                        fl.id,
+                        'Aliment' AS "Tip",
+                        fi.name AS "Aliment / Masă",
+                        fl.quantity_g AS "Cantitate (g)",
+                        ROUND(fi.calories_100g * fl.quantity_g / 100.0, 2) AS "Calorii",
+                        fl.meal_type AS "Masă",
+                        fl.meal_time AS "Ora"
+                    FROM food_logs fl
+                    JOIN food_items fi ON fi.id = fl.food_id
+                    WHERE fl.log_id = %s AND fl.food_id IS NOT NULL
+
+                    UNION ALL
+
+                    SELECT
+                        fl.id,
+                        'Masă personalizată' AS "Tip",
+                        cm.recipe_name AS "Aliment / Masă",
+                        fl.quantity_g AS "Cantitate (g)",
+                        ROUND(
+                            CASE
+                                WHEN mt.total_quantity_g > 0 THEN mt.total_calories * fl.quantity_g / mt.total_quantity_g
+                                ELSE 0
+                            END
+                        , 2) AS "Calorii",
+                        fl.meal_type AS "Masă",
+                        fl.meal_time AS "Ora"
+                    FROM food_logs fl
+                    JOIN custom_meals cm ON cm.id = fl.custom_meal_id
+                    LEFT JOIN meal_totals mt ON mt.meal_id = cm.id
+                    WHERE fl.log_id = %s AND fl.custom_meal_id IS NOT NULL
+                ) entries
+                ORDER BY "Ora" ASC NULLS LAST
                 """,
-                (log_id,)
+                (log_id, log_id)
             )
             rows = cursor.fetchall()
             if rows:
-                columns = ["id", "Aliment", "Cantitate (g)", "Calorii", "Masă", "Ora"]
+                columns = ["id", "Tip", "Aliment / Masă", "Cantitate (g)", "Calorii", "Masă", "Ora"]
                 df = pd.DataFrame(rows, columns=columns)
                 return df.set_index("id")
             return pd.DataFrame()
