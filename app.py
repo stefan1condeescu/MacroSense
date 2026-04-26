@@ -550,16 +550,25 @@ elif st.session_state['role'] == 'user':
             )
             st.dataframe(df_pending, width="stretch", hide_index=True)
 
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Cantitate", f"{total_quantity:.0f} g")
-            col2.metric("Calorii", f"{total_calories:.0f} kcal")
-            col3.metric("Proteine", f"{total_protein:.1f} g")
-            col4.metric("Carbohidrați", f"{total_carbs:.1f} g")
-            st.caption(f"Grăsimi totale: **{total_fats:.1f} g**")
+            _, col_quantity, col_calories, _ = st.columns([0.85, 1, 1, 0.15])
+            col_quantity.metric("Cantitate totală", f"{total_quantity:.0f} g")
+            col_calories.metric("Calorii totale", f"{total_calories:.0f} kcal")
+
+            st.markdown("<br>", unsafe_allow_html=True)
+
+            _, col_protein, col_carbs, col_fats, _ = st.columns([0.75, 1, 1, 1, 0.05])
+            col_protein.caption("Proteine")
+            col_protein.metric(" ", f"{total_protein:.1f} g", label_visibility="collapsed")
+            col_carbs.caption("Carbohidrați")
+            col_carbs.metric(" ", f"{total_carbs:.1f} g", label_visibility="collapsed")
+            col_fats.caption("Grăsimi")
+            col_fats.metric(" ", f"{total_fats:.1f} g", label_visibility="collapsed")
 
             if st.button("Salvează masa personalizată", width="stretch", key="btn_save_custom_meal"):
                 if not recipe_name.strip():
                     st.warning("Introdu o denumire pentru masa personalizată.")
+                elif not CustomMeal.is_valid_recipe_name(recipe_name):
+                    st.warning("Denumirea mesei trebuie să înceapă cu o literă.")
                 else:
                     saved_meal = CustomMeal.create_with_ingredients(
                         user_id=user_id,

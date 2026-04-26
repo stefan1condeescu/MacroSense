@@ -53,6 +53,9 @@ class FoodItem:
                 columns = ["Denumire", "Calorii/100g", "Proteine (g)", "Carbohidrați (g)", "Grăsimi (g)", "Categorie"]
                 return pd.DataFrame(rows, columns=columns)
             return pd.DataFrame()
+        except Exception as e:
+            print(f"Error fetching food items: {e}")
+            return pd.DataFrame()
         finally:
             if conn:
                 conn.close()
@@ -138,6 +141,9 @@ class Activity:
             if rows:
                 columns = ["Denumire", "Coeficient MET", "Categorie"]
                 return pd.DataFrame(rows, columns=columns)
+            return pd.DataFrame()
+        except Exception as e:
+            print(f"Error fetching activities: {e}")
             return pd.DataFrame()
         finally:
             if conn:
@@ -246,6 +252,14 @@ class CustomMeal:
 
         if not self.recipe_name:
             raise ValueError("Custom meal name cannot be empty.")
+        if not self.is_valid_recipe_name(self.recipe_name):
+            raise ValueError("Custom meal name must start with a letter.")
+
+    @staticmethod
+    def is_valid_recipe_name(recipe_name: str) -> bool:
+        """Checks that a custom meal name starts with a letter."""
+        cleaned_name = recipe_name.strip() if recipe_name else ""
+        return bool(cleaned_name) and cleaned_name[0].isalpha()
 
     def save(self) -> bool:
         """Saves the custom meal header and updates the instance with the generated ID."""
@@ -285,7 +299,7 @@ class CustomMeal:
     def create_with_ingredients(cls, user_id: int, recipe_name: str, ingredients: list, status: str = "Salvată") -> "CustomMeal | None":
         """Creates a custom meal and all its ingredients in a single transaction."""
         meal_name = recipe_name.strip() if recipe_name else ""
-        if not meal_name or not ingredients:
+        if not meal_name or not cls.is_valid_recipe_name(meal_name) or not ingredients:
             return None
 
         conn = get_connection()
