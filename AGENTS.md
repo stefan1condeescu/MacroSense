@@ -10,6 +10,10 @@
   - database.py — get_connection()
   - schema.sql — schema completă a bazei de date
   - STATUS.md — starea curentă a proiectului (ce e gata, ce e în progres, backlog)
+  - docs/DiagramaClase_UPDATED.png — diagrama UML de clase (actualizată)
+  - docs/ERD_UPDATED.png — diagrama ERD a bazei de date (actualizată)
+  - docs/LICENTA_faranumev12.docx — lucrarea de licență completă
+  - docs/STRUCTURA-LUCRARII-DE-LICENTA.docx — structura impusă de profesor
 
 ## Reguli stricte
 - Tot codul (variabile, clase, metode, comentarii) exclusiv în ENGLEZĂ
