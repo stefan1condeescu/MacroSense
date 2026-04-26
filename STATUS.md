@@ -27,10 +27,20 @@
 - [x] Polish UI/UX (Jurnal Alimentar & Activități): Eliminare `st.form` pentru a permite calculul și afișarea în timp real (live preview) a caloriilor estimate consumate/arse direct la interacțiunea cu datele din formulare. Resetarea câmpurilor post-salvare este menținută curat prin `st.rerun()`.
 - [x] Polish UI/UX (Cataloage Admin & User): Ascunderea indexului (ID-ului bazei de date / indexului Pandas) din toate cele 4 tabele de afișare pentru cataloagele de Alimente și Activități, standardizând aspectul vizual curat în toată aplicația.
 - [x] Polish UI/UX (Jurnal Activități): Redesign secțiune metrici sub formă de piramidă 3+2 — rând 1: Calorii Forță, Calorii Cardio & Altele, Total Calorii Arse; rând 2 centrat: Calorii Consumate și Balanță energetică.
+- [x] Implementarea claselor `RecipeIngredient` și `CustomMeal` în `models/tracking.py`, pe structura deja existentă din `schema.sql` (`custom_meals` și `recipe_ingredients`).
+- [x] Implementarea metodei `CustomMeal.calculateTotalMacros()` conform diagramei UML, împreună cu varianta Pythonic `calculate_total_macros()`.
+- [x] Implementarea salvării atomice a meselor personalizate cu ingrediente prin `CustomMeal.create_with_ingredients()`.
+- [x] Integrarea meselor personalizate în `DailyLog.recalculate_totals()`, astfel încât totalul `total_calories_in` include atât alimente simple, cât și mese personalizate consumate.
+- [x] Extinderea `DailyLog.get_food_entries()` pentru afișarea intrărilor mixte din jurnal: `Aliment` și `Masă personalizată`.
+- [x] Implementarea paginii Streamlit „Mese Personalizate”: creare rețetă, adăugare ingrediente, preview calorii/macronutrienți, salvare și vizualizare ingrediente.
+- [x] Extinderea paginii „Jurnal Alimentar” cu opțiunea de a salva în jurnal fie un aliment din catalog, fie o masă personalizată, respectând constrângerea XOR din `FoodLog`.
+- [x] Fix UI/UX: eliminarea sufixelor tehnice de tip `#id` din selectbox-urile pentru alimente și mese personalizate, păstrând ID-ul doar intern pentru selecție robustă.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Logica pentru Mese Personalizate (`CustomMeal`) — creare rețete cu ingrediente, implementarea funcției `calculateTotalMacros()` conform diagramei UML și integrarea în calculele zilnice.
+- [ ] Stabilizare și testare funcțională pentru fluxul complet Mese Personalizate → Jurnal Alimentar → recalculare totaluri zilnice.
 
 ## 🔴 Ce urmează (Backlog):
-- [ ] Modulul de Machine Learning — What-if și predicția greutății.
+- [ ] Modulul de Machine Learning — predicția greutății.
+- [ ] Recomandări personalizate de mese.
+- [ ] Simulator What-if (scenarii calorice).
 - [ ] Dashboard și generare grafice pentru progres.

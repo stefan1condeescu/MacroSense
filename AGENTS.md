@@ -5,7 +5,7 @@
 - Baza de date: PostgreSQL via psycopg2 (niciodată ORM)
 - Structura fișierelor:
   - app.py — interfața Streamlit (toate paginile)
-  - models/tracking.py — DailyLog, FoodLog, ActivityLog, WeightLog, FoodItem, Activity
+  - models/tracking.py — DailyLog, FoodLog, ActivityLog, WeightLog, FoodItem, Activity, CustomMeal, RecipeIngredient
   - models/authentication.py — User, Admin
   - database.py — get_connection()
   - schema.sql — schema completă a bazei de date
@@ -35,6 +35,10 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   get_activity_entries, calculate_hybrid_calories (static),
   get_latest_weight (static), calculate_energy_balance
 - FoodLog, ActivityLog, WeightLog: metoda save()
+- RecipeIngredient: metoda save()
+- CustomMeal: save, add_ingredient, create_with_ingredients,
+  calculate_total_macros, calculateTotalMacros, get_user_meal_options,
+  get_all_as_dataframe, get_ingredients_as_dataframe
 - User: register(password, weight), authenticate(password)
 - Admin: authenticate(password)
 - FoodItem, Activity: save(), get_all_as_dataframe()
@@ -46,6 +50,8 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - hide_index=True pe toate st.dataframe()
 - Preview caloric live cu st.caption() înainte de butonul de salvare
 - Formulare reactive: st.button() cu key= explicit
+- Selectbox-urile pentru alimente și mese personalizate folosesc ID intern,
+  dar afișează utilizatorului doar denumirea, fără sufixe tehnice de tip #id
 
 ## Baza de date
 - PostgreSQL local via pgAdmin 4 (localhost:5432)
@@ -61,4 +67,3 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - Recomandări personalizate de mese
 - Dashboard cu grafice (Plotly/Altair)
 - Simulator What-if (scenarii calorice)
-- Mese Personalizate (CustomMeal)
