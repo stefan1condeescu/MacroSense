@@ -48,6 +48,7 @@
 - [x] Polish UI „Mese Personalizate”: CSS mutat în `assets/style.css`, listă de mese afișată ca rânduri/carduri compacte și tabele de ingrediente compactate cu `column_config`.
 - [x] Polish UI global: tabelele din Admin, Jurnal Alimentar, Jurnal Activități și Cataloage folosesc randare compactă unitară, iar butoanele de salvare/ștergere au culori sugestive.
 - [x] Implementare arhivare/reactivare „Mese Personalizate”: mesele arhivate rămân în istoricul alimentar, dar nu mai apar la adăugarea unei mese personalizate în Jurnal Alimentar până la reactivare.
+- [x] Refactorizare structură Tracking: clasele `FoodItem`, `Activity`, `FoodLog`, `ActivityLog`, `RecipeIngredient`, `CustomMeal` și `DailyLog` au fost mutate în module dedicate sub `models/tracking_models/`, păstrând `models/tracking.py` ca fațadă compatibilă pentru importurile existente.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
 - [ ] Stabilizare și testare funcțională pentru fluxul complet „Mese Personalizate”: creare → editare → arhivare/reactivare → folosire în Jurnal Alimentar → recalculare totaluri zilnice.

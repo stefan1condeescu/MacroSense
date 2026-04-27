@@ -6,7 +6,15 @@
 - Structura fișierelor:
   - app.py — interfața Streamlit (toate paginile)
   - assets/style.css — stiluri CSS locale pentru polish UI
-  - models/tracking.py — DailyLog, FoodLog, ActivityLog, FoodItem, Activity, CustomMeal, RecipeIngredient
+  - models/tracking.py — fațadă de compatibilitate care re-exportă clasele din pachetul tracking
+  - models/tracking_models/ — pachet domeniu Tracking, separat pe clase:
+    - food_item.py — FoodItem
+    - activity.py — Activity
+    - food_log.py — FoodLog
+    - activity_log.py — ActivityLog
+    - recipe_ingredient.py — RecipeIngredient
+    - custom_meal.py — CustomMeal
+    - daily_log.py — DailyLog
   - models/authentication.py — User, Admin
   - database.py — get_connection()
   - schema.sql — schema completă a bazei de date
