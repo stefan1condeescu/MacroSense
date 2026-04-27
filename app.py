@@ -1,12 +1,10 @@
 import streamlit as st
 from ui.config import configure_page
-
-configure_page()
-
 from ui.pages.admin_routes import render_admin_routes
 from ui.pages.auth_page import render_auth_page
 from ui.pages.user_routes import render_user_routes
 
+configure_page()
 
 if "role" not in st.session_state:
     st.session_state["role"] = None
