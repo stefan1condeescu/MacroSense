@@ -13,7 +13,7 @@
   - docs/DiagramaClase_UPDATED.png — diagrama UML de clase (actualizată)
   - docs/ERD_UPDATED.png — diagrama ERD a bazei de date (actualizată)
   - docs/LICENTA_faranumev12.docx — lucrarea de licență completă
-  - docs/STRUCTURA-LUCRARII-DE-LICENTA.docx — structura impusă de profesor
+  - docs/STRUCTURA LUCRĂRII DE LICENŢĂ.docx — structura impusă de profesor
 
 ## Reguli stricte
 - Tot codul (variabile, clase, metode, comentarii) exclusiv în ENGLEZĂ
@@ -36,14 +36,14 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   get_activity_entries, calculate_hybrid_calories (static),
   get_latest_weight (static), calculate_energy_balance
 - FoodLog: save(), update(), delete()
-- ActivityLog: metoda save()
+- ActivityLog: save(), update(), delete()
 - RecipeIngredient: metoda save()
 - CustomMeal: save, add_ingredient, create_with_ingredients,
   calculate_total_macros, calculateTotalMacros, get_user_meal_options,
   get_all_as_dataframe, get_ingredients_as_dataframe
 - User: register(password, weight), authenticate(password)
 - Admin: authenticate(password)
-- FoodItem, Activity: save(), get_all_as_dataframe()
+- FoodItem, Activity: save(), get_all_as_dataframe(), get_catalog_options()
 
 ## Convenții UI
 - Metrici Jurnal Activități: layout 3+2 piramidă
@@ -52,8 +52,9 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - hide_index=True pe toate st.dataframe()
 - Preview caloric live cu st.caption() înainte de butonul de salvare
 - Formulare reactive: st.button() cu key= explicit
-- În Jurnal Alimentar, panourile reactive cu multe widget-uri pot folosi
-  st.fragment() pentru a limita rerender-ul vizual și a evita flicker-ul.
+- În Jurnal Alimentar și Jurnal Activități, panourile reactive cu multe
+  widget-uri pot folosi st.fragment() pentru a limita rerender-ul vizual
+  și a evita flicker-ul.
 - Mesajele de succes care urmează după operații cu rerun trebuie păstrate
   în st.session_state și afișate ca st.toast(), fără să mute tabelul.
 - Selectbox-urile pentru alimente și mese personalizate folosesc ID intern,

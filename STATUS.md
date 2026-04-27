@@ -41,9 +41,11 @@
 - [x] Implementare ștergere intrare din „Jurnal Alimentar”: `FoodLog.delete()` verifică apartenența la utilizator, iar UI-ul cere confirmare și recalculează totalurile zilnice după ștergere.
 - [x] Implementare editare intrare din „Jurnal Alimentar”: `FoodLog.update()` permite modificarea cantității, mesei și orei consumului, cu verificare pe utilizator și recalculare automată a totalurilor zilnice.
 - [x] Stabilizare UI/UX pentru editare/ștergere în „Jurnal Alimentar”: panouri izolate cu `st.fragment()`, mesaje prin `st.toast()` și eliminarea flicker-ului produs de placeholder-ele de tabel.
+- [x] Implementare editare/ștergere intrare din „Jurnal Activități”: `ActivityLog.update()` și `ActivityLog.delete()` verifică apartenența la utilizator și recalculează automat totalurile zilnice după fiecare operație.
+- [x] Stabilizare UI/UX pentru „Jurnal Activități”: panouri reactive izolate cu `st.fragment()`, selectbox-uri bazate pe ID intern și mesaje de confirmare prin `st.toast()`.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] CRUD incremental pentru „Jurnal Activități”: editare/ștergere activități și recalculare totaluri după fiecare operație.
+- [ ] Stabilizare și testare funcțională pentru fluxul complet „Jurnal Activități”: adăugare → editare → ștergere → recalculare totaluri zilnice.
 
 ## 🔴 Ce urmează (Backlog):
 - [ ] Modulul de Machine Learning — predicția greutății.
