@@ -342,6 +342,9 @@ class CustomMeal:
     """
     Represents a reusable user-defined meal composed of catalog food items.
     """
+    ACTIVE_STATUS = "Salvată"
+    ARCHIVED_STATUS = "Arhivată"
+
     def __init__(self, user_id: int, recipe_name: str, status: str = "Salvată", meal_id: int = None):
         self.id = meal_id
         self.user_id = user_id
@@ -440,10 +443,12 @@ class CustomMeal:
                 conn.close()
 
     @classmethod
-    def update_with_ingredients(cls, meal_id: int, user_id: int, recipe_name: str, ingredients: list, status: str = "Salvată") -> bool:
+    def update_with_ingredients(cls, meal_id: int, user_id: int, recipe_name: str, ingredients: list, status: str = None) -> bool:
         """Updates a user's custom meal and replaces its ingredients in a single transaction."""
         meal_name = recipe_name.strip() if recipe_name else ""
         if not meal_name or not cls.is_valid_recipe_name(meal_name) or not ingredients:
+            return False
+        if status is not None and status not in (cls.ACTIVE_STATUS, cls.ARCHIVED_STATUS):
             return False
 
         conn = get_connection()
@@ -456,7 +461,7 @@ class CustomMeal:
                 """
                 UPDATE custom_meals
                 SET recipe_name = %s,
-                    status = %s
+                    status = COALESCE(%s, status)
                 WHERE id = %s AND user_id = %s
                 RETURNING id
                 """,
@@ -592,7 +597,48 @@ class CustomMeal:
                 conn.close()
 
     @classmethod
-    def get_user_meal_options(cls, user_id: int) -> dict:
+    def set_status(cls, meal_id: int, user_id: int, status: str) -> bool:
+        """Updates the status of a custom meal only if it belongs to the given user."""
+        if status not in (cls.ACTIVE_STATUS, cls.ARCHIVED_STATUS):
+            return False
+
+        conn = get_connection()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE custom_meals
+                SET status = %s
+                WHERE id = %s AND user_id = %s
+                RETURNING id
+                """,
+                (status, meal_id, user_id)
+            )
+            updated_row = cursor.fetchone()
+            conn.commit()
+            return updated_row is not None
+        except Exception as e:
+            print(f"Error updating custom meal status: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
+    def archive(cls, meal_id: int, user_id: int) -> bool:
+        """Archives a custom meal without deleting historical food log entries."""
+        return cls.set_status(meal_id, user_id, cls.ARCHIVED_STATUS)
+
+    @classmethod
+    def restore(cls, meal_id: int, user_id: int) -> bool:
+        """Restores an archived custom meal so it can be used again."""
+        return cls.set_status(meal_id, user_id, cls.ACTIVE_STATUS)
+
+    @classmethod
+    def get_user_meal_options(cls, user_id: int, include_archived: bool = False) -> dict:
         """Fetches custom meals for a user as option metadata for selectors."""
         conn = get_connection()
         if not conn:
@@ -600,8 +646,13 @@ class CustomMeal:
 
         try:
             cursor = conn.cursor()
+            status_filter = "" if include_archived else "AND (cm.status IS NULL OR cm.status = %s)"
+            params = [user_id]
+            if not include_archived:
+                params.append(cls.ACTIVE_STATUS)
+
             cursor.execute(
-                """
+                f"""
                 WITH meal_totals AS (
                     SELECT
                         ri.meal_id,
@@ -626,9 +677,10 @@ class CustomMeal:
                 FROM custom_meals cm
                 LEFT JOIN meal_totals mt ON mt.meal_id = cm.id
                 WHERE cm.user_id = %s
+                  {status_filter}
                 ORDER BY cm.recipe_name ASC
                 """,
-                (user_id,)
+                tuple(params)
             )
             options = {}
             for row in cursor.fetchall():
@@ -638,7 +690,7 @@ class CustomMeal:
                 options[row[0]] = {
                     "id": row[0],
                     "recipe_name": row[1],
-                    "status": row[2],
+                    "status": row[2] or cls.ACTIVE_STATUS,
                     "quantity_g": total_quantity_g,
                     "calories": total_calories,
                     "protein_g": float(row[5] or 0),
@@ -655,9 +707,9 @@ class CustomMeal:
                 conn.close()
 
     @classmethod
-    def get_all_as_dataframe(cls, user_id: int) -> pd.DataFrame:
+    def get_all_as_dataframe(cls, user_id: int, include_archived: bool = True) -> pd.DataFrame:
         """Fetches all custom meals for a user as a pandas DataFrame."""
-        meal_options = cls.get_user_meal_options(user_id)
+        meal_options = cls.get_user_meal_options(user_id, include_archived=include_archived)
         if not meal_options:
             return pd.DataFrame()
 

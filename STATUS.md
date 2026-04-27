@@ -47,12 +47,12 @@
 - [x] Extindere UI „Mese Personalizate”: panou de editare cu modificare denumire, adăugare/eliminare ingrediente, ajustare cantități și preview recalculat pentru calorii/macronutrienți.
 - [x] Polish UI „Mese Personalizate”: CSS mutat în `assets/style.css`, listă de mese afișată ca rânduri/carduri compacte și tabele de ingrediente compactate cu `column_config`.
 - [x] Polish UI global: tabelele din Admin, Jurnal Alimentar, Jurnal Activități și Cataloage folosesc randare compactă unitară, iar butoanele de salvare/ștergere au culori sugestive.
+- [x] Implementare arhivare/reactivare „Mese Personalizate”: mesele arhivate rămân în istoricul alimentar, dar nu mai apar la adăugarea unei mese personalizate în Jurnal Alimentar până la reactivare.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Stabilizare și testare funcțională pentru fluxul complet „Mese Personalizate”: creare → editare denumire/ingrediente → folosire în Jurnal Alimentar → recalculare totaluri zilnice.
+- [ ] Stabilizare și testare funcțională pentru fluxul complet „Mese Personalizate”: creare → editare → arhivare/reactivare → folosire în Jurnal Alimentar → recalculare totaluri zilnice.
 
 ## 🔴 Ce urmează (Backlog):
-- [ ] Ștergere/dezactivare mese personalizate cu păstrarea istoricului din Jurnal Alimentar.
 - [ ] Modulul de Machine Learning — predicția greutății.
 - [ ] Recomandări personalizate de mese.
 - [ ] Simulator What-if (scenarii calorice).

@@ -45,3 +45,73 @@ button[data-testid="stBaseButton-tertiary"]:hover {
     border-color: #fb7185;
     color: #9f1239;
 }
+
+.custom-meal-card {
+    border: 1px solid #d7dee8;
+    border-radius: 8px;
+    padding: 14px 16px;
+    margin: 10px 0;
+    background: #ffffff;
+    transition: border-color 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
+}
+
+.custom-meal-card.active {
+    border-left: 4px solid #16a34a;
+}
+
+.custom-meal-card.archived {
+    border-left: 4px solid #dc2626;
+    background: #f8fafc;
+    opacity: 0.68;
+    filter: grayscale(0.18);
+}
+
+.custom-meal-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+}
+
+.status-badge {
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 4px 10px;
+}
+
+.status-badge.active {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+}
+
+.status-badge.archived {
+    background: #fee2e2;
+    color: #991b1b;
+    border: 1px solid #fca5a5;
+}
+
+.custom-meal-card-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.custom-meal-card-grid span {
+    display: block;
+    color: #64748b;
+    font-size: 0.78rem;
+    margin-bottom: 5px;
+}
+
+.custom-meal-card-grid strong {
+    color: #0f172a;
+    font-size: 0.92rem;
+}
+
+.custom-meal-card.archived .custom-meal-card-grid strong,
+.custom-meal-card.archived .custom-meal-card-header strong {
+    color: #475569;
+}
