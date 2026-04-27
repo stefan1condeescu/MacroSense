@@ -35,6 +35,39 @@ def render_table(dataframe: pd.DataFrame, column_config: dict = None, column_ord
         row_height=32
     )
 
+def format_time_for_display(value) -> str:
+    """Formats database time values for Streamlit display widgets."""
+    if value is None:
+        return "-"
+
+    try:
+        if pd.isna(value):
+            return "-"
+    except (TypeError, ValueError):
+        pass
+
+    if isinstance(value, datetime.timedelta):
+        total_seconds = int(value.total_seconds())
+        return (datetime.datetime.min + datetime.timedelta(seconds=total_seconds)).time().strftime("%H:%M")
+
+    if isinstance(value, datetime.time):
+        return value.strftime("%H:%M")
+
+    if isinstance(value, str):
+        try:
+            return datetime.time.fromisoformat(value).strftime("%H:%M")
+        except ValueError:
+            return value
+
+    return str(value)
+
+def format_food_entries_for_display(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Returns a UI-safe copy of food log entries with formatted time."""
+    visible_dataframe = dataframe.copy()
+    if "Ora" in visible_dataframe.columns:
+        visible_dataframe["Ora"] = visible_dataframe["Ora"].apply(format_time_for_display)
+    return visible_dataframe
+
 food_catalog_table_config = {
     "Denumire": st.column_config.TextColumn("Denumire", width="medium"),
     "Calorii/100g": st.column_config.NumberColumn("Calorii/100g", format="%.1f kcal", width="small"),
@@ -284,7 +317,8 @@ elif st.session_state['role'] == 'user':
 
         def format_food_log_option(entries_df, log_entry_id):
             row = entries_df.loc[log_entry_id]
-            return f"{row['Tip']} - {row['Aliment / Masă']} ({row['Cantitate (g)']}g, {row['Masă']}, {row['Ora']})"
+            meal_time = format_time_for_display(row["Ora"])
+            return f"{row['Tip']} - {row['Aliment / Masă']} ({row['Cantitate (g)']}g, {row['Masă']}, {meal_time})"
 
         show_food_log_message(food_log_message)
 
@@ -344,7 +378,7 @@ elif st.session_state['role'] == 'user':
                             st.error(f"Eroare de validare: {ve}")
             else:
                 if not custom_meal_options:
-                    st.warning("Nu ai mese personalizate salvate. Creează una în pagina „Mese Personalizate”.")
+                    st.warning("Nu ai mese personalizate active. Creează sau reactivează una în pagina „Mese Personalizate”.")
                 else:
                     col1, col2 = st.columns(2)
                     with col1:
@@ -399,7 +433,7 @@ elif st.session_state['role'] == 'user':
         df_entries = DailyLog.get_food_entries(daily_log.id)
 
         if not df_entries.empty:
-            render_table(df_entries, column_config=food_log_table_config, max_rows=7)
+            render_table(format_food_entries_for_display(df_entries), column_config=food_log_table_config, max_rows=7)
 
             @st.fragment
             def render_food_edit_panel():
@@ -932,6 +966,8 @@ elif st.session_state['role'] == 'user':
                     "custom_meal_edit_qty_",
                     "custom_meal_edit_add_food_",
                     "custom_meal_edit_add_quantity_",
+                    "custom_meal_archive_select_",
+                    "custom_meal_restore_select_",
                 ))
             ]
             for key in custom_meal_widget_keys:
@@ -978,22 +1014,27 @@ elif st.session_state['role'] == 'user':
 
         def render_custom_meal_cards(meal_options):
             for meal in meal_options.values():
-                with st.container(border=True):
-                    top_left, top_right = st.columns([2.2, 0.8], vertical_alignment="center")
-                    top_left.markdown(f"**{meal['recipe_name']}**")
-                    top_right.caption(meal["status"])
-
-                    col_quantity, col_calories, col_protein, col_carbs, col_fats = st.columns(5)
-                    col_quantity.caption("Cantitate")
-                    col_quantity.markdown(f"**{meal['quantity_g']:.0f} g**")
-                    col_calories.caption("Calorii")
-                    col_calories.markdown(f"**{meal['calories']:.0f} kcal**")
-                    col_protein.caption("Proteine")
-                    col_protein.markdown(f"**{meal['protein_g']:.1f} g**")
-                    col_carbs.caption("Carbohidrați")
-                    col_carbs.markdown(f"**{meal['carbs_g']:.1f} g**")
-                    col_fats.caption("Grăsimi")
-                    col_fats.markdown(f"**{meal['fats_g']:.1f} g**")
+                is_archived = meal["status"] == CustomMeal.ARCHIVED_STATUS
+                card_class = "custom-meal-card archived" if is_archived else "custom-meal-card active"
+                status_class = "status-badge archived" if is_archived else "status-badge active"
+                st.markdown(
+                    f"""
+                    <div class="{card_class}">
+                        <div class="custom-meal-card-header">
+                            <strong>{meal['recipe_name']}</strong>
+                            <span class="{status_class}">{meal['status']}</span>
+                        </div>
+                        <div class="custom-meal-card-grid">
+                            <div><span>Cantitate</span><strong>{meal['quantity_g']:.0f} g</strong></div>
+                            <div><span>Calorii</span><strong>{meal['calories']:.0f} kcal</strong></div>
+                            <div><span>Proteine</span><strong>{meal['protein_g']:.1f} g</strong></div>
+                            <div><span>Carbohidrați</span><strong>{meal['carbs_g']:.1f} g</strong></div>
+                            <div><span>Grăsimi</span><strong>{meal['fats_g']:.1f} g</strong></div>
+                        </div>
+                    </div>
+                    """,
+                    unsafe_allow_html=True
+                )
 
         st.subheader("➕ Creează o masă personalizată")
         recipe_name = st.text_input("Denumire masă", key="custom_meal_name")
@@ -1111,12 +1152,73 @@ elif st.session_state['role'] == 'user':
 
         st.divider()
         st.subheader("📋 Mesele tale personalizate")
-        custom_meal_options = CustomMeal.get_user_meal_options(user_id)
+        custom_meal_options = CustomMeal.get_user_meal_options(user_id, include_archived=True)
         if custom_meal_options:
             render_custom_meal_cards(custom_meal_options)
 
+            active_meal_options = {
+                meal_id: meal
+                for meal_id, meal in custom_meal_options.items()
+                if meal["status"] == CustomMeal.ACTIVE_STATUS
+            }
+            archived_meal_options = {
+                meal_id: meal
+                for meal_id, meal in custom_meal_options.items()
+                if meal["status"] == CustomMeal.ARCHIVED_STATUS
+            }
             custom_meal_ids = list(custom_meal_options.keys())
             custom_meal_widget_version = st.session_state["custom_meal_widget_version"]
+
+            with st.container(border=True):
+                st.markdown("#### Arhivă mese personalizate")
+                archive_col, restore_col = st.columns(2)
+
+                with archive_col:
+                    st.caption("Scoate o masă activă din lista de folosire viitoare.")
+                    if active_meal_options:
+                        active_meal_ids = list(active_meal_options.keys())
+                        selected_archive_meal_id = st.selectbox(
+                            "Masă activă",
+                            options=active_meal_ids,
+                            format_func=lambda meal_id: active_meal_options[meal_id]["recipe_name"],
+                            key=f"custom_meal_archive_select_{custom_meal_widget_version}"
+                        )
+                        if st.button("Arhivează masa", width="stretch", key="btn_archive_custom_meal", type="tertiary"):
+                            if CustomMeal.archive(selected_archive_meal_id, user_id):
+                                st.session_state["custom_meal_msg"] = (
+                                    "success",
+                                    f"Masa „{active_meal_options[selected_archive_meal_id]['recipe_name']}” a fost arhivată."
+                                )
+                                st.session_state["custom_meal_reset_widgets"] = True
+                                st.rerun()
+                            else:
+                                st.error("Eroare la arhivarea mesei personalizate.")
+                    else:
+                        st.info("Nu ai mese active de arhivat.")
+
+                with restore_col:
+                    st.caption("Readuce o masă arhivată în Jurnal Alimentar.")
+                    if archived_meal_options:
+                        archived_meal_ids = list(archived_meal_options.keys())
+                        selected_restore_meal_id = st.selectbox(
+                            "Masă arhivată",
+                            options=archived_meal_ids,
+                            format_func=lambda meal_id: archived_meal_options[meal_id]["recipe_name"],
+                            key=f"custom_meal_restore_select_{custom_meal_widget_version}"
+                        )
+                        if st.button("Reactivează masa", width="stretch", key="btn_restore_custom_meal", type="primary"):
+                            if CustomMeal.restore(selected_restore_meal_id, user_id):
+                                st.session_state["custom_meal_msg"] = (
+                                    "success",
+                                    f"Masa „{archived_meal_options[selected_restore_meal_id]['recipe_name']}” a fost reactivată."
+                                )
+                                st.session_state["custom_meal_reset_widgets"] = True
+                                st.rerun()
+                            else:
+                                st.error("Eroare la reactivarea mesei personalizate.")
+                    else:
+                        st.info("Nu ai mese arhivate.")
+
             details_select_key = f"custom_meal_details_select_{custom_meal_widget_version}"
             saved_details_meal_id = st.session_state.get("custom_meal_details_selected_id")
             if saved_details_meal_id not in custom_meal_ids:

@@ -40,8 +40,9 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - ActivityLog: save(), update(), delete()
 - RecipeIngredient: metoda save()
 - CustomMeal: save, add_ingredient, create_with_ingredients,
-  update_with_ingredients, calculate_total_macros, calculateTotalMacros,
-  get_user_meal_options, get_affected_daily_log_ids,
+  update_with_ingredients, set_status, archive, restore,
+  calculate_total_macros, calculateTotalMacros,
+  get_user_meal_options(include_archived=False), get_affected_daily_log_ids,
   get_all_as_dataframe, get_ingredients, get_ingredients_as_dataframe
 - User: register(password, weight), authenticate(password)
 - Admin: authenticate(password)
@@ -75,11 +76,12 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 ## Constrângeri speciale DB
 - FoodLog folosește o constrângere XOR: are fie food_id,
   fie custom_meal_id (nu ambele simultan)
+- Mesele personalizate nu se șterg fizic din UI; se arhivează prin
+  `status = 'Arhivată'` pentru a păstra istoricul din Jurnal Alimentar
 
 ## Ce NU este implementat încă
 - Modul predicție greutate (ML / regresie)
 - Recomandări personalizate de mese
 - Dashboard cu grafice (Plotly/Altair)
 - Simulator What-if (scenarii calorice)
-- Ștergere/dezactivare mese personalizate
 - Clasa dedicată WeightLog cu metoda save()
