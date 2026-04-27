@@ -1,7 +1,6 @@
 import streamlit as st
 import datetime
 import pandas as pd
-from database import get_connection
 from models.authentication import User, Admin
 from models.tracking import FoodItem, Activity, FoodLog, DailyLog, ActivityLog, CustomMeal
 
@@ -181,6 +180,30 @@ elif st.session_state['role'] == 'user':
 
         selected_date = st.date_input("Selectează ziua:", value=datetime.date.today())
         food_log_message = st.session_state.pop("food_log_msg", None)
+        if "food_log_widget_version" not in st.session_state:
+            st.session_state["food_log_widget_version"] = 0
+
+        if st.session_state.pop("food_log_reset_edit_delete_widgets", False):
+            st.session_state["food_log_widget_version"] += 1
+            legacy_food_widget_keys = {
+                "food_log_edit_select",
+                "food_log_delete_select",
+                "food_log_delete_confirm",
+            }
+            food_widget_keys = [
+                key for key in st.session_state.keys()
+                if key in legacy_food_widget_keys
+                or key.startswith((
+                    "food_log_edit_select_",
+                    "food_log_delete_select_",
+                    "food_log_delete_confirm_",
+                    "food_log_edit_quantity_",
+                    "food_log_edit_meal_type_",
+                    "food_log_edit_time_",
+                ))
+            ]
+            for key in food_widget_keys:
+                del st.session_state[key]
 
         user_id = st.session_state.get('user_id')
         if not user_id:
@@ -328,17 +351,22 @@ elif st.session_state['role'] == 'user':
                 with st.container(border=True):
                     st.markdown("#### ✏️ Editează o înregistrare")
                     food_log_ids = list(current_entries.index)
-                    if st.session_state.get("food_log_edit_select") not in food_log_ids:
-                        st.session_state.pop("food_log_edit_select", None)
+                    food_widget_version = st.session_state["food_log_widget_version"]
+                    edit_select_key = f"food_log_edit_select_{daily_log.id}_{food_widget_version}"
+                    if st.session_state.get(edit_select_key) not in food_log_ids:
+                        st.session_state.pop(edit_select_key, None)
 
                     saved_edit_food_log_id = st.session_state.get("food_log_edit_selected_id")
+                    if saved_edit_food_log_id not in food_log_ids:
+                        st.session_state.pop("food_log_edit_selected_id", None)
+                        saved_edit_food_log_id = None
                     edit_select_index = food_log_ids.index(saved_edit_food_log_id) if saved_edit_food_log_id in food_log_ids else 0
                     selected_edit_food_log_id = st.selectbox(
                         "Înregistrare de editat",
                         options=food_log_ids,
                         format_func=lambda log_entry_id: format_food_log_option(current_entries, log_entry_id),
                         index=edit_select_index,
-                        key="food_log_edit_select"
+                        key=edit_select_key
                     )
                     st.session_state["food_log_edit_selected_id"] = int(selected_edit_food_log_id)
 
@@ -387,7 +415,9 @@ elif st.session_state['role'] == 'user':
                             ):
                                 daily_log.recalculate_totals()
                                 st.session_state["food_log_edit_selected_id"] = int(selected_edit_food_log_id)
+                                st.session_state["food_log_delete_selected_id"] = int(selected_edit_food_log_id)
                                 st.session_state["food_log_msg"] = ("success", "Înregistrarea a fost actualizată cu succes.")
+                                st.session_state["food_log_reset_edit_delete_widgets"] = True
                                 st.rerun(scope="app")
                             else:
                                 st.error("Eroare la actualizarea înregistrării.")
@@ -403,18 +433,28 @@ elif st.session_state['role'] == 'user':
                 with st.container(border=True):
                     st.markdown("#### 🗑️ Șterge o înregistrare")
                     food_log_ids = list(current_entries.index)
-                    if st.session_state.get("food_log_delete_select") not in food_log_ids:
-                        st.session_state.pop("food_log_delete_select", None)
+                    food_widget_version = st.session_state["food_log_widget_version"]
+                    delete_select_key = f"food_log_delete_select_{daily_log.id}_{food_widget_version}"
+                    delete_confirm_key = f"food_log_delete_confirm_{daily_log.id}_{food_widget_version}"
+                    if st.session_state.get(delete_select_key) not in food_log_ids:
+                        st.session_state.pop(delete_select_key, None)
 
+                    saved_delete_food_log_id = st.session_state.get("food_log_delete_selected_id")
+                    if saved_delete_food_log_id not in food_log_ids:
+                        st.session_state.pop("food_log_delete_selected_id", None)
+                        saved_delete_food_log_id = None
+                    delete_select_index = food_log_ids.index(saved_delete_food_log_id) if saved_delete_food_log_id in food_log_ids else 0
                     selected_food_log_id = st.selectbox(
                         "Înregistrare",
                         options=food_log_ids,
                         format_func=lambda log_entry_id: format_food_log_option(current_entries, log_entry_id),
-                        key="food_log_delete_select"
+                        index=delete_select_index,
+                        key=delete_select_key
                     )
+                    st.session_state["food_log_delete_selected_id"] = int(selected_food_log_id)
                     confirm_food_delete = st.checkbox(
                         "Confirm ștergerea acestei înregistrări",
-                        key="food_log_delete_confirm"
+                        key=delete_confirm_key
                     )
 
                     if st.button("Șterge înregistrarea", width="stretch", key="btn_delete_food_log"):
@@ -424,7 +464,10 @@ elif st.session_state['role'] == 'user':
                             daily_log.recalculate_totals()
                             if st.session_state.get("food_log_edit_selected_id") == int(selected_food_log_id):
                                 del st.session_state["food_log_edit_selected_id"]
+                            if st.session_state.get("food_log_delete_selected_id") == int(selected_food_log_id):
+                                del st.session_state["food_log_delete_selected_id"]
                             st.session_state["food_log_msg"] = ("success", "Înregistrarea a fost ștearsă cu succes.")
+                            st.session_state["food_log_reset_edit_delete_widgets"] = True
                             st.rerun(scope="app")
                         else:
                             st.error("Eroare la ștergerea înregistrării.")
@@ -446,6 +489,32 @@ elif st.session_state['role'] == 'user':
         st.header("🏋️‍♂️ Jurnal Activități Fizice")
 
         selected_date = st.date_input("Selectează ziua:", value=datetime.date.today())
+        activity_log_message = st.session_state.pop("activity_log_msg", None)
+        if "activity_log_widget_version" not in st.session_state:
+            st.session_state["activity_log_widget_version"] = 0
+
+        if st.session_state.pop("activity_log_reset_edit_delete_widgets", False):
+            st.session_state["activity_log_widget_version"] += 1
+            legacy_activity_widget_keys = {
+                "activity_log_edit_select",
+                "activity_log_delete_select",
+                "activity_log_delete_confirm",
+            }
+            activity_widget_keys = [
+                key for key in st.session_state.keys()
+                if key in legacy_activity_widget_keys
+                or key.startswith((
+                    "activity_log_edit_select_",
+                    "activity_log_delete_select_",
+                    "activity_log_delete_confirm_",
+                    "activity_log_edit_activity_",
+                    "activity_log_edit_duration_",
+                    "activity_log_edit_sets_",
+                    "activity_log_edit_reps_",
+                ))
+            ]
+            for key in activity_widget_keys:
+                del st.session_state[key]
 
         user_id = st.session_state.get('user_id')
         if not user_id:
@@ -457,90 +526,102 @@ elif st.session_state['role'] == 'user':
             st.error("Eroare la accesarea jurnalului zilnic.")
             st.stop()
 
-        st.subheader("➕ Adaugă antrenament")
-        act_conn = get_connection()
-        activity_options = {}
-        if act_conn:
-            try:
-                cur = act_conn.cursor()
-                cur.execute("SELECT id, name, met_multiplier, category FROM activities ORDER BY name ASC")
-                for row in cur.fetchall():
-                    activity_options[row[1]] = {"id": row[0], "met": float(row[2]), "category": row[3]}
-            except Exception as e:
-                st.error(f"Eroare la preluarea activităților: {e}")
-            finally:
-                act_conn.close()
+        def show_activity_log_message(message):
+            if not message:
+                return
 
-        if not activity_options:
-            st.warning("Catalogul de activități este gol. Administratorul trebuie să adauge date mai întâi.")
-        else:
-            # Selectbox placed OUTSIDE the form to enable dynamic UI reactivity on category change
-            selected_act_name = st.selectbox(
+            message_type, message_text = message
+            icon = "✅" if message_type == "success" else "⚠️" if message_type == "warning" else "❌"
+            st.toast(message_text, icon=icon)
+
+        def is_strength_activity(activity):
+            return (activity["category"] or "").strip() == "Forță"
+
+        def format_activity_log_option(entries_df, log_entry_id):
+            row = entries_df.loc[log_entry_id]
+            return f"{row['Activitate']} ({row['Categorie']}, {row['Durată (min)']} min, {row['Calorii Arse']} kcal)"
+
+        def parse_optional_int(value, default_value):
+            if value in (None, "-", ""):
+                return default_value
+            return int(float(value))
+
+        show_activity_log_message(activity_log_message)
+
+        @st.fragment
+        def render_activity_entry_panel():
+            st.subheader("➕ Adaugă antrenament")
+            activity_options = Activity.get_catalog_options()
+
+            if not activity_options:
+                st.warning("Catalogul de activități este gol. Administratorul trebuie să adauge date mai întâi.")
+                return
+
+            selected_activity_id = st.selectbox(
                 "1. Alege activitatea",
                 options=list(activity_options.keys()),
+                format_func=lambda activity_id: activity_options[activity_id]["name"],
                 key="activity_select"
             )
-            selected_act = activity_options[selected_act_name]
-
-            # Defensive .strip() to handle accidental whitespace stored in DB
-            is_strength = selected_act["category"].strip() == "Forță"
+            selected_activity = activity_options[selected_activity_id]
+            is_strength = is_strength_activity(selected_activity)
             latest_weight = DailyLog.get_latest_weight(user_id, selected_date)
 
-            # Live preview inputs for the activity journal.
             col1, col2 = st.columns(2)
-
             with col1:
-                # Duration is mandatory for ALL activity types to compute T_rest in the hybrid TUT model
                 duration = st.number_input(
                     "Durată TOTALĂ sesiune (minute)",
-                    min_value=1, max_value=600, value=30, step=5,
+                    min_value=1,
+                    max_value=600,
+                    value=30,
+                    step=5,
+                    key="activity_log_duration",
                     help="Timpul total petrecut la acest exercițiu (inclusiv pauzele dintre seturi)."
                 )
 
             with col2:
-                # Sets and reps are rendered only for strength activities; hidden entirely for cardio
                 if is_strength:
-                    sets = st.number_input("Seturi", min_value=1, max_value=50, value=3, step=1)
-                    reps = st.number_input("Repetări pe set", min_value=1, max_value=200, value=12, step=1)
+                    sets = st.number_input("Seturi", min_value=1, max_value=50, value=3, step=1, key="activity_log_sets")
+                    reps = st.number_input("Repetări pe set", min_value=1, max_value=200, value=12, step=1, key="activity_log_reps")
                 else:
                     st.info("📌 Seturile și repetările se aplică doar la exerciții de Forță.")
                     sets = 0
                     reps = 0
 
-            # Ensure numeric fallback for the hybrid calories helper when category is cardio
             calc_sets = sets if is_strength else 0
             calc_reps = reps if is_strength else 0
-
             estimated_burned = DailyLog.calculate_hybrid_calories(
-                selected_act["category"].strip(), selected_act["met"],
-                latest_weight, duration,
-                calc_sets, calc_reps
+                (selected_activity["category"] or "").strip(),
+                selected_activity["met"],
+                latest_weight,
+                duration,
+                calc_sets,
+                calc_reps
             )
             st.caption(f"🔥 Calorii estimate consumate: **{estimated_burned} kcal**")
 
-            submit_act = st.button("Salvează antrenamentul", width="stretch", key="btn_save_act")
-
-            if submit_act:
-                # Map 0 to None for DB insertion — schema allows NULL for sets/reps on cardio entries
+            if st.button("Salvează antrenamentul", width="stretch", key="btn_save_act"):
                 db_sets = calc_sets if calc_sets > 0 else None
                 db_reps = calc_reps if calc_reps > 0 else None
 
                 try:
                     act_log_entry = ActivityLog(
                         log_id=daily_log.id,
-                        activity_id=selected_act["id"],
+                        activity_id=selected_activity["id"],
                         duration_min=duration,
                         sets=db_sets,
                         reps=db_reps
                     )
                     if act_log_entry.save():
                         daily_log.recalculate_totals()
-                        st.success(f"✅ {selected_act_name} adăugat cu succes!")
-                        st.rerun()
+                        st.session_state["activity_log_msg"] = ("success", f"{selected_activity['name']} adăugat cu succes!")
+                        st.rerun(scope="app")
                     else:
                         st.error("Eroare la salvarea înregistrării.")
                 except ValueError as ve:
                     st.error(f"Eroare de validare: {ve}")
+
+        render_activity_entry_panel()
 
         st.divider()
         romanian_months = {
@@ -554,8 +635,177 @@ elif st.session_state['role'] == 'user':
         df_entries = DailyLog.get_activity_entries(daily_log.id)
 
         if not df_entries.empty:
-                # Hide the index column (database ID) from the UI
-            st.dataframe(df_entries, width="stretch", hide_index=True) 
+            visible_activity_entries = df_entries.drop(columns=["_activity_id"], errors="ignore")
+            st.dataframe(visible_activity_entries, width="stretch", hide_index=True)
+
+            @st.fragment
+            def render_activity_edit_panel():
+                current_entries = DailyLog.get_activity_entries(daily_log.id)
+                if current_entries.empty:
+                    return
+
+                activity_options = Activity.get_catalog_options()
+                if not activity_options:
+                    return
+
+                with st.container(border=True):
+                    st.markdown("#### ✏️ Editează un antrenament")
+                    activity_log_ids = list(current_entries.index)
+                    activity_widget_version = st.session_state["activity_log_widget_version"]
+                    edit_select_key = f"activity_log_edit_select_{daily_log.id}_{activity_widget_version}"
+                    if st.session_state.get(edit_select_key) not in activity_log_ids:
+                        st.session_state.pop(edit_select_key, None)
+
+                    saved_activity_log_id = st.session_state.get("activity_log_edit_selected_id")
+                    if saved_activity_log_id not in activity_log_ids:
+                        st.session_state.pop("activity_log_edit_selected_id", None)
+                        saved_activity_log_id = None
+                    edit_select_index = activity_log_ids.index(saved_activity_log_id) if saved_activity_log_id in activity_log_ids else 0
+                    selected_edit_activity_log_id = st.selectbox(
+                        "Înregistrare de editat",
+                        options=activity_log_ids,
+                        format_func=lambda log_entry_id: format_activity_log_option(current_entries, log_entry_id),
+                        index=edit_select_index,
+                        key=edit_select_key
+                    )
+                    st.session_state["activity_log_edit_selected_id"] = int(selected_edit_activity_log_id)
+
+                    selected_edit_row = current_entries.loc[selected_edit_activity_log_id]
+                    current_activity_id = int(selected_edit_row["_activity_id"])
+                    activity_ids = list(activity_options.keys())
+                    activity_select_index = activity_ids.index(current_activity_id) if current_activity_id in activity_ids else 0
+                    edited_activity_id = st.selectbox(
+                        "Activitate nouă",
+                        options=activity_ids,
+                        format_func=lambda activity_id: activity_options[activity_id]["name"],
+                        index=activity_select_index,
+                        key=f"activity_log_edit_activity_{selected_edit_activity_log_id}"
+                    )
+
+                    edited_activity = activity_options[edited_activity_id]
+                    edited_is_strength = is_strength_activity(edited_activity)
+                    latest_weight = DailyLog.get_latest_weight(user_id, selected_date)
+
+                    col_edit1, col_edit2 = st.columns(2)
+                    with col_edit1:
+                        edited_duration = st.number_input(
+                            "Durată nouă (minute)",
+                            min_value=1,
+                            max_value=600,
+                            value=int(selected_edit_row["Durată (min)"]),
+                            step=5,
+                            key=f"activity_log_edit_duration_{selected_edit_activity_log_id}"
+                        )
+                    with col_edit2:
+                        if edited_is_strength:
+                            edited_sets = st.number_input(
+                                "Seturi noi",
+                                min_value=1,
+                                max_value=50,
+                                value=parse_optional_int(selected_edit_row["Seturi"], 3),
+                                step=1,
+                                key=f"activity_log_edit_sets_{selected_edit_activity_log_id}"
+                            )
+                            edited_reps = st.number_input(
+                                "Repetări noi pe set",
+                                min_value=1,
+                                max_value=200,
+                                value=parse_optional_int(selected_edit_row["Repetări"], 12),
+                                step=1,
+                                key=f"activity_log_edit_reps_{selected_edit_activity_log_id}"
+                            )
+                        else:
+                            st.info("📌 Seturile și repetările se aplică doar la exerciții de Forță.")
+                            edited_sets = 0
+                            edited_reps = 0
+
+                    calc_sets = edited_sets if edited_is_strength else 0
+                    calc_reps = edited_reps if edited_is_strength else 0
+                    estimated_burned = DailyLog.calculate_hybrid_calories(
+                        (edited_activity["category"] or "").strip(),
+                        edited_activity["met"],
+                        latest_weight,
+                        edited_duration,
+                        calc_sets,
+                        calc_reps
+                    )
+                    st.caption(f"🔥 Calorii estimate după modificare: **{estimated_burned} kcal**")
+
+                    if st.button("Salvează modificările", width="stretch", key="btn_update_activity_log"):
+                        db_sets = calc_sets if calc_sets > 0 else None
+                        db_reps = calc_reps if calc_reps > 0 else None
+
+                        try:
+                            if ActivityLog.update(
+                                int(selected_edit_activity_log_id),
+                                user_id,
+                                edited_activity["id"],
+                                edited_duration,
+                                db_sets,
+                                db_reps
+                            ):
+                                daily_log.recalculate_totals()
+                                st.session_state["activity_log_edit_selected_id"] = int(selected_edit_activity_log_id)
+                                st.session_state["activity_log_delete_selected_id"] = int(selected_edit_activity_log_id)
+                                st.session_state["activity_log_msg"] = ("success", "Antrenamentul a fost actualizat cu succes.")
+                                st.session_state["activity_log_reset_edit_delete_widgets"] = True
+                                st.rerun(scope="app")
+                            else:
+                                st.error("Eroare la actualizarea antrenamentului.")
+                        except ValueError as ve:
+                            st.error(f"Eroare de validare: {ve}")
+
+            @st.fragment
+            def render_activity_delete_panel():
+                current_entries = DailyLog.get_activity_entries(daily_log.id)
+                if current_entries.empty:
+                    return
+
+                with st.container(border=True):
+                    st.markdown("#### 🗑️ Șterge un antrenament")
+                    activity_log_ids = list(current_entries.index)
+                    activity_widget_version = st.session_state["activity_log_widget_version"]
+                    delete_select_key = f"activity_log_delete_select_{daily_log.id}_{activity_widget_version}"
+                    delete_confirm_key = f"activity_log_delete_confirm_{daily_log.id}_{activity_widget_version}"
+                    if st.session_state.get(delete_select_key) not in activity_log_ids:
+                        st.session_state.pop(delete_select_key, None)
+
+                    saved_delete_activity_log_id = st.session_state.get("activity_log_delete_selected_id")
+                    if saved_delete_activity_log_id not in activity_log_ids:
+                        st.session_state.pop("activity_log_delete_selected_id", None)
+                        saved_delete_activity_log_id = None
+                    delete_select_index = activity_log_ids.index(saved_delete_activity_log_id) if saved_delete_activity_log_id in activity_log_ids else 0
+                    selected_activity_log_id = st.selectbox(
+                        "Înregistrare",
+                        options=activity_log_ids,
+                        format_func=lambda log_entry_id: format_activity_log_option(current_entries, log_entry_id),
+                        index=delete_select_index,
+                        key=delete_select_key
+                    )
+                    st.session_state["activity_log_delete_selected_id"] = int(selected_activity_log_id)
+                    confirm_activity_delete = st.checkbox(
+                        "Confirm ștergerea acestui antrenament",
+                        key=delete_confirm_key
+                    )
+
+                    if st.button("Șterge antrenamentul", width="stretch", key="btn_delete_activity_log"):
+                        if not confirm_activity_delete:
+                            st.warning("Bifează confirmarea înainte de ștergere.")
+                        elif ActivityLog.delete(int(selected_activity_log_id), user_id):
+                            daily_log.recalculate_totals()
+                            if st.session_state.get("activity_log_edit_selected_id") == int(selected_activity_log_id):
+                                del st.session_state["activity_log_edit_selected_id"]
+                            if st.session_state.get("activity_log_delete_selected_id") == int(selected_activity_log_id):
+                                del st.session_state["activity_log_delete_selected_id"]
+                            st.session_state["activity_log_msg"] = ("success", "Antrenamentul a fost șters cu succes.")
+                            st.session_state["activity_log_reset_edit_delete_widgets"] = True
+                            st.rerun(scope="app")
+                        else:
+                            st.error("Eroare la ștergerea antrenamentului.")
+
+            render_activity_edit_panel()
+            render_activity_delete_panel()
+
             st.divider()
             col1, col2, col3 = st.columns(3)
             cals_strength = df_entries[df_entries["Categorie"] == "Forță"]["Calorii Arse"].sum()

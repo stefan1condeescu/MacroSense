@@ -149,6 +149,38 @@ class Activity:
             if conn:
                 conn.close()
 
+    @classmethod
+    def get_catalog_options(cls) -> dict:
+        """Fetches activities as option metadata for reactive UI selectors."""
+        conn = get_connection()
+        if not conn:
+            return {}
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, name, met_multiplier, category
+                FROM activities
+                ORDER BY name ASC
+                """
+            )
+            options = {}
+            for row in cursor.fetchall():
+                options[row[0]] = {
+                    "id": row[0],
+                    "name": row[1],
+                    "met": float(row[2] or 0),
+                    "category": row[3],
+                }
+            return options
+        except Exception as e:
+            print(f"Error fetching activity catalog options: {e}")
+            return {}
+        finally:
+            if conn:
+                conn.close()
+
 class FoodLog:
     """
     Represents a specific food consumption event in a user's daily log.
@@ -906,6 +938,7 @@ class DailyLog:
                 )
                 SELECT 
                     al.id, 
+                    a.id AS "_activity_id",
                     a.name AS "Activitate",
                     a.category AS "Categorie",
                     al.duration_min AS "Durată (min)",
@@ -929,7 +962,7 @@ class DailyLog:
             )
             rows = cursor.fetchall()
             if rows:
-                columns = ["id", "Activitate", "Categorie", "Durată (min)", "Seturi", "Repetări", "Calorii Arse"]
+                columns = ["id", "_activity_id", "Activitate", "Categorie", "Durată (min)", "Seturi", "Repetări", "Calorii Arse"]
                 df = pd.DataFrame(rows, columns=columns)
                 # Clean up None/NaN values for Sets and Reps to display cleanly in UI
                 df['Seturi'] = df['Seturi'].fillna('-').astype(str)
@@ -977,6 +1010,77 @@ class ActivityLog:
             return True
         except Exception as e:
             print(f"Error saving activity log: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
+    def delete(cls, log_entry_id: int, user_id: int) -> bool:
+        """Deletes an ActivityLog entry only if it belongs to the given user."""
+        conn = get_connection()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                DELETE FROM activity_logs al
+                USING daily_logs dl
+                WHERE al.log_id = dl.id
+                  AND al.id = %s
+                  AND dl.user_id = %s
+                RETURNING al.id
+                """,
+                (log_entry_id, user_id)
+            )
+            deleted_row = cursor.fetchone()
+            conn.commit()
+            return deleted_row is not None
+        except Exception as e:
+            print(f"Error deleting activity log: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
+    def update(cls, log_entry_id: int, user_id: int, activity_id: int, duration_min: int, sets: int = None, reps: int = None) -> bool:
+        """Updates editable ActivityLog fields only if the entry belongs to the given user."""
+        if duration_min <= 0:
+            raise ValueError("Duration must be strictly positive for MET calculation.")
+        if (sets is None) != (reps is None):
+            raise ValueError("Sets and reps must be provided together.")
+        if sets is not None and (sets <= 0 or reps <= 0):
+            raise ValueError("Sets and reps must be strictly positive when provided.")
+
+        conn = get_connection()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE activity_logs al
+                SET activity_id = %s,
+                    duration_min = %s,
+                    sets = %s,
+                    reps = %s
+                FROM daily_logs dl
+                WHERE al.log_id = dl.id
+                  AND al.id = %s
+                  AND dl.user_id = %s
+                RETURNING al.id
+                """,
+                (activity_id, duration_min, sets, reps, log_entry_id, user_id)
+            )
+            updated_row = cursor.fetchone()
+            conn.commit()
+            return updated_row is not None
+        except Exception as e:
+            print(f"Error updating activity log: {e}")
             return False
         finally:
             if conn:
