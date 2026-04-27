@@ -1,6 +1,7 @@
 import streamlit as st
 import datetime
 import pandas as pd
+from pathlib import Path
 from models.authentication import User, Admin
 from models.tracking import FoodItem, Activity, FoodLog, DailyLog, ActivityLog, CustomMeal
 
@@ -8,6 +9,64 @@ from models.tracking import FoodItem, Activity, FoodLog, DailyLog, ActivityLog, 
 # UI CONFIGURATION
 # ==========================================
 st.set_page_config(page_title="MacroSense", layout="centered")
+
+def load_local_css(file_name: str) -> None:
+    """Loads local CSS styles if the asset file exists."""
+    css_path = Path(__file__).parent / file_name
+    if css_path.exists():
+        st.markdown(f"<style>{css_path.read_text(encoding='utf-8')}</style>", unsafe_allow_html=True)
+
+load_local_css("assets/style.css")
+
+def get_table_height(dataframe: pd.DataFrame, max_rows: int = 6, row_height: int = 32) -> int:
+    """Returns a compact dynamic height for Streamlit dataframes."""
+    visible_rows = min(max(len(dataframe), 1), max_rows)
+    return 38 + visible_rows * row_height
+
+def render_table(dataframe: pd.DataFrame, column_config: dict = None, column_order: list = None, max_rows: int = 6) -> None:
+    """Renders a compact dataframe with consistent project styling."""
+    st.dataframe(
+        dataframe,
+        width="stretch",
+        height=get_table_height(dataframe, max_rows=max_rows),
+        hide_index=True,
+        column_config=column_config,
+        column_order=column_order,
+        row_height=32
+    )
+
+food_catalog_table_config = {
+    "Denumire": st.column_config.TextColumn("Denumire", width="medium"),
+    "Calorii/100g": st.column_config.NumberColumn("Calorii/100g", format="%.1f kcal", width="small"),
+    "Proteine (g)": st.column_config.NumberColumn("Proteine", format="%.1f g", width="small"),
+    "Carbohidrați (g)": st.column_config.NumberColumn("Carbohidrați", format="%.1f g", width="small"),
+    "Grăsimi (g)": st.column_config.NumberColumn("Grăsimi", format="%.1f g", width="small"),
+    "Categorie": st.column_config.TextColumn("Categorie", width="small"),
+}
+
+activity_catalog_table_config = {
+    "Denumire": st.column_config.TextColumn("Denumire", width="medium"),
+    "Coeficient MET": st.column_config.NumberColumn("MET", format="%.1f", width="small"),
+    "Categorie": st.column_config.TextColumn("Categorie", width="small"),
+}
+
+food_log_table_config = {
+    "Tip": st.column_config.TextColumn("Tip", width="small"),
+    "Aliment / Masă": st.column_config.TextColumn("Aliment / Masă", width="medium"),
+    "Cantitate (g)": st.column_config.NumberColumn("Cantitate", format="%.1f g", width="small"),
+    "Calorii": st.column_config.NumberColumn("Calorii", format="%.1f kcal", width="small"),
+    "Masă": st.column_config.TextColumn("Masă", width="small"),
+    "Ora": st.column_config.TextColumn("Ora", width="small"),
+}
+
+activity_log_table_config = {
+    "Activitate": st.column_config.TextColumn("Activitate", width="medium"),
+    "Categorie": st.column_config.TextColumn("Categorie", width="small"),
+    "Durată (min)": st.column_config.NumberColumn("Durată", format="%d min", width="small"),
+    "Seturi": st.column_config.TextColumn("Seturi", width="small"),
+    "Repetări": st.column_config.TextColumn("Repetări", width="small"),
+    "Calorii Arse": st.column_config.NumberColumn("Calorii Arse", format="%.1f kcal", width="small"),
+}
 
 # ==========================================
 # SESSION STATE MANAGEMENT
@@ -39,7 +98,7 @@ if st.session_state['role'] is None:
             with col2:
                 gender = st.selectbox("Sex", ["M", "F"])
                 goal = st.selectbox("Obiectiv", ["slăbire", "menținere", "creștere"])
-            submit_register = st.form_submit_button("Înregistrează-te", width="stretch")
+            submit_register = st.form_submit_button("Înregistrează-te", width="stretch", type="primary")
 
         if submit_register:
             if not email.strip() or not password.strip() or not full_name.strip():
@@ -60,7 +119,7 @@ if st.session_state['role'] is None:
         with st.form("login_form"):
             email = st.text_input("Email")
             password = st.text_input("Parolă", type="password")
-            submit_login = st.form_submit_button("Login")
+            submit_login = st.form_submit_button("Login", type="primary")
             
             if submit_login:
                 # Frontend Validation for Login
@@ -110,7 +169,7 @@ elif st.session_state['role'] == 'admin':
                     carbs = st.number_input("Carbohidrați (g)", min_value=0.0, step=0.1)
                     fats = st.number_input("Grăsimi (g)", min_value=0.0, step=0.1)
                 
-                submit_food = st.form_submit_button("Salvează Alimentul")
+                submit_food = st.form_submit_button("Salvează Alimentul", type="primary")
                 
                 if submit_food:
                     new_food = FoodItem(name, calories, protein, carbs, fats, category)
@@ -122,7 +181,7 @@ elif st.session_state['role'] == 'admin':
         st.subheader("Baza de date nutrițională")
         df_foods = FoodItem.get_all_as_dataframe()
         if not df_foods.empty:
-            st.dataframe(df_foods, width='stretch', hide_index=True)
+            render_table(df_foods, column_config=food_catalog_table_config)
         else:
             st.info("Catalogul este gol.")
 
@@ -137,7 +196,7 @@ elif st.session_state['role'] == 'admin':
                 with col2:
                     met = st.number_input("Coeficient MET", min_value=0.9, step=0.1, help="Ex: Alergat = 8.0")
                 
-                submit_act = st.form_submit_button("Salvează Activitatea")
+                submit_act = st.form_submit_button("Salvează Activitatea", type="primary")
                 
                 if submit_act:
                     new_activity = Activity(name, met, category)
@@ -149,13 +208,13 @@ elif st.session_state['role'] == 'admin':
         st.subheader("Lista activităților disponibile")
         df_activities = Activity.get_all_as_dataframe()
         if not df_activities.empty:
-            st.dataframe(df_activities, width='stretch', hide_index=True)
+            render_table(df_activities, column_config=activity_catalog_table_config)
         else:
             st.info("Catalogul de activități este gol.")
             
     # Admin Logout Button
     st.sidebar.divider()
-    if st.sidebar.button("Deconectare", width="stretch"):
+    if st.sidebar.button("Deconectare", width="stretch", type="tertiary"):
         st.session_state.clear()
         st.rerun()
 
@@ -263,7 +322,7 @@ elif st.session_state['role'] == 'user':
                     estimated_calories = round(selected_food["calories_100g"] * float(quantity) / 100.0, 2)
                     st.caption(f"🔥 Calorii estimate: **{estimated_calories} kcal**")
 
-                    submit_food = st.button("Salvează înregistrarea", width="stretch", key="btn_save_food")
+                    submit_food = st.button("Salvează înregistrarea", width="stretch", key="btn_save_food", type="primary")
 
                     if submit_food:
                         try:
@@ -304,7 +363,7 @@ elif st.session_state['role'] == 'user':
                     estimated_custom_calories = round(selected_custom_meal["calories_per_g"] * float(custom_quantity), 2)
                     st.caption(f"🔥 Calorii estimate: **{estimated_custom_calories} kcal**")
 
-                    submit_custom_meal = st.button("Salvează masa în jurnal", width="stretch", key="btn_save_custom_meal_log")
+                    submit_custom_meal = st.button("Salvează masa în jurnal", width="stretch", key="btn_save_custom_meal_log", type="primary")
 
                     if submit_custom_meal:
                         try:
@@ -340,7 +399,7 @@ elif st.session_state['role'] == 'user':
         df_entries = DailyLog.get_food_entries(daily_log.id)
 
         if not df_entries.empty:
-            st.dataframe(df_entries, width="stretch", hide_index=True)
+            render_table(df_entries, column_config=food_log_table_config, max_rows=7)
 
             @st.fragment
             def render_food_edit_panel():
@@ -404,7 +463,7 @@ elif st.session_state['role'] == 'user':
                             key=f"food_log_edit_time_{selected_edit_food_log_id}"
                         )
 
-                    if st.button("Salvează modificările", width="stretch", key="btn_update_food_log"):
+                    if st.button("Salvează modificările", width="stretch", key="btn_update_food_log", type="primary"):
                         try:
                             if FoodLog.update(
                                 int(selected_edit_food_log_id),
@@ -457,7 +516,7 @@ elif st.session_state['role'] == 'user':
                         key=delete_confirm_key
                     )
 
-                    if st.button("Șterge înregistrarea", width="stretch", key="btn_delete_food_log"):
+                    if st.button("Șterge înregistrarea", width="stretch", key="btn_delete_food_log", type="tertiary"):
                         if not confirm_food_delete:
                             st.warning("Bifează confirmarea înainte de ștergere.")
                         elif FoodLog.delete(int(selected_food_log_id), user_id):
@@ -600,7 +659,7 @@ elif st.session_state['role'] == 'user':
             )
             st.caption(f"🔥 Calorii estimate consumate: **{estimated_burned} kcal**")
 
-            if st.button("Salvează antrenamentul", width="stretch", key="btn_save_act"):
+            if st.button("Salvează antrenamentul", width="stretch", key="btn_save_act", type="primary"):
                 db_sets = calc_sets if calc_sets > 0 else None
                 db_reps = calc_reps if calc_reps > 0 else None
 
@@ -636,7 +695,7 @@ elif st.session_state['role'] == 'user':
 
         if not df_entries.empty:
             visible_activity_entries = df_entries.drop(columns=["_activity_id"], errors="ignore")
-            st.dataframe(visible_activity_entries, width="stretch", hide_index=True)
+            render_table(visible_activity_entries, column_config=activity_log_table_config, max_rows=7)
 
             @st.fragment
             def render_activity_edit_panel():
@@ -731,7 +790,7 @@ elif st.session_state['role'] == 'user':
                     )
                     st.caption(f"🔥 Calorii estimate după modificare: **{estimated_burned} kcal**")
 
-                    if st.button("Salvează modificările", width="stretch", key="btn_update_activity_log"):
+                    if st.button("Salvează modificările", width="stretch", key="btn_update_activity_log", type="primary"):
                         db_sets = calc_sets if calc_sets > 0 else None
                         db_reps = calc_reps if calc_reps > 0 else None
 
@@ -788,7 +847,7 @@ elif st.session_state['role'] == 'user':
                         key=delete_confirm_key
                     )
 
-                    if st.button("Șterge antrenamentul", width="stretch", key="btn_delete_activity_log"):
+                    if st.button("Șterge antrenamentul", width="stretch", key="btn_delete_activity_log", type="tertiary"):
                         if not confirm_activity_delete:
                             st.warning("Bifează confirmarea înainte de ștergere.")
                         elif ActivityLog.delete(int(selected_activity_log_id), user_id):
@@ -854,8 +913,87 @@ elif st.session_state['role'] == 'user':
 
         if "custom_meal_ingredients" not in st.session_state:
             st.session_state["custom_meal_ingredients"] = []
+        if "custom_meal_edit_ingredients" not in st.session_state:
+            st.session_state["custom_meal_edit_ingredients"] = []
+        if "custom_meal_edit_row_counter" not in st.session_state:
+            st.session_state["custom_meal_edit_row_counter"] = 0
+        if "custom_meal_widget_version" not in st.session_state:
+            st.session_state["custom_meal_widget_version"] = 0
+
+        custom_meal_message = st.session_state.pop("custom_meal_msg", None)
+        if st.session_state.pop("custom_meal_reset_widgets", False):
+            st.session_state["custom_meal_widget_version"] += 1
+            custom_meal_widget_keys = [
+                key for key in st.session_state.keys()
+                if key.startswith((
+                    "custom_meal_details_select_",
+                    "custom_meal_edit_select_",
+                    "custom_meal_edit_name_",
+                    "custom_meal_edit_qty_",
+                    "custom_meal_edit_add_food_",
+                    "custom_meal_edit_add_quantity_",
+                ))
+            ]
+            for key in custom_meal_widget_keys:
+                del st.session_state[key]
+
+        def show_custom_meal_message(message):
+            if not message:
+                return
+
+            message_type, message_text = message
+            icon = "✅" if message_type == "success" else "⚠️" if message_type == "warning" else "❌"
+            st.toast(message_text, icon=icon)
+
+        def load_custom_meal_edit_state(meal_id, meal_options):
+            ingredients = CustomMeal.get_ingredients(meal_id, user_id)
+            for ingredient in ingredients:
+                ingredient["row_key"] = f"existing_{ingredient['ingredient_id']}"
+
+            st.session_state["custom_meal_edit_loaded_id"] = int(meal_id)
+            st.session_state["custom_meal_edit_ingredients"] = ingredients
+
+        show_custom_meal_message(custom_meal_message)
 
         food_options = FoodItem.get_catalog_options()
+
+        ingredient_table_config = {
+            "Ingredient": st.column_config.TextColumn("Ingredient", width="medium"),
+            "Cantitate (g)": st.column_config.NumberColumn("Cantitate", format="%.1f g", width="small"),
+            "Calorii": st.column_config.NumberColumn("Calorii", format="%.1f kcal", width="small"),
+            "Proteine (g)": st.column_config.NumberColumn("Proteine", format="%.1f g", width="small"),
+            "Carbohidrați (g)": st.column_config.NumberColumn("Carbohidrați", format="%.1f g", width="small"),
+            "Grăsimi (g)": st.column_config.NumberColumn("Grăsimi", format="%.1f g", width="small"),
+        }
+
+        def render_ingredient_table(dataframe):
+            st.dataframe(
+                dataframe,
+                width="stretch",
+                height=get_table_height(dataframe),
+                hide_index=True,
+                column_config=ingredient_table_config,
+                row_height=32
+            )
+
+        def render_custom_meal_cards(meal_options):
+            for meal in meal_options.values():
+                with st.container(border=True):
+                    top_left, top_right = st.columns([2.2, 0.8], vertical_alignment="center")
+                    top_left.markdown(f"**{meal['recipe_name']}**")
+                    top_right.caption(meal["status"])
+
+                    col_quantity, col_calories, col_protein, col_carbs, col_fats = st.columns(5)
+                    col_quantity.caption("Cantitate")
+                    col_quantity.markdown(f"**{meal['quantity_g']:.0f} g**")
+                    col_calories.caption("Calorii")
+                    col_calories.markdown(f"**{meal['calories']:.0f} kcal**")
+                    col_protein.caption("Proteine")
+                    col_protein.markdown(f"**{meal['protein_g']:.1f} g**")
+                    col_carbs.caption("Carbohidrați")
+                    col_carbs.markdown(f"**{meal['carbs_g']:.1f} g**")
+                    col_fats.caption("Grăsimi")
+                    col_fats.markdown(f"**{meal['fats_g']:.1f} g**")
 
         st.subheader("➕ Creează o masă personalizată")
         recipe_name = st.text_input("Denumire masă", key="custom_meal_name")
@@ -880,7 +1018,7 @@ elif st.session_state['role'] == 'user':
 
             col_add, col_clear = st.columns(2)
             with col_add:
-                if st.button("Adaugă ingredient", width="stretch", key="btn_add_custom_meal_ingredient"):
+                if st.button("Adaugă ingredient", width="stretch", key="btn_add_custom_meal_ingredient", type="primary"):
                     st.session_state["custom_meal_ingredients"].append({
                         "food_id": selected_ingredient["id"],
                         "name": selected_ingredient["name"],
@@ -892,7 +1030,7 @@ elif st.session_state['role'] == 'user':
                     })
                     st.rerun()
             with col_clear:
-                if st.button("Golește lista", width="stretch", key="btn_clear_custom_meal_ingredients"):
+                if st.button("Golește lista", width="stretch", key="btn_clear_custom_meal_ingredients", type="tertiary"):
                     st.session_state["custom_meal_ingredients"] = []
                     st.rerun()
 
@@ -931,7 +1069,7 @@ elif st.session_state['role'] == 'user':
                 rows,
                 columns=["Ingredient", "Cantitate (g)", "Calorii", "Proteine (g)", "Carbohidrați (g)", "Grăsimi (g)"]
             )
-            st.dataframe(df_pending, width="stretch", hide_index=True)
+            render_ingredient_table(df_pending)
 
             _, col_quantity, col_calories, _ = st.columns([0.85, 1, 1, 0.15])
             col_quantity.metric("Cantitate totală", f"{total_quantity:.0f} g")
@@ -947,7 +1085,7 @@ elif st.session_state['role'] == 'user':
             col_fats.caption("Grăsimi")
             col_fats.metric(" ", f"{total_fats:.1f} g", label_visibility="collapsed")
 
-            if st.button("Salvează masa personalizată", width="stretch", key="btn_save_custom_meal"):
+            if st.button("Salvează masa personalizată", width="stretch", key="btn_save_custom_meal", type="primary"):
                 if not recipe_name.strip():
                     st.warning("Introdu o denumire pentru masa personalizată.")
                 elif not CustomMeal.is_valid_recipe_name(recipe_name):
@@ -960,7 +1098,11 @@ elif st.session_state['role'] == 'user':
                     )
                     if saved_meal:
                         st.session_state["custom_meal_ingredients"] = []
-                        st.success(f"✅ Masa personalizată „{saved_meal.recipe_name}” a fost salvată.")
+                        st.session_state["custom_meal_details_selected_id"] = int(saved_meal.id)
+                        st.session_state["custom_meal_edit_selected_id"] = int(saved_meal.id)
+                        st.session_state["custom_meal_edit_loaded_id"] = None
+                        st.session_state["custom_meal_msg"] = ("success", f"Masa personalizată „{saved_meal.recipe_name}” a fost salvată.")
+                        st.session_state["custom_meal_reset_widgets"] = True
                         st.rerun()
                     else:
                         st.error("Eroare la salvarea mesei personalizate.")
@@ -969,21 +1111,210 @@ elif st.session_state['role'] == 'user':
 
         st.divider()
         st.subheader("📋 Mesele tale personalizate")
-        df_custom_meals = CustomMeal.get_all_as_dataframe(user_id)
-        if not df_custom_meals.empty:
-            st.dataframe(df_custom_meals, width="stretch", hide_index=True)
+        custom_meal_options = CustomMeal.get_user_meal_options(user_id)
+        if custom_meal_options:
+            render_custom_meal_cards(custom_meal_options)
 
-            custom_meal_options = CustomMeal.get_user_meal_options(user_id)
+            custom_meal_ids = list(custom_meal_options.keys())
+            custom_meal_widget_version = st.session_state["custom_meal_widget_version"]
+            details_select_key = f"custom_meal_details_select_{custom_meal_widget_version}"
+            saved_details_meal_id = st.session_state.get("custom_meal_details_selected_id")
+            if saved_details_meal_id not in custom_meal_ids:
+                st.session_state.pop("custom_meal_details_selected_id", None)
+                saved_details_meal_id = None
+            details_select_index = custom_meal_ids.index(saved_details_meal_id) if saved_details_meal_id in custom_meal_ids else 0
+            st.markdown("#### Vezi ingredientele pentru")
             selected_saved_meal_id = st.selectbox(
-                "Vezi ingredientele pentru",
-                options=list(custom_meal_options.keys()),
+                "Alege masa pentru detalii",
+                options=custom_meal_ids,
                 format_func=lambda meal_id: custom_meal_options[meal_id]["recipe_name"],
-                key="custom_meal_details_select"
+                index=details_select_index,
+                key=details_select_key,
+                label_visibility="collapsed"
             )
+            st.session_state["custom_meal_details_selected_id"] = int(selected_saved_meal_id)
             selected_saved_meal = custom_meal_options[selected_saved_meal_id]
             df_ingredients = CustomMeal.get_ingredients_as_dataframe(selected_saved_meal["id"], user_id)
             if not df_ingredients.empty:
-                st.dataframe(df_ingredients, width="stretch", hide_index=True)
+                render_ingredient_table(df_ingredients)
+
+            st.divider()
+            st.subheader("✏️ Editează o masă personalizată")
+            edit_select_key = f"custom_meal_edit_select_{custom_meal_widget_version}"
+            saved_edit_meal_id = st.session_state.get("custom_meal_edit_selected_id")
+            if saved_edit_meal_id not in custom_meal_ids:
+                st.session_state.pop("custom_meal_edit_selected_id", None)
+                saved_edit_meal_id = None
+            edit_select_index = custom_meal_ids.index(saved_edit_meal_id) if saved_edit_meal_id in custom_meal_ids else 0
+            selected_edit_meal_id = st.selectbox(
+                "Masă de editat",
+                options=custom_meal_ids,
+                format_func=lambda meal_id: custom_meal_options[meal_id]["recipe_name"],
+                index=edit_select_index,
+                key=edit_select_key
+            )
+            st.session_state["custom_meal_edit_selected_id"] = int(selected_edit_meal_id)
+
+            if st.session_state.get("custom_meal_edit_loaded_id") != int(selected_edit_meal_id):
+                load_custom_meal_edit_state(selected_edit_meal_id, custom_meal_options)
+
+            edit_name_key = f"custom_meal_edit_name_{selected_edit_meal_id}_{custom_meal_widget_version}"
+            edited_recipe_name = st.text_input(
+                "Denumire nouă masă",
+                value=custom_meal_options[selected_edit_meal_id]["recipe_name"],
+                key=edit_name_key
+            )
+            edit_ingredients = st.session_state["custom_meal_edit_ingredients"]
+
+            if food_options:
+                col_add_food, col_add_quantity = st.columns(2)
+                with col_add_food:
+                    selected_edit_ingredient_id = st.selectbox(
+                        "Ingredient de adăugat",
+                        options=list(food_options.keys()),
+                        format_func=lambda food_id: food_options[food_id]["name"],
+                        key=f"custom_meal_edit_add_food_{selected_edit_meal_id}"
+                    )
+                with col_add_quantity:
+                    edit_ingredient_quantity = st.number_input(
+                        "Cantitate ingredient nou (g)",
+                        min_value=1.0,
+                        max_value=5000.0,
+                        value=100.0,
+                        step=1.0,
+                        key=f"custom_meal_edit_add_quantity_{selected_edit_meal_id}"
+                    )
+
+                if st.button("Adaugă ingredient în rețetă", width="stretch", key="btn_add_custom_meal_edit_ingredient", type="primary"):
+                    selected_edit_ingredient = food_options[selected_edit_ingredient_id]
+                    st.session_state["custom_meal_edit_row_counter"] += 1
+                    edit_ingredients.append({
+                        "ingredient_id": None,
+                        "row_key": f"new_{st.session_state['custom_meal_edit_row_counter']}",
+                        "food_id": selected_edit_ingredient["id"],
+                        "name": selected_edit_ingredient["name"],
+                        "quantity_g": float(edit_ingredient_quantity),
+                        "calories_100g": selected_edit_ingredient["calories_100g"],
+                        "protein_g": selected_edit_ingredient["protein_g"],
+                        "carbs_g": selected_edit_ingredient["carbs_g"],
+                        "fats_g": selected_edit_ingredient["fats_g"],
+                    })
+                    st.rerun()
+            else:
+                st.warning("Catalogul de alimente este gol. Nu poți adăuga ingrediente noi momentan.")
+
+            if edit_ingredients:
+                st.caption("Ingrediente curente")
+                for ingredient_index, ingredient in enumerate(list(edit_ingredients)):
+                    row_key = ingredient["row_key"]
+                    with st.container(border=True):
+                        col_name, col_quantity, col_remove = st.columns([2.2, 1, 0.75], vertical_alignment="center")
+                        with col_name:
+                            st.markdown(f"**{ingredient['name']}**")
+                        with col_quantity:
+                            updated_quantity = st.number_input(
+                                "Cantitate (g)",
+                                min_value=1.0,
+                                max_value=5000.0,
+                                value=float(ingredient["quantity_g"]),
+                                step=1.0,
+                                key=f"custom_meal_edit_qty_{selected_edit_meal_id}_{row_key}",
+                                label_visibility="collapsed"
+                            )
+                        with col_remove:
+                            if st.button(
+                                "Elimină",
+                                key=f"btn_remove_custom_meal_edit_{selected_edit_meal_id}_{row_key}",
+                                type="tertiary",
+                                width="stretch"
+                            ):
+                                edit_ingredients.pop(ingredient_index)
+                                st.rerun()
+
+                    edit_ingredients[ingredient_index]["quantity_g"] = float(updated_quantity)
+
+                edit_rows = []
+                edit_total_quantity = 0.0
+                edit_total_calories = 0.0
+                edit_total_protein = 0.0
+                edit_total_carbs = 0.0
+                edit_total_fats = 0.0
+
+                for ingredient in edit_ingredients:
+                    quantity_g = ingredient["quantity_g"]
+                    calories = ingredient["calories_100g"] * quantity_g / 100.0
+                    protein = ingredient["protein_g"] * quantity_g / 100.0
+                    carbs = ingredient["carbs_g"] * quantity_g / 100.0
+                    fats = ingredient["fats_g"] * quantity_g / 100.0
+
+                    edit_total_quantity += quantity_g
+                    edit_total_calories += calories
+                    edit_total_protein += protein
+                    edit_total_carbs += carbs
+                    edit_total_fats += fats
+
+                    edit_rows.append([
+                        ingredient["name"],
+                        round(quantity_g, 2),
+                        round(calories, 2),
+                        round(protein, 2),
+                        round(carbs, 2),
+                        round(fats, 2),
+                    ])
+
+                df_edit = pd.DataFrame(
+                    edit_rows,
+                    columns=["Ingredient", "Cantitate (g)", "Calorii", "Proteine (g)", "Carbohidrați (g)", "Grăsimi (g)"]
+                )
+                render_ingredient_table(df_edit)
+
+                _, col_edit_quantity, col_edit_calories, _ = st.columns([0.85, 1, 1, 0.15])
+                col_edit_quantity.metric("Cantitate totală", f"{edit_total_quantity:.0f} g")
+                col_edit_calories.metric("Calorii totale", f"{edit_total_calories:.0f} kcal")
+
+                st.markdown("<br>", unsafe_allow_html=True)
+
+                _, col_edit_protein, col_edit_carbs, col_edit_fats, _ = st.columns([0.75, 1, 1, 1, 0.05])
+                col_edit_protein.caption("Proteine")
+                col_edit_protein.metric(" ", f"{edit_total_protein:.1f} g", label_visibility="collapsed")
+                col_edit_carbs.caption("Carbohidrați")
+                col_edit_carbs.metric(" ", f"{edit_total_carbs:.1f} g", label_visibility="collapsed")
+                col_edit_fats.caption("Grăsimi")
+                col_edit_fats.metric(" ", f"{edit_total_fats:.1f} g", label_visibility="collapsed")
+
+            if st.button("Salvează modificările mesei", width="stretch", key="btn_update_custom_meal", type="primary"):
+                if not edited_recipe_name.strip():
+                    st.warning("Introdu o denumire pentru masa personalizată.")
+                elif not CustomMeal.is_valid_recipe_name(edited_recipe_name):
+                    st.warning("Denumirea mesei trebuie să înceapă cu o literă.")
+                elif not edit_ingredients:
+                    st.warning("Masa personalizată trebuie să conțină cel puțin un ingredient.")
+                else:
+                    affected_log_ids = CustomMeal.get_affected_daily_log_ids(selected_edit_meal_id, user_id)
+                    updated_meal = CustomMeal.update_with_ingredients(
+                        meal_id=selected_edit_meal_id,
+                        user_id=user_id,
+                        recipe_name=edited_recipe_name,
+                        ingredients=edit_ingredients
+                    )
+                    if updated_meal:
+                        recalculated_logs = 0
+                        for log_id in affected_log_ids:
+                            affected_daily_log = DailyLog.get_by_id(log_id, user_id)
+                            if affected_daily_log and affected_daily_log.recalculate_totals():
+                                recalculated_logs += 1
+
+                        st.session_state["custom_meal_details_selected_id"] = int(selected_edit_meal_id)
+                        st.session_state["custom_meal_edit_selected_id"] = int(selected_edit_meal_id)
+                        st.session_state["custom_meal_edit_loaded_id"] = None
+                        st.session_state["custom_meal_msg"] = (
+                            "success",
+                            f"Masa personalizată „{edited_recipe_name.strip()}” a fost actualizată. Jurnale recalculate: {recalculated_logs}."
+                        )
+                        st.session_state["custom_meal_reset_widgets"] = True
+                        st.rerun()
+                    else:
+                        st.error("Eroare la actualizarea mesei personalizate.")
         else:
             st.info("Nu ai încă mese personalizate salvate.")
    
@@ -992,7 +1323,7 @@ elif st.session_state['role'] == 'user':
         st.subheader("Baza de date nutrițională")
         df_foods = FoodItem.get_all_as_dataframe()
         if not df_foods.empty:
-            st.dataframe(df_foods, width='stretch', hide_index=True)
+            render_table(df_foods, column_config=food_catalog_table_config)
         else:
             st.info("Catalogul este gol în acest moment. Administratorul va adăuga date în curând.")
 
@@ -1001,12 +1332,12 @@ elif st.session_state['role'] == 'user':
         st.subheader("Lista activităților disponibile")
         df_activities = Activity.get_all_as_dataframe()
         if not df_activities.empty:
-            st.dataframe(df_activities, width='stretch', hide_index=True)
+            render_table(df_activities, column_config=activity_catalog_table_config)
         else:
             st.info("Catalogul de activități este gol în acest moment.")
             
     # User Logout Button
     st.sidebar.divider()
-    if st.sidebar.button("Deconectare", width="stretch"):
+    if st.sidebar.button("Deconectare", width="stretch", type="tertiary"):
         st.session_state.clear()
         st.rerun()

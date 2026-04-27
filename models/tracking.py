@@ -439,6 +439,91 @@ class CustomMeal:
             if conn:
                 conn.close()
 
+    @classmethod
+    def update_with_ingredients(cls, meal_id: int, user_id: int, recipe_name: str, ingredients: list, status: str = "Salvată") -> bool:
+        """Updates a user's custom meal and replaces its ingredients in a single transaction."""
+        meal_name = recipe_name.strip() if recipe_name else ""
+        if not meal_name or not cls.is_valid_recipe_name(meal_name) or not ingredients:
+            return False
+
+        conn = get_connection()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                UPDATE custom_meals
+                SET recipe_name = %s,
+                    status = %s
+                WHERE id = %s AND user_id = %s
+                RETURNING id
+                """,
+                (meal_name, status, meal_id, user_id)
+            )
+            updated_row = cursor.fetchone()
+            if not updated_row:
+                conn.rollback()
+                return False
+
+            cursor.execute(
+                """
+                DELETE FROM recipe_ingredients
+                WHERE meal_id = %s
+                """,
+                (meal_id,)
+            )
+
+            for ingredient in ingredients:
+                quantity_g = float(ingredient["quantity_g"])
+                if quantity_g <= 0:
+                    raise ValueError("Ingredient quantity must be strictly positive.")
+                cursor.execute(
+                    """
+                    INSERT INTO recipe_ingredients (meal_id, food_id, quantity_g)
+                    VALUES (%s, %s, %s)
+                    """,
+                    (meal_id, ingredient["food_id"], quantity_g)
+                )
+
+            conn.commit()
+            return True
+        except Exception as e:
+            print(f"Error updating custom meal with ingredients: {e}")
+            if conn:
+                conn.rollback()
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
+    def get_affected_daily_log_ids(cls, meal_id: int, user_id: int) -> list:
+        """Returns daily log IDs that reference a custom meal for the given user."""
+        conn = get_connection()
+        if not conn:
+            return []
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT DISTINCT dl.id
+                FROM daily_logs dl
+                JOIN food_logs fl ON fl.log_id = dl.id
+                WHERE dl.user_id = %s AND fl.custom_meal_id = %s
+                """,
+                (user_id, meal_id)
+            )
+            return [row[0] for row in cursor.fetchall()]
+        except Exception as e:
+            print(f"Error fetching affected daily logs for custom meal: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
+
     def calculate_total_macros(self) -> dict:
         """Calculates total calories and macronutrients for the full recipe."""
         if not self.id:
@@ -592,6 +677,54 @@ class CustomMeal:
         return pd.DataFrame(rows, columns=columns).set_index("id")
 
     @classmethod
+    def get_ingredients(cls, meal_id: int, user_id: int) -> list:
+        """Fetches a user's custom meal ingredients as structured dictionaries."""
+        conn = get_connection()
+        if not conn:
+            return []
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT
+                    ri.id,
+                    fi.id,
+                    fi.name,
+                    ri.quantity_g,
+                    fi.calories_100g,
+                    fi.protein_g,
+                    fi.carbs_g,
+                    fi.fats_g
+                FROM recipe_ingredients ri
+                JOIN food_items fi ON fi.id = ri.food_id
+                JOIN custom_meals cm ON cm.id = ri.meal_id
+                WHERE ri.meal_id = %s AND cm.user_id = %s
+                ORDER BY fi.name ASC, ri.id ASC
+                """,
+                (meal_id, user_id)
+            )
+            ingredients = []
+            for row in cursor.fetchall():
+                ingredients.append({
+                    "ingredient_id": row[0],
+                    "food_id": row[1],
+                    "name": row[2],
+                    "quantity_g": float(row[3]),
+                    "calories_100g": float(row[4] or 0),
+                    "protein_g": float(row[5] or 0),
+                    "carbs_g": float(row[6] or 0),
+                    "fats_g": float(row[7] or 0),
+                })
+            return ingredients
+        except Exception as e:
+            print(f"Error fetching custom meal ingredient objects: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
     def get_ingredients_as_dataframe(cls, meal_id: int, user_id: int) -> pd.DataFrame:
         """Fetches the ingredient list for a user's custom meal."""
         conn = get_connection()
@@ -647,6 +780,40 @@ class DailyLog:
     def calculate_energy_balance(self) -> float:
         """Returns the net caloric balance for the day (calories_in - calories_burned)."""
         return round(self.total_calories_in - self.total_calories_burned, 2)
+
+    @classmethod
+    def get_by_id(cls, log_id: int, user_id: int) -> "DailyLog | None":
+        """Fetches a DailyLog by ID only if it belongs to the given user."""
+        conn = get_connection()
+        if not conn:
+            return None
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, user_id, log_date, total_calories_in, total_calories_burned
+                FROM daily_logs
+                WHERE id = %s AND user_id = %s
+                """,
+                (log_id, user_id)
+            )
+            row = cursor.fetchone()
+            if row:
+                return cls(
+                    log_id=row[0],
+                    user_id=row[1],
+                    log_date=row[2],
+                    total_calories_in=float(row[3]),
+                    total_calories_burned=float(row[4])
+                )
+            return None
+        except Exception as e:
+            print(f"Error fetching daily log by ID: {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
 
     @classmethod
     def get_or_create(cls, user_id: int, log_date: datetime.date) -> "DailyLog | None":
