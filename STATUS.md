@@ -21,13 +21,13 @@
 - [x] Actualizarea fluxului de înregistrare (UI + OOP): Preluarea greutății inițiale a utilizatorului și salvarea atomică în `weight_logs` pentru a suporta corect calculele viitoare bazate pe formula MET. Sincronizare documentație (cap. 3.2).
 - [x] Implementarea clasei `ActivityLog` în pachetul Tracking: validare `duration_min > 0` la nivel de obiect (`ValueError`), persistență în `activity_logs` via `save()`.
 - [x] Extinderea `DailyLog.recalculate_totals()`: calculează atât caloriile IN (`food_logs`) cât și caloriile BURNED (model hibrid TUT pentru Forță, MET clasic pentru Cardio/Altele), cu fallback la 70kg dacă `weight_logs` e gol.
-- [x] Implementarea metodelor `DailyLog.get_activity_entries(log_id)` și `DailyLog.get_latest_weight()` în `tracking.py` pentru interogarea istoricului fizic și calcularea dinamică a caloriilor arse per rând.
+- [x] Implementarea metodelor `DailyLog.get_activity_entries(log_id)` și `DailyLog.get_latest_weight()` în modelul `DailyLog` pentru interogarea istoricului fizic și calcularea dinamică a caloriilor arse per rând.
 - [x] Refactorizare UI Jurnal Activități: `st.selectbox` mutat în afara formularului pentru reactivitate dinamică pe schimbare de categorie; câmpurile Seturi/Repetări afișate exclusiv pentru categoria `Forță` (`min_value=1`) și ascunse complet pentru Cardio/Flexibilitate/Sport de echipă.
 - [x] Corectare metrici UI: Jurnal Activități afișează breakdown Calorii Forță (TUT) vs. Calorii Cardio & Altele (MET); Jurnal Alimentar afișează corect Calorii consumate / Calorii arse / Balanță energetică.
 - [x] Polish UI/UX (Jurnal Alimentar & Activități): Eliminare `st.form` pentru a permite calculul și afișarea în timp real (live preview) a caloriilor estimate consumate/arse direct la interacțiunea cu datele din formulare. Resetarea câmpurilor post-salvare este menținută curat prin `st.rerun()`.
 - [x] Polish UI/UX (Cataloage Admin & User): Ascunderea indexului (ID-ului bazei de date / indexului Pandas) din toate cele 4 tabele de afișare pentru cataloagele de Alimente și Activități, standardizând aspectul vizual curat în toată aplicația.
 - [x] Polish UI/UX (Jurnal Activități): Redesign secțiune metrici sub formă de piramidă 3+2 — rând 1: Calorii Forță, Calorii Cardio & Altele, Total Calorii Arse; rând 2 centrat: Calorii Consumate și Balanță energetică.
-- [x] Implementarea claselor `RecipeIngredient` și `CustomMeal` în `models/tracking.py`, pe structura deja existentă din `schema.sql` (`custom_meals` și `recipe_ingredients`).
+- [x] Implementarea claselor `RecipeIngredient` și `CustomMeal` în pachetul Tracking, pe structura deja existentă din `schema.sql` (`custom_meals` și `recipe_ingredients`).
 - [x] Implementarea metodei `CustomMeal.calculateTotalMacros()` conform diagramei UML, împreună cu varianta Pythonic `calculate_total_macros()`.
 - [x] Implementarea salvării atomice a meselor personalizate cu ingrediente prin `CustomMeal.create_with_ingredients()`.
 - [x] Integrarea meselor personalizate în `DailyLog.recalculate_totals()`, astfel încât totalul `total_calories_in` include atât alimente simple, cât și mese personalizate consumate.
@@ -49,6 +49,7 @@
 - [x] Polish UI global: tabelele din Admin, Jurnal Alimentar, Jurnal Activități și Cataloage folosesc randare compactă unitară, iar butoanele de salvare/ștergere au culori sugestive.
 - [x] Implementare arhivare/reactivare „Mese Personalizate”: mesele arhivate rămân în istoricul alimentar, dar nu mai apar la adăugarea unei mese personalizate în Jurnal Alimentar până la reactivare.
 - [x] Refactorizare structură Tracking: clasele `FoodItem`, `Activity`, `FoodLog`, `ActivityLog`, `RecipeIngredient`, `CustomMeal` și `DailyLog` au fost mutate în module dedicate sub `models/tracking_models/`, păstrând `models/tracking.py` ca fațadă compatibilă pentru importurile existente.
+- [x] Refactorizare structură UI: `app.py` a fost redus la entrypoint/rutare, iar paginile și helper-ele Streamlit au fost mutate în pachetul `ui/` (`config`, `tables`, `formatters`, `pages`).
 
 ## 🟡 La ce lucrăm acum (Focus curent):
 - [ ] Stabilizare și testare funcțională pentru fluxul complet „Mese Personalizate”: creare → editare → arhivare/reactivare → folosire în Jurnal Alimentar → recalculare totaluri zilnice.

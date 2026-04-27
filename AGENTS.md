@@ -4,8 +4,21 @@
 - Backend/UI: Python 3.x + Streamlit
 - Baza de date: PostgreSQL via psycopg2 (niciodată ORM)
 - Structura fișierelor:
-  - app.py — interfața Streamlit (toate paginile)
+  - app.py — entrypoint Streamlit: configurează aplicația și rutează pe roluri
   - assets/style.css — stiluri CSS locale pentru polish UI
+  - ui/config.py — configurare Streamlit și încărcare CSS local
+  - ui/tables.py — randare tabele și `column_config`-uri comune
+  - ui/formatters.py — helper-e de formatare pentru afișare
+  - ui/pages/ — paginile Streamlit separate pe flux:
+    - auth_page.py — autentificare și creare cont
+    - admin_routes.py — rutare meniu Administrator
+    - admin_catalog_pages.py — gestiune cataloage Administrator
+    - user_routes.py — rutare meniu Utilizator
+    - dashboard_page.py — pagina Acasă
+    - food_journal_page.py — Jurnal Alimentar
+    - activity_journal_page.py — Jurnal Activități
+    - custom_meals_page.py — Mese Personalizate
+    - user_catalog_pages.py — cataloage vizibile utilizatorului
   - models/tracking.py — fațadă de compatibilitate care re-exportă clasele din pachetul tracking
   - models/tracking_models/ — pachet domeniu Tracking, separat pe clase:
     - food_item.py — FoodItem
