@@ -5,6 +5,7 @@
 - Baza de date: PostgreSQL via psycopg2 (niciodată ORM)
 - Structura fișierelor:
   - app.py — interfața Streamlit (toate paginile)
+  - assets/style.css — stiluri CSS locale pentru polish UI
   - models/tracking.py — DailyLog, FoodLog, ActivityLog, FoodItem, Activity, CustomMeal, RecipeIngredient
   - models/authentication.py — User, Admin
   - database.py — get_connection()
@@ -34,13 +35,14 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 ## Arhitectură OOP
 - DailyLog: get_or_create, recalculate_totals, get_food_entries,
   get_activity_entries, calculate_hybrid_calories (static),
-  get_latest_weight (static), calculate_energy_balance
+  get_latest_weight (static), get_by_id, calculate_energy_balance
 - FoodLog: save(), update(), delete()
 - ActivityLog: save(), update(), delete()
 - RecipeIngredient: metoda save()
 - CustomMeal: save, add_ingredient, create_with_ingredients,
-  calculate_total_macros, calculateTotalMacros, get_user_meal_options,
-  get_all_as_dataframe, get_ingredients_as_dataframe
+  update_with_ingredients, calculate_total_macros, calculateTotalMacros,
+  get_user_meal_options, get_affected_daily_log_ids,
+  get_all_as_dataframe, get_ingredients, get_ingredients_as_dataframe
 - User: register(password, weight), authenticate(password)
 - Admin: authenticate(password)
 - FoodItem, Activity: save(), get_all_as_dataframe(), get_catalog_options()
@@ -61,6 +63,9 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   dar afișează utilizatorului doar denumirea, fără sufixe tehnice de tip #id
 - Denumirea unei mese personalizate trebuie să înceapă cu literă;
   nu sunt acceptate denumiri care încep cu cifră sau caracter special
+- CSS-ul custom se păstrează în `assets/style.css`, nu inline în `app.py`;
+  folosește doar selectori Streamlit stabili sau tag-uri HTML standard,
+  niciodată clase generate de tip `st-emotion-cache-*`
 
 ## Baza de date
 - PostgreSQL local via pgAdmin 4 (localhost:5432)
@@ -76,4 +81,5 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - Recomandări personalizate de mese
 - Dashboard cu grafice (Plotly/Altair)
 - Simulator What-if (scenarii calorice)
+- Ștergere/dezactivare mese personalizate
 - Clasa dedicată WeightLog cu metoda save()

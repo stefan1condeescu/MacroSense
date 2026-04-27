@@ -1,0 +1,47 @@
+/* MacroSense UI polish.
+   Keep selectors stable: no generated Streamlit emotion-cache classes. */
+
+.stDataFrame,
+div[data-testid="stDataFrame"] {
+    border: 1px solid #d9e1ec;
+    border-radius: 8px;
+    padding: 2px;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+}
+
+.stDataFrame div[role="grid"],
+div[data-testid="stDataFrame"] div[role="grid"] {
+    font-size: 0.93rem;
+}
+
+.stButton button[kind="primary"],
+.stFormSubmitButton button[kind="primary"],
+button[data-testid="stBaseButton-primary"] {
+    background: #15803d;
+    border-color: #15803d;
+    color: #ffffff;
+}
+
+.stButton button[kind="primary"]:hover,
+.stFormSubmitButton button[kind="primary"]:hover,
+button[data-testid="stBaseButton-primary"]:hover {
+    background: #166534;
+    border-color: #166534;
+    color: #ffffff;
+}
+
+.stButton button[kind="tertiary"],
+.stFormSubmitButton button[kind="tertiary"],
+button[data-testid="stBaseButton-tertiary"] {
+    background: #fff1f2;
+    border: 1px solid #fda4af;
+    color: #be123c;
+}
+
+.stButton button[kind="tertiary"]:hover,
+.stFormSubmitButton button[kind="tertiary"]:hover,
+button[data-testid="stBaseButton-tertiary"]:hover {
+    background: #ffe4e6;
+    border-color: #fb7185;
+    color: #9f1239;
+}

@@ -43,11 +43,16 @@
 - [x] Stabilizare UI/UX pentru editare/ștergere în „Jurnal Alimentar”: panouri izolate cu `st.fragment()`, mesaje prin `st.toast()` și eliminarea flicker-ului produs de placeholder-ele de tabel.
 - [x] Implementare editare/ștergere intrare din „Jurnal Activități”: `ActivityLog.update()` și `ActivityLog.delete()` verifică apartenența la utilizator și recalculează automat totalurile zilnice după fiecare operație.
 - [x] Stabilizare UI/UX pentru „Jurnal Activități”: panouri reactive izolate cu `st.fragment()`, selectbox-uri bazate pe ID intern și mesaje de confirmare prin `st.toast()`.
+- [x] Implementare editare „Mese Personalizate”: `CustomMeal.update_with_ingredients()` actualizează atomic denumirea și ingredientele, iar jurnalele alimentare care folosesc masa sunt recalculate după salvare.
+- [x] Extindere UI „Mese Personalizate”: panou de editare cu modificare denumire, adăugare/eliminare ingrediente, ajustare cantități și preview recalculat pentru calorii/macronutrienți.
+- [x] Polish UI „Mese Personalizate”: CSS mutat în `assets/style.css`, listă de mese afișată ca rânduri/carduri compacte și tabele de ingrediente compactate cu `column_config`.
+- [x] Polish UI global: tabelele din Admin, Jurnal Alimentar, Jurnal Activități și Cataloage folosesc randare compactă unitară, iar butoanele de salvare/ștergere au culori sugestive.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Stabilizare și testare funcțională pentru fluxul complet „Jurnal Activități”: adăugare → editare → ștergere → recalculare totaluri zilnice.
+- [ ] Stabilizare și testare funcțională pentru fluxul complet „Mese Personalizate”: creare → editare denumire/ingrediente → folosire în Jurnal Alimentar → recalculare totaluri zilnice.
 
 ## 🔴 Ce urmează (Backlog):
+- [ ] Ștergere/dezactivare mese personalizate cu păstrarea istoricului din Jurnal Alimentar.
 - [ ] Modulul de Machine Learning — predicția greutății.
 - [ ] Recomandări personalizate de mese.
 - [ ] Simulator What-if (scenarii calorice).
