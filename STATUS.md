@@ -50,13 +50,16 @@
 - [x] Implementare arhivare/reactivare „Mese Personalizate”: mesele arhivate rămân în istoricul alimentar, dar nu mai apar la adăugarea unei mese personalizate în Jurnal Alimentar până la reactivare.
 - [x] Refactorizare structură Tracking: clasele `FoodItem`, `Activity`, `FoodLog`, `ActivityLog`, `RecipeIngredient`, `CustomMeal` și `DailyLog` au fost mutate în module dedicate sub `models/tracking_models/`, păstrând `models/tracking.py` ca fațadă compatibilă pentru importurile existente.
 - [x] Refactorizare structură UI: `app.py` a fost redus la entrypoint/rutare, iar paginile și helper-ele Streamlit au fost mutate în pachetul `ui/` (`config`, `tables`, `formatters`, `pages`).
+- [x] Stabilizare post-refactor: adăugare suită `unittest` în `tests/` pentru importuri arhitecturale, validări OOP (`FoodLog`, `ActivityLog`, `CustomMeal`, `RecipeIngredient`) și calcule `DailyLog`.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Stabilizare și testare funcțională pentru fluxul complet „Mese Personalizate”: creare → editare → arhivare/reactivare → folosire în Jurnal Alimentar → recalculare totaluri zilnice.
+- [ ] Testare manuală UI pentru fluxul complet „Mese Personalizate”: creare → editare → arhivare/reactivare → folosire în Jurnal Alimentar → recalculare totaluri zilnice.
 
 ## 🔴 Ce urmează (Backlog):
 - [ ] Modulul de Machine Learning — predicția greutății.
 - [ ] Recomandări personalizate de mese.
+- [ ] Recomandări personalizate de antrenamente.
 - [ ] Simulator What-if (scenarii calorice).
 - [ ] Dashboard și generare grafice pentru progres.
 - [ ] Clasă dedicată `WeightLog` cu metoda `save()`.
+- [ ] Sincronizare documentație licență/diagrame după finalizarea funcționalităților principale.
