@@ -246,7 +246,6 @@ def render_food_journal_page() -> None:
                         ):
                             daily_log.recalculate_totals()
                             st.session_state["food_log_edit_selected_id"] = int(selected_edit_food_log_id)
-                            st.session_state["food_log_delete_selected_id"] = int(selected_edit_food_log_id)
                             st.session_state["food_log_msg"] = ("success", "Înregistrarea a fost actualizată cu succes.")
                             st.session_state["food_log_reset_edit_delete_widgets"] = True
                             st.rerun(scope="app")

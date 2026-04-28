@@ -31,6 +31,7 @@
   - models/authentication.py — User, Admin
   - database.py — get_connection()
   - schema.sql — schema completă a bazei de date
+  - tests/ — teste automate `unittest` pentru validări OOP și importuri arhitecturale
   - STATUS.md — starea curentă a proiectului (ce e gata, ce e în progres, backlog)
   - docs/DiagramaClase_UPDATED.png — diagrama UML de clase (actualizată)
   - docs/ERD_UPDATED.png — diagrama ERD a bazei de date (actualizată)
@@ -44,6 +45,9 @@
 - Nu folosi st.form() în Jurnal Alimentar sau Jurnal Activități
 - Folosește st.button() cu key explicit pentru submit
 - Niciodată cod parțial sau pseudocod — doar cod funcțional complet
+- Testele automate din `tests/` se păstrează în proiect și se extind la fiecare
+  funcționalitate importantă; nu se șterg după validare.
+- Comandă standard teste: `.\venv\Scripts\python.exe -m unittest discover -s tests -v`
 - Commit-urile sunt făcute MANUAL de developer după fiecare modificare
   aprobată; AI-ul nu face niciodată commit sau push automat.
   Excepție: AI-ul poate face commit doar când developerul cere explicit acest lucru.
@@ -103,6 +107,7 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 ## Ce NU este implementat încă
 - Modul predicție greutate (ML / regresie)
 - Recomandări personalizate de mese
+- Recomandări personalizate de antrenamente
 - Dashboard cu grafice (Plotly/Altair)
 - Simulator What-if (scenarii calorice)
 - Clasa dedicată WeightLog cu metoda save()
