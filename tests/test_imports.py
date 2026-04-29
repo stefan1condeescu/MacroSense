@@ -14,6 +14,7 @@ class ArchitectureImportTests(unittest.TestCase):
             "FoodItem",
             "FoodLog",
             "RecipeIngredient",
+            "WeightLog",
         ]:
             with self.subTest(class_name=class_name):
                 self.assertTrue(hasattr(tracking, class_name))
@@ -27,6 +28,7 @@ class ArchitectureImportTests(unittest.TestCase):
             "models.tracking_models.food_item",
             "models.tracking_models.food_log",
             "models.tracking_models.recipe_ingredient",
+            "models.tracking_models.weight_log",
         ]
 
         for module_name in module_names:
@@ -47,6 +49,7 @@ class ArchitectureImportTests(unittest.TestCase):
             "ui.pages.food_journal_page",
             "ui.pages.user_catalog_pages",
             "ui.pages.user_routes",
+            "ui.pages.weight_journal_page",
         ]
 
         for module_name in module_names:

@@ -1,6 +1,6 @@
 import datetime
 import streamlit as st
-from models.tracking import Activity, ActivityLog, DailyLog
+from models.tracking import Activity, ActivityLog, DailyLog, WeightLog
 from ui.tables import activity_log_table_config, render_table
 
 
@@ -40,10 +40,7 @@ def render_activity_journal_page() -> None:
         st.error("Sesiune invalidă. Te rugăm să te reautentifici.")
         st.stop()
     
-    daily_log = DailyLog.get_or_create(user_id, selected_date)
-    if not daily_log:
-        st.error("Eroare la accesarea jurnalului zilnic.")
-        st.stop()
+    daily_log = DailyLog.get_for_date(user_id, selected_date)
     
     def show_activity_log_message(message):
         if not message:
@@ -64,8 +61,24 @@ def render_activity_journal_page() -> None:
         if value in (None, "-", ""):
             return default_value
         return int(float(value))
+
+    def format_reference_date(value) -> str:
+        if isinstance(value, datetime.datetime):
+            return value.date().strftime("%d.%m.%Y")
+        if isinstance(value, datetime.date):
+            return value.strftime("%d.%m.%Y")
+        return str(value)
     
     show_activity_log_message(activity_log_message)
+    weight_reference = WeightLog.get_reference_for_user(user_id, selected_date)
+    if weight_reference["uses_future_reference"] and weight_reference["source_date"]:
+        st.warning(
+            "Pentru data selectată nu exista o greutate anterioară. "
+            f"Calculele MET folosesc prima greutate disponibilă: "
+            f"{weight_reference['weight']:.1f} kg din {format_reference_date(weight_reference['source_date'])}."
+        )
+    elif weight_reference["uses_fallback"]:
+        st.warning("Nu există încă un istoric de greutate. Calculele MET folosesc temporar 70.0 kg.")
     
     @st.fragment
     def render_activity_entry_panel():
@@ -84,7 +97,7 @@ def render_activity_journal_page() -> None:
         )
         selected_activity = activity_options[selected_activity_id]
         is_strength = is_strength_activity(selected_activity)
-        latest_weight = DailyLog.get_latest_weight(user_id, selected_date)
+        latest_weight = weight_reference["weight"]
     
         col1, col2 = st.columns(2)
         with col1:
@@ -124,15 +137,20 @@ def render_activity_journal_page() -> None:
             db_reps = calc_reps if calc_reps > 0 else None
     
             try:
+                daily_log_for_write = DailyLog.get_or_create(user_id, selected_date)
+                if not daily_log_for_write:
+                    st.error("Eroare la accesarea jurnalului zilnic.")
+                    return
+
                 act_log_entry = ActivityLog(
-                    log_id=daily_log.id,
+                    log_id=daily_log_for_write.id,
                     activity_id=selected_activity["id"],
                     duration_min=duration,
                     sets=db_sets,
                     reps=db_reps
                 )
                 if act_log_entry.save():
-                    daily_log.recalculate_totals()
+                    daily_log_for_write.recalculate_totals()
                     st.session_state["activity_log_msg"] = ("success", f"{selected_activity['name']} adăugat cu succes!")
                     st.rerun(scope="app")
                 else:
@@ -151,9 +169,9 @@ def render_activity_journal_page() -> None:
     formatted_date = f"{selected_date.day} {romanian_months[selected_date.month]} {selected_date.year}"
     st.subheader(f"📋 Antrenamente efectuate pe {formatted_date}")
     
-    df_entries = DailyLog.get_activity_entries(daily_log.id)
+    df_entries = DailyLog.get_activity_entries(daily_log.id) if daily_log else None
     
-    if not df_entries.empty:
+    if df_entries is not None and not df_entries.empty:
         visible_activity_entries = df_entries.drop(columns=["_activity_id"], errors="ignore")
         render_table(visible_activity_entries, column_config=activity_log_table_config, max_rows=7)
     
@@ -203,7 +221,7 @@ def render_activity_journal_page() -> None:
     
                 edited_activity = activity_options[edited_activity_id]
                 edited_is_strength = is_strength_activity(edited_activity)
-                latest_weight = DailyLog.get_latest_weight(user_id, selected_date)
+                latest_weight = weight_reference["weight"]
     
                 col_edit1, col_edit2 = st.columns(2)
                 with col_edit1:
@@ -311,6 +329,7 @@ def render_activity_journal_page() -> None:
                         st.warning("Bifează confirmarea înainte de ștergere.")
                     elif ActivityLog.delete(int(selected_activity_log_id), user_id):
                         daily_log.recalculate_totals()
+                        DailyLog.delete_if_empty(daily_log.id, user_id)
                         if st.session_state.get("activity_log_edit_selected_id") == int(selected_activity_log_id):
                             del st.session_state["activity_log_edit_selected_id"]
                         if st.session_state.get("activity_log_delete_selected_id") == int(selected_activity_log_id):

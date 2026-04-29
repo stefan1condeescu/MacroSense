@@ -1,7 +1,10 @@
 import datetime
+import io
 import unittest
+from contextlib import redirect_stdout
 
-from models.tracking import ActivityLog, CustomMeal, DailyLog, FoodLog, RecipeIngredient
+from models.authentication import User
+from models.tracking import ActivityLog, CustomMeal, DailyLog, FoodLog, RecipeIngredient, WeightLog
 
 
 class FoodLogValidationTests(unittest.TestCase):
@@ -107,6 +110,104 @@ class RecipeIngredientValidationTests(unittest.TestCase):
     def test_recipe_ingredient_requires_positive_quantity(self):
         with self.assertRaises(ValueError):
             RecipeIngredient(meal_id=1, food_id=1, quantity_g=0)
+
+
+class WeightLogValidationTests(unittest.TestCase):
+    def test_weight_log_requires_positive_weight(self):
+        with self.assertRaises(ValueError):
+            WeightLog(
+                user_id=1,
+                log_date=datetime.date(2026, 4, 29),
+                weight_kg=0,
+            )
+
+    def test_weight_log_requires_weight_inside_supported_range(self):
+        invalid_weights = [29.9, 300.1]
+
+        for weight_kg in invalid_weights:
+            with self.subTest(weight_kg=weight_kg):
+                with self.assertRaises(ValueError):
+                    WeightLog(
+                        user_id=1,
+                        log_date=datetime.date(2026, 4, 29),
+                        weight_kg=weight_kg,
+                    )
+
+    def test_weight_log_requires_valid_date(self):
+        with self.assertRaises(ValueError):
+            WeightLog(
+                user_id=1,
+                log_date="2026-04-29",
+                weight_kg=75.5,
+            )
+
+    def test_weight_log_requires_positive_user_id(self):
+        with self.assertRaises(ValueError):
+            WeightLog(
+                user_id=0,
+                log_date=datetime.date(2026, 4, 29),
+                weight_kg=75.5,
+            )
+
+    def test_weight_log_accepts_valid_entry(self):
+        weight_log = WeightLog(
+            user_id=1,
+            log_date=datetime.date(2026, 4, 29),
+            weight_kg=75.5,
+        )
+
+        self.assertEqual(weight_log.user_id, 1)
+        self.assertEqual(weight_log.weight_kg, 75.5)
+
+    def test_weight_log_update_validates_before_db(self):
+        with self.assertRaises(ValueError):
+            WeightLog.update(
+                log_entry_id=1,
+                user_id=1,
+                log_date=datetime.date(2026, 4, 29),
+                weight_kg=0,
+            )
+
+        with self.assertRaises(ValueError):
+            WeightLog.update(
+                log_entry_id=1,
+                user_id=1,
+                log_date=datetime.date(2026, 4, 29),
+                weight_kg=300.1,
+            )
+
+    def test_weight_log_detects_changed_activity_day_references(self):
+        before_references = {
+            10: (1, 80.0),
+            11: (1, 80.0),
+            12: (2, 82.0),
+        }
+        after_references = {
+            10: (1, 80.0),
+            11: (3, 81.0),
+            12: (2, 82.0),
+        }
+
+        self.assertEqual(
+            WeightLog.get_changed_reference_ids(before_references, after_references),
+            {11}
+        )
+
+
+class UserRegistrationValidationTests(unittest.TestCase):
+    def test_user_register_rejects_initial_weight_outside_supported_range_before_db(self):
+        user = User(
+            email="invalid.weight@example.com",
+            full_name="Invalid Weight",
+            height_cm=180,
+            age=24,
+            gender="M",
+            goal="menținere",
+        )
+
+        with redirect_stdout(io.StringIO()):
+            self.assertFalse(user.register("test123", 29.9))
+            self.assertFalse(user.register("test123", 300.1))
 
 
 class DailyLogCalculationTests(unittest.TestCase):

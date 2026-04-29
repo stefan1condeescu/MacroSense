@@ -50,3 +50,8 @@ activity_log_table_config = {
     "Repetări": st.column_config.TextColumn("Repetări", width="small"),
     "Calorii Arse": st.column_config.NumberColumn("Calorii Arse", format="%.1f kcal", width="small"),
 }
+
+weight_log_table_config = {
+    "Data": st.column_config.DateColumn("Data", format="DD.MM.YYYY", width="medium"),
+    "Greutate (kg)": st.column_config.NumberColumn("Greutate", format="%.1f kg", width="medium"),
+}

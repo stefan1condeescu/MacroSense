@@ -6,6 +6,7 @@ from .tracking_models import (
     FoodItem,
     FoodLog,
     RecipeIngredient,
+    WeightLog,
 )
 
 __all__ = [
@@ -16,4 +17,5 @@ __all__ = [
     "FoodItem",
     "FoodLog",
     "RecipeIngredient",
+    "WeightLog",
 ]
