@@ -40,10 +40,7 @@ def render_food_journal_page() -> None:
         st.error("Sesiune invalidă. Te rugăm să te reautentifici.")
         st.stop()
     
-    daily_log = DailyLog.get_or_create(user_id, selected_date)
-    if not daily_log:
-        st.error("Eroare la accesarea jurnalului zilnic.")
-        st.stop()
+    daily_log = DailyLog.get_for_date(user_id, selected_date)
     
     def show_food_log_message(message):
         if not message:
@@ -98,8 +95,13 @@ def render_food_journal_page() -> None:
     
                 if submit_food:
                     try:
+                        daily_log_for_write = DailyLog.get_or_create(user_id, selected_date)
+                        if not daily_log_for_write:
+                            st.error("Eroare la accesarea jurnalului zilnic.")
+                            return
+
                         food_log_entry = FoodLog(
-                            log_id=daily_log.id,
+                            log_id=daily_log_for_write.id,
                             quantity_g=quantity,
                             meal_type=meal_type,
                             meal_time=meal_time,
@@ -107,7 +109,7 @@ def render_food_journal_page() -> None:
                         )
     
                         if food_log_entry.save():
-                            daily_log.recalculate_totals()
+                            daily_log_for_write.recalculate_totals()
                             st.session_state["food_log_msg"] = ("success", f"{selected_food['name']} ({quantity}g) adăugat cu succes!")
                             st.rerun(scope="app")
                         else:
@@ -139,8 +141,13 @@ def render_food_journal_page() -> None:
     
                 if submit_custom_meal:
                     try:
+                        daily_log_for_write = DailyLog.get_or_create(user_id, selected_date)
+                        if not daily_log_for_write:
+                            st.error("Eroare la accesarea jurnalului zilnic.")
+                            return
+
                         custom_meal_log_entry = FoodLog(
-                            log_id=daily_log.id,
+                            log_id=daily_log_for_write.id,
                             quantity_g=custom_quantity,
                             meal_type=custom_meal_type,
                             meal_time=custom_meal_time,
@@ -148,7 +155,7 @@ def render_food_journal_page() -> None:
                         )
     
                         if custom_meal_log_entry.save():
-                            daily_log.recalculate_totals()
+                            daily_log_for_write.recalculate_totals()
                             st.session_state["food_log_msg"] = ("success", f"{selected_custom_meal['recipe_name']} ({custom_quantity}g) adăugată cu succes!")
                             st.rerun(scope="app")
                         else:
@@ -168,9 +175,9 @@ def render_food_journal_page() -> None:
     formatted_date = f"{selected_date.day} {romanian_months[selected_date.month]} {selected_date.year}"
     st.subheader(f"📋 Alimente consumate pe {formatted_date}")
     
-    df_entries = DailyLog.get_food_entries(daily_log.id)
+    df_entries = DailyLog.get_food_entries(daily_log.id) if daily_log else None
     
-    if not df_entries.empty:
+    if df_entries is not None and not df_entries.empty:
         render_table(format_food_entries_for_display(df_entries), column_config=food_log_table_config, max_rows=7)
     
         @st.fragment
@@ -292,6 +299,7 @@ def render_food_journal_page() -> None:
                         st.warning("Bifează confirmarea înainte de ștergere.")
                     elif FoodLog.delete(int(selected_food_log_id), user_id):
                         daily_log.recalculate_totals()
+                        DailyLog.delete_if_empty(daily_log.id, user_id)
                         if st.session_state.get("food_log_edit_selected_id") == int(selected_food_log_id):
                             del st.session_state["food_log_edit_selected_id"]
                         if st.session_state.get("food_log_delete_selected_id") == int(selected_food_log_id):

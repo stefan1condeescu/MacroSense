@@ -28,6 +28,7 @@
     - recipe_ingredient.py — RecipeIngredient
     - custom_meal.py — CustomMeal
     - daily_log.py — DailyLog
+    - weight_log.py — WeightLog
   - models/authentication.py — User, Admin
   - database.py — get_connection()
   - schema.sql — schema completă a bazei de date
@@ -58,9 +59,10 @@ Verifică mereu conformitatea dintre documentația din docs/
 arhitecturală trebuie semnalată înainte de a scrie cod.
 
 ## Arhitectură OOP
-- DailyLog: get_or_create, recalculate_totals, get_food_entries,
+- DailyLog: get_or_create, get_for_date, recalculate_totals, get_food_entries,
   get_activity_entries, calculate_hybrid_calories (static),
-  get_latest_weight (static), get_by_id, calculate_energy_balance
+  get_latest_weight (static), get_by_id, delete_if_empty,
+  calculate_energy_balance
 - FoodLog: save(), update(), delete()
 - ActivityLog: save(), update(), delete()
 - RecipeIngredient: metoda save()
@@ -69,6 +71,13 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   calculate_total_macros, calculateTotalMacros,
   get_user_meal_options(include_archived=False), get_affected_daily_log_ids,
   get_all_as_dataframe, get_ingredients, get_ingredients_as_dataframe
+- WeightLog: save(), update(), delete(), get_user_entries(),
+  get_reference_for_user(), get_latest_for_user(),
+  get_activity_day_weight_references(), get_changed_reference_ids(),
+  recalculate_user_daily_logs()
+  (`recalculate_user_daily_logs()` recalculează doar zilele cu antrenamente,
+  iar cu snapshot anterior recalculează doar zilele unde referința de greutate
+  s-a schimbat efectiv)
 - User: register(password, weight), authenticate(password)
 - Admin: authenticate(password)
 - FoodItem, Activity: save(), get_all_as_dataframe(), get_catalog_options()
@@ -83,12 +92,18 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - În Jurnal Alimentar și Jurnal Activități, panourile reactive cu multe
   widget-uri pot folosi st.fragment() pentru a limita rerender-ul vizual
   și a evita flicker-ul.
+- Vizualizarea unei date în Jurnal Alimentar sau Jurnal Activități nu trebuie
+  să creeze rânduri goale în `daily_logs`; `DailyLog.get_or_create()` se
+  folosește doar la salvarea primei înregistrări reale.
 - Mesajele de succes care urmează după operații cu rerun trebuie păstrate
   în st.session_state și afișate ca st.toast(), fără să mute tabelul.
 - Selectbox-urile pentru alimente și mese personalizate folosesc ID intern,
   dar afișează utilizatorului doar denumirea, fără sufixe tehnice de tip #id
 - Denumirea unei mese personalizate trebuie să înceapă cu literă;
   nu sunt acceptate denumiri care încep cu cifră sau caracter special
+- Greutatea inițială din formularul de creare cont se validează manual
+  împotriva intervalului `WeightLog.MIN_WEIGHT_KG` - `WeightLog.MAX_WEIGHT_KG`;
+  nu se folosește clamp automat prin `min_value/max_value`.
 - CSS-ul custom se păstrează în `assets/style.css`, nu inline în `app.py`;
   folosește doar selectori Streamlit stabili sau tag-uri HTML standard,
   niciodată clase generate de tip `st-emotion-cache-*`
@@ -110,4 +125,3 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - Recomandări personalizate de antrenamente
 - Dashboard cu grafice (Plotly/Altair)
 - Simulator What-if (scenarii calorice)
-- Clasa dedicată WeightLog cu metoda save()

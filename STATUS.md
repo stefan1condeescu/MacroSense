@@ -20,7 +20,7 @@
 - [x] Fix UI/UX: localizare luni în română, ascundere ID bază de date din tabel, migrare `use_container_width` → `width='stretch'`.
 - [x] Actualizarea fluxului de înregistrare (UI + OOP): Preluarea greutății inițiale a utilizatorului și salvarea atomică în `weight_logs` pentru a suporta corect calculele viitoare bazate pe formula MET. Sincronizare documentație (cap. 3.2).
 - [x] Implementarea clasei `ActivityLog` în pachetul Tracking: validare `duration_min > 0` la nivel de obiect (`ValueError`), persistență în `activity_logs` via `save()`.
-- [x] Extinderea `DailyLog.recalculate_totals()`: calculează atât caloriile IN (`food_logs`) cât și caloriile BURNED (model hibrid TUT pentru Forță, MET clasic pentru Cardio/Altele), cu fallback la 70kg dacă `weight_logs` e gol.
+- [x] Extinderea `DailyLog.recalculate_totals()`: calculează atât caloriile IN (`food_logs`) cât și caloriile BURNED (model hibrid TUT pentru Forță, MET clasic pentru Cardio/Altele), folosind greutatea relevantă din `weight_logs` (ultima greutate anterioară zilei, prima greutate disponibilă pentru date istorice mai vechi decât prima măsurare, fallback 70kg doar dacă istoricul este gol).
 - [x] Implementarea metodelor `DailyLog.get_activity_entries(log_id)` și `DailyLog.get_latest_weight()` în modelul `DailyLog` pentru interogarea istoricului fizic și calcularea dinamică a caloriilor arse per rând.
 - [x] Refactorizare UI Jurnal Activități: `st.selectbox` mutat în afara formularului pentru reactivitate dinamică pe schimbare de categorie; câmpurile Seturi/Repetări afișate exclusiv pentru categoria `Forță` (`min_value=1`) și ascunse complet pentru Cardio/Flexibilitate/Sport de echipă.
 - [x] Corectare metrici UI: Jurnal Activități afișează breakdown Calorii Forță (TUT) vs. Calorii Cardio & Altele (MET); Jurnal Alimentar afișează corect Calorii consumate / Calorii arse / Balanță energetică.
@@ -51,9 +51,14 @@
 - [x] Refactorizare structură Tracking: clasele `FoodItem`, `Activity`, `FoodLog`, `ActivityLog`, `RecipeIngredient`, `CustomMeal` și `DailyLog` au fost mutate în module dedicate sub `models/tracking_models/`, păstrând `models/tracking.py` ca fațadă compatibilă pentru importurile existente.
 - [x] Refactorizare structură UI: `app.py` a fost redus la entrypoint/rutare, iar paginile și helper-ele Streamlit au fost mutate în pachetul `ui/` (`config`, `tables`, `formatters`, `pages`).
 - [x] Stabilizare post-refactor: adăugare suită `unittest` în `tests/` pentru importuri arhitecturale, validări OOP (`FoodLog`, `ActivityLog`, `CustomMeal`, `RecipeIngredient`) și calcule `DailyLog`.
+- [x] Implementare `WeightLog`: clasă OOP dedicată pentru istoricul greutății, cu `save()`, `update()`, `delete()`, interogare istoric și recalculare a jurnalelor zilnice după modificarea greutății.
+- [x] Implementare pagină Streamlit „Jurnal Greutate”: adăugare, editare, ștergere controlată, tabel istoric și metrici pentru ultima greutate.
+- [x] Stabilizare `WeightLog`: validare unitară 30-300 kg în UI și model, warning la actualizarea unei date existente, recalculare limitată la zilele cu antrenamente afectate efectiv de schimbarea referinței de greutate și avertizare în Jurnal Activități când MET folosește prima greutate disponibilă pentru date anterioare primei măsurări.
+- [x] Stabilizare `DailyLog`: vizualizarea unei date în Jurnal Alimentar/Jurnal Activități nu mai creează rânduri goale în `daily_logs`; rândul zilnic se creează doar la salvarea primei înregistrări reale și se șterge automat dacă ultima înregistrare alimentară/antrenament a zilei este eliminată.
+- [x] Stabilizare creare cont: greutatea inițială nu mai este ajustată automat la 30 kg; valorile în afara intervalului 30-300 kg sunt blocate cu eroare explicită în UI și în `User.register()`.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Testare manuală UI pentru fluxul complet „Mese Personalizate”: creare → editare → arhivare/reactivare → folosire în Jurnal Alimentar → recalculare totaluri zilnice.
+- [ ] Testare manuală UI pentru fluxul complet „Jurnal Greutate”: adăugare → actualizare aceeași zi → editare → ștergere → recalculare jurnale zilnice.
 
 ## 🔴 Ce urmează (Backlog):
 - [ ] Modulul de Machine Learning — predicția greutății.
@@ -61,5 +66,4 @@
 - [ ] Recomandări personalizate de antrenamente.
 - [ ] Simulator What-if (scenarii calorice).
 - [ ] Dashboard și generare grafice pentru progres.
-- [ ] Clasă dedicată `WeightLog` cu metoda `save()`.
 - [ ] Sincronizare documentație licență/diagrame după finalizarea funcționalităților principale.

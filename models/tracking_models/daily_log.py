@@ -56,6 +56,40 @@ class DailyLog:
                 conn.close()
 
     @classmethod
+    def get_for_date(cls, user_id: int, log_date: datetime.date) -> "DailyLog | None":
+        """Fetches an existing DailyLog for a user/date without creating an empty row."""
+        conn = get_connection()
+        if not conn:
+            return None
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                SELECT id, user_id, log_date, total_calories_in, total_calories_burned
+                FROM daily_logs
+                WHERE user_id = %s AND log_date = %s
+                """,
+                (user_id, log_date)
+            )
+            row = cursor.fetchone()
+            if row:
+                return cls(
+                    log_id=row[0],
+                    user_id=row[1],
+                    log_date=row[2],
+                    total_calories_in=float(row[3]),
+                    total_calories_burned=float(row[4])
+                )
+            return None
+        except Exception as e:
+            print(f"Error fetching daily log by date: {e}")
+            return None
+        finally:
+            if conn:
+                conn.close()
+
+    @classmethod
     def get_or_create(cls, user_id: int, log_date: datetime.date) -> "DailyLog | None":
         """
         Fetches the DailyLog for the given user and date.
@@ -166,14 +200,27 @@ class DailyLog:
             
             cursor.execute(
                 """
-                SELECT weight_kg FROM weight_logs 
-                WHERE user_id = %s AND log_date <= %s 
-                ORDER BY log_date DESC LIMIT 1
+                SELECT COALESCE(
+                    (
+                        SELECT weight_kg
+                        FROM weight_logs
+                        WHERE user_id = %s AND log_date <= %s
+                        ORDER BY log_date DESC
+                        LIMIT 1
+                    ),
+                    (
+                        SELECT weight_kg
+                        FROM weight_logs
+                        WHERE user_id = %s AND log_date > %s
+                        ORDER BY log_date ASC
+                        LIMIT 1
+                    ),
+                    70.0
+                )
                 """,
-                (self.user_id, self.log_date)
+                (self.user_id, self.log_date, self.user_id, self.log_date)
             )
-            weight_row = cursor.fetchone()
-            current_weight = float(weight_row[0]) if weight_row else 70.0
+            current_weight = float(cursor.fetchone()[0])
 
             cursor.execute(
                 """
@@ -208,6 +255,36 @@ class DailyLog:
             return True
         except Exception as e:
             print(f"Error recalculating DailyLog totals: {e}")
+            return False
+        finally:
+            if conn:
+                conn.close()
+
+    @staticmethod
+    def delete_if_empty(log_id: int, user_id: int) -> bool:
+        """Deletes a DailyLog only when it has no food or activity entries left."""
+        conn = get_connection()
+        if not conn:
+            return False
+
+        try:
+            cursor = conn.cursor()
+            cursor.execute(
+                """
+                DELETE FROM daily_logs dl
+                WHERE dl.id = %s
+                  AND dl.user_id = %s
+                  AND NOT EXISTS (SELECT 1 FROM food_logs fl WHERE fl.log_id = dl.id)
+                  AND NOT EXISTS (SELECT 1 FROM activity_logs al WHERE al.log_id = dl.id)
+                RETURNING dl.id
+                """,
+                (log_id, user_id)
+            )
+            deleted_row = cursor.fetchone()
+            conn.commit()
+            return deleted_row is not None
+        except Exception as e:
+            print(f"Error deleting empty DailyLog: {e}")
             return False
         finally:
             if conn:
@@ -290,31 +367,12 @@ class DailyLog:
     @staticmethod
     def get_latest_weight(user_id: int, target_date: datetime.date) -> float:
         """
-        Helper method to fetch the user's weight on or before a specific date.
+        Helper method to fetch the best available user weight for a specific date.
         Useful for real-time MET calorie estimations in the UI.
         """
-        conn = get_connection()
-        if not conn:
-            return 70.0 # Fallback weight
-        
-        try:
-            cursor = conn.cursor()
-            cursor.execute(
-                """
-                SELECT weight_kg FROM weight_logs 
-                WHERE user_id = %s AND log_date <= %s 
-                ORDER BY log_date DESC LIMIT 1
-                """,
-                (user_id, target_date)
-            )
-            row = cursor.fetchone()
-            return float(row[0]) if row else 70.0
-        except Exception as e:
-            print(f"Error fetching latest weight: {e}")
-            return 70.0
-        finally:
-            if conn:
-                conn.close()
+        from .weight_log import WeightLog
+
+        return WeightLog.get_latest_for_user(user_id, target_date)
 
     @classmethod
     def get_activity_entries(cls, log_id: int) -> "pd.DataFrame":
@@ -337,10 +395,14 @@ class DailyLog:
                 ),
                 latest_weight AS (
                     SELECT COALESCE(
-                        (SELECT weight_kg FROM weight_logs 
-                         WHERE user_id = (SELECT user_id FROM user_info) 
-                         AND log_date <= (SELECT log_date FROM user_info) 
-                         ORDER BY log_date DESC LIMIT 1), 
+                        (SELECT weight_kg FROM weight_logs
+                         WHERE user_id = (SELECT user_id FROM user_info)
+                         AND log_date <= (SELECT log_date FROM user_info)
+                         ORDER BY log_date DESC LIMIT 1),
+                        (SELECT weight_kg FROM weight_logs
+                         WHERE user_id = (SELECT user_id FROM user_info)
+                         AND log_date > (SELECT log_date FROM user_info)
+                         ORDER BY log_date ASC LIMIT 1),
                         70.0) AS weight
                 )
                 SELECT 

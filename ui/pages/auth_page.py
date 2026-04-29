@@ -1,5 +1,6 @@
 import streamlit as st
 from models.authentication import Admin, User
+from models.tracking import WeightLog
 
 def render_auth_page() -> None:
     st.sidebar.title("MacroSense")
@@ -8,14 +9,22 @@ def render_auth_page() -> None:
     
     if choice == "Creare Cont":
         st.subheader("Creează un profil nou")
-        with st.form("register_form", clear_on_submit=True):
+        with st.form("register_form"):
             email = st.text_input("Adresă Email")
             password = st.text_input("Parolă", type="password")
             full_name = st.text_input("Nume complet")
             col1, col2 = st.columns(2)
             with col1:
                 height = st.number_input("Înălțime (cm)", min_value=100.0, max_value=250.0, step=0.1)
-                weight = st.number_input("Greutate curentă (kg)", min_value=30.0, max_value=300.0, step=0.1)
+                weight = st.number_input(
+                    "Greutate curentă (kg)",
+                    value=70.0,
+                    step=0.1,
+                    help=(
+                        "Greutatea trebuie să fie între "
+                        f"{WeightLog.MIN_WEIGHT_KG:.0f} și {WeightLog.MAX_WEIGHT_KG:.0f} kg."
+                    )
+                )
                 age = st.number_input("Vârstă", min_value=10, max_value=120, step=1)
             with col2:
                 gender = st.selectbox("Sex", ["M", "F"])
@@ -29,6 +38,11 @@ def render_auth_page() -> None:
                 st.warning("Parola trebuie să conțină cel puțin 6 caractere!")
             elif "@" not in email or email.count("@") != 1 or "." not in email.split("@")[1]:
                 st.warning("Te rog introdu o adresă de email validă!")
+            elif not WeightLog.MIN_WEIGHT_KG <= float(weight) <= WeightLog.MAX_WEIGHT_KG:
+                st.error(
+                    "Greutatea trebuie să fie între "
+                    f"{WeightLog.MIN_WEIGHT_KG:.0f} și {WeightLog.MAX_WEIGHT_KG:.0f} kg."
+                )
             else:
                 new_user = User(email, full_name, height, age, gender, goal)
                 if new_user.register(password, weight):

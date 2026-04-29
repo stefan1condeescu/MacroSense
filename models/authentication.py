@@ -1,5 +1,6 @@
 import hashlib
 from database import get_connection
+from models.tracking_models.weight_log import WeightLog
 
 class UserAccount:
     """
@@ -133,6 +134,16 @@ class User(UserAccount):
             print("Registration blocked: Missing mandatory fields.")
             return False
 
+        try:
+            initial_weight_value = float(initial_weight_kg)
+        except (TypeError, ValueError):
+            print("Registration blocked: Invalid initial weight.")
+            return False
+
+        if not WeightLog.MIN_WEIGHT_KG <= initial_weight_value <= WeightLog.MAX_WEIGHT_KG:
+            print("Registration blocked: Initial weight outside supported range.")
+            return False
+
         conn = get_connection()
         if not conn:
             return False
@@ -152,7 +163,7 @@ class User(UserAccount):
             cursor.execute(
                 """INSERT INTO weight_logs (user_id, log_date, weight_kg)
                    VALUES (%s, CURRENT_DATE, %s)""",
-                (new_user_id, initial_weight_kg)
+                (new_user_id, initial_weight_value)
             )
 
             conn.commit()
