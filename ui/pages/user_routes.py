@@ -7,11 +7,21 @@ from ui.pages.user_catalog_pages import render_user_activity_catalog_page, rende
 from ui.pages.weight_journal_page import render_weight_journal_page
 
 
+USER_MENU_OPTIONS = [
+    "Acasă",
+    "Jurnal Alimentar",
+    "Jurnal Activități",
+    "Jurnal Greutate",
+    "Mese Personalizate",
+    "Catalog Alimente",
+    "Catalog Activități",
+]
+
+
 def render_user_routes() -> None:
     st.sidebar.title(f"Salut, {st.session_state['user_full_name']}!")
 
-    menu = ["Acasă", "Jurnal Alimentar", "Jurnal Activități", "Jurnal Greutate", "Mese Personalizate", "Catalog Alimente", "Catalog Activități"]
-    choice = st.sidebar.selectbox("Meniu Principal", menu)
+    choice = st.sidebar.radio("Meniu Principal", USER_MENU_OPTIONS, key="user_main_menu")
 
     if choice == "Acasă":
         render_dashboard_page()

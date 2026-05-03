@@ -16,6 +16,15 @@ class ActivityLog:
         # Enforce duration constraint at object level
         if self.duration_min <= 0:
             raise ValueError("Duration must be strictly positive for MET calculation.")
+        self.validate_sets_and_reps(self.sets, self.reps)
+
+    @staticmethod
+    def validate_sets_and_reps(sets: int = None, reps: int = None) -> None:
+        """Validates optional strength-training details consistently for save and update flows."""
+        if (sets is None) != (reps is None):
+            raise ValueError("Sets and reps must be provided together.")
+        if sets is not None and (sets <= 0 or reps <= 0):
+            raise ValueError("Sets and reps must be strictly positive when provided.")
 
     def save(self) -> bool:
         """Saves the ActivityLog entry to the PostgreSQL database."""
@@ -75,10 +84,7 @@ class ActivityLog:
         """Updates editable ActivityLog fields only if the entry belongs to the given user."""
         if duration_min <= 0:
             raise ValueError("Duration must be strictly positive for MET calculation.")
-        if (sets is None) != (reps is None):
-            raise ValueError("Sets and reps must be provided together.")
-        if sets is not None and (sets <= 0 or reps <= 0):
-            raise ValueError("Sets and reps must be strictly positive when provided.")
+        cls.validate_sets_and_reps(sets, reps)
 
         conn = get_connection()
         if not conn:

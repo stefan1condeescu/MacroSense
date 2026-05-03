@@ -169,7 +169,7 @@ def render_activity_journal_page() -> None:
     formatted_date = f"{selected_date.day} {romanian_months[selected_date.month]} {selected_date.year}"
     st.subheader(f"📋 Antrenamente efectuate pe {formatted_date}")
     
-    df_entries = DailyLog.get_activity_entries(daily_log.id) if daily_log else None
+    df_entries = DailyLog.get_activity_entries(daily_log.id, user_id) if daily_log else None
     
     if df_entries is not None and not df_entries.empty:
         visible_activity_entries = df_entries.drop(columns=["_activity_id"], errors="ignore")
@@ -177,7 +177,7 @@ def render_activity_journal_page() -> None:
     
         @st.fragment
         def render_activity_edit_panel():
-            current_entries = DailyLog.get_activity_entries(daily_log.id)
+            current_entries = DailyLog.get_activity_entries(daily_log.id, user_id)
             if current_entries.empty:
                 return
     
@@ -293,7 +293,7 @@ def render_activity_journal_page() -> None:
     
         @st.fragment
         def render_activity_delete_panel():
-            current_entries = DailyLog.get_activity_entries(daily_log.id)
+            current_entries = DailyLog.get_activity_entries(daily_log.id, user_id)
             if current_entries.empty:
                 return
     

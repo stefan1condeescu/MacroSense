@@ -1,10 +1,12 @@
 import datetime
+import inspect
 import io
 import unittest
 from contextlib import redirect_stdout
 
 from models.authentication import User
-from models.tracking import ActivityLog, CustomMeal, DailyLog, FoodLog, RecipeIngredient, WeightLog
+from models.tracking import Activity, ActivityLog, CustomMeal, DailyLog, FoodItem, FoodLog, RecipeIngredient, WeightLog
+from models.tracking_models.daily_log import format_optional_activity_count
 
 
 class FoodLogValidationTests(unittest.TestCase):
@@ -13,9 +15,28 @@ class FoodLogValidationTests(unittest.TestCase):
             FoodLog(
                 log_id=1,
                 quantity_g=0,
-                meal_type="Pranz",
+                meal_type="Prânz",
                 meal_time=datetime.time(12, 0),
                 food_id=1,
+            )
+
+    def test_food_log_rejects_quantity_above_supported_range(self):
+        with self.assertRaises(ValueError):
+            FoodLog(
+                log_id=1,
+                quantity_g=5000.1,
+                meal_type="PrÃ¢nz",
+                meal_time=datetime.time(12, 0),
+                food_id=1,
+            )
+
+        with self.assertRaises(ValueError):
+            FoodLog.update(
+                log_entry_id=1,
+                user_id=1,
+                quantity_g=5000.1,
+                meal_type="PrÃ¢nz",
+                meal_time=datetime.time(12, 0),
             )
 
     def test_food_log_requires_exactly_one_food_source(self):
@@ -23,7 +44,7 @@ class FoodLogValidationTests(unittest.TestCase):
             FoodLog(
                 log_id=1,
                 quantity_g=100,
-                meal_type="Pranz",
+                meal_type="Prânz",
                 meal_time=datetime.time(12, 0),
             )
 
@@ -31,24 +52,44 @@ class FoodLogValidationTests(unittest.TestCase):
             FoodLog(
                 log_id=1,
                 quantity_g=100,
-                meal_type="Pranz",
+                meal_type="Prânz",
                 meal_time=datetime.time(12, 0),
                 food_id=1,
                 custom_meal_id=1,
+            )
+
+    def test_food_log_requires_supported_meal_type(self):
+        with self.assertRaises(ValueError):
+            FoodLog(
+                log_id=1,
+                quantity_g=100,
+                meal_type="Pranz",
+                meal_time=datetime.time(12, 0),
+                food_id=1,
+            )
+
+    def test_food_log_requires_valid_meal_time(self):
+        with self.assertRaises(ValueError):
+            FoodLog(
+                log_id=1,
+                quantity_g=100,
+                meal_type="Prânz",
+                meal_time=None,
+                food_id=1,
             )
 
     def test_food_log_accepts_catalog_food_or_custom_meal(self):
         catalog_entry = FoodLog(
             log_id=1,
             quantity_g=100,
-            meal_type="Pranz",
+            meal_type="Prânz",
             meal_time=datetime.time(12, 0),
             food_id=1,
         )
         custom_entry = FoodLog(
             log_id=1,
             quantity_g=100,
-            meal_type="Pranz",
+            meal_type="Prânz",
             meal_time=datetime.time(12, 0),
             custom_meal_id=1,
         )
@@ -85,10 +126,68 @@ class ActivityLogValidationTests(unittest.TestCase):
                 reps=10,
             )
 
+    def test_activity_log_constructor_validates_sets_and_reps_together(self):
+        with self.assertRaises(ValueError):
+            ActivityLog(log_id=1, activity_id=1, duration_min=30, sets=3, reps=None)
+
+        with self.assertRaises(ValueError):
+            ActivityLog(log_id=1, activity_id=1, duration_min=30, sets=0, reps=10)
+
+    def test_activity_requires_name_category_and_positive_met(self):
+        with self.assertRaises(ValueError):
+            Activity(name="", met_multiplier=5.0, category="Cardio")
+
+        with self.assertRaises(ValueError):
+            Activity(name="Test", met_multiplier=0.8, category="Cardio")
+
+        with self.assertRaises(ValueError):
+            Activity(name="Test", met_multiplier=5.0, category="")
+
+        with self.assertRaises(ValueError):
+            Activity(name="A <span>Test</span>", met_multiplier=5.0, category="Cardio")
+
+    def test_activity_normalizes_name_and_met(self):
+        activity = Activity(name="  Alergare  ", met_multiplier=8, category="Cardio")
+
+        self.assertEqual(activity.name, "Alergare")
+        self.assertEqual(activity.met_multiplier, 8.0)
+
+
+class FoodItemValidationTests(unittest.TestCase):
+    def test_food_item_requires_name_category_and_nutrition(self):
+        invalid_examples = [
+            {"name": "", "calories": 100, "protein": 1, "carbs": 2, "fats": 3, "category": "Altele"},
+            {"name": "A <span>Test</span>", "calories": 100, "protein": 1, "carbs": 2, "fats": 3, "category": "Altele"},
+            {"name": "Test", "calories": 100, "protein": 1, "carbs": 2, "fats": 3, "category": ""},
+            {"name": "Test", "calories": 0, "protein": 0, "carbs": 0, "fats": 0, "category": "Altele"},
+            {"name": "Test", "calories": 0, "protein": 1, "carbs": 0, "fats": 0, "category": "Altele"},
+            {"name": "Test", "calories": 100, "protein": 0, "carbs": 0, "fats": 0, "category": "Altele"},
+            {"name": "Test", "calories": 100, "protein": -1, "carbs": 2, "fats": 3, "category": "Altele"},
+        ]
+
+        for example in invalid_examples:
+            with self.subTest(example=example):
+                with self.assertRaises(ValueError):
+                    FoodItem(
+                        example["name"],
+                        example["calories"],
+                        example["protein"],
+                        example["carbs"],
+                        example["fats"],
+                        example["category"],
+                    )
+
+    def test_food_item_normalizes_valid_input(self):
+        food = FoodItem("  Banane  ", 89, 1.1, 22.8, 0.3, "  Fructe  ")
+
+        self.assertEqual(food.name, "Banane")
+        self.assertEqual(food.category, "Fructe")
+        self.assertEqual(food.calories_100g, 89.0)
+
 
 class CustomMealValidationTests(unittest.TestCase):
     def test_custom_meal_name_must_start_with_letter(self):
-        invalid_names = ["", "  ", "123 Salata", "-Salata"]
+        invalid_names = ["", "  ", "123 Salata", "-Salata", "A <span>Test</span>"]
 
         for recipe_name in invalid_names:
             with self.subTest(recipe_name=recipe_name):
@@ -110,6 +209,20 @@ class RecipeIngredientValidationTests(unittest.TestCase):
     def test_recipe_ingredient_requires_positive_quantity(self):
         with self.assertRaises(ValueError):
             RecipeIngredient(meal_id=1, food_id=1, quantity_g=0)
+
+    def test_recipe_ingredient_rejects_quantity_above_supported_range(self):
+        with self.assertRaises(ValueError):
+            RecipeIngredient(meal_id=1, food_id=1, quantity_g=5000.1)
+
+        with self.assertRaises(ValueError):
+            RecipeIngredient.validate_quantity(5000.1)
+
+
+class ActivityDisplayFormattingTests(unittest.TestCase):
+    def test_optional_activity_count_avoids_float_suffix_for_integers(self):
+        self.assertEqual(format_optional_activity_count(6.0), "6")
+        self.assertEqual(format_optional_activity_count(15), "15")
+        self.assertEqual(format_optional_activity_count(None), "-")
 
 
 class WeightLogValidationTests(unittest.TestCase):
@@ -195,6 +308,19 @@ class WeightLogValidationTests(unittest.TestCase):
 
 
 class UserRegistrationValidationTests(unittest.TestCase):
+    def test_user_strips_email_and_full_name_without_changing_case(self):
+        user = User(
+            email="  TEST.USER@EXAMPLE.COM  ",
+            full_name="  Test User  ",
+            height_cm=180,
+            age=30,
+            gender="M",
+            goal="menținere",
+        )
+
+        self.assertEqual(user.email, "TEST.USER@EXAMPLE.COM")
+        self.assertEqual(user.full_name, "Test User")
+
     def test_user_register_rejects_initial_weight_outside_supported_range_before_db(self):
         user = User(
             email="invalid.weight@example.com",
@@ -207,10 +333,109 @@ class UserRegistrationValidationTests(unittest.TestCase):
 
         with redirect_stdout(io.StringIO()):
             self.assertFalse(user.register("test123", 29.9))
+            self.assertEqual(user.last_error_code, "initial_weight_out_of_range")
             self.assertFalse(user.register("test123", 300.1))
+            self.assertEqual(user.last_error_code, "initial_weight_out_of_range")
+
+    def test_user_register_rejects_html_like_full_name_before_db(self):
+        user = User(
+            email="invalid.fullname@example.com",
+            full_name="A <span>Test</span>",
+            height_cm=180,
+            age=24,
+            gender="M",
+            goal="menținere",
+        )
+
+        with redirect_stdout(io.StringIO()):
+            self.assertFalse(user.register("test123", 75))
+            self.assertEqual(user.last_error_code, "invalid_full_name")
+
+    def test_user_register_rejects_html_like_email_before_db(self):
+        user = User(
+            email="<user>@example.com",
+            full_name="Invalid Email",
+            height_cm=180,
+            age=24,
+            gender="M",
+            goal="menținere",
+        )
+
+        with redirect_stdout(io.StringIO()):
+            self.assertFalse(user.register("test123", 75))
+            self.assertEqual(user.last_error_code, "invalid_email")
+
+    def test_user_register_rejects_height_outside_supported_range_before_db(self):
+        user = User(
+            email="invalid.height@example.com",
+            full_name="Invalid Height",
+            height_cm=90,
+            age=24,
+            gender="M",
+            goal="menținere",
+        )
+
+        with redirect_stdout(io.StringIO()):
+            self.assertFalse(user.register("test123", 75))
+            self.assertEqual(user.last_error_code, "invalid_height")
+
+    def test_user_register_rejects_age_outside_supported_range_before_db(self):
+        user = User(
+            email="invalid.age@example.com",
+            full_name="Invalid Age",
+            height_cm=180,
+            age=9,
+            gender="M",
+            goal="menținere",
+        )
+
+        with redirect_stdout(io.StringIO()):
+            self.assertFalse(user.register("test123", 75))
+            self.assertEqual(user.last_error_code, "invalid_age")
+
+    def test_user_register_rejects_invalid_gender_before_db(self):
+        user = User(
+            email="invalid.gender@example.com",
+            full_name="Invalid Gender",
+            height_cm=180,
+            age=24,
+            gender="X",
+            goal="menținere",
+        )
+
+        with redirect_stdout(io.StringIO()):
+            self.assertFalse(user.register("test123", 75))
+            self.assertEqual(user.last_error_code, "invalid_gender")
+
+    def test_user_registration_maps_database_errors_to_stable_codes(self):
+        class FakeDiag:
+            def __init__(self, constraint_name):
+                self.constraint_name = constraint_name
+
+        class FakeDatabaseError:
+            def __init__(self, pgcode, constraint_name=None):
+                self.pgcode = pgcode
+                self.diag = FakeDiag(constraint_name)
+
+        self.assertEqual(
+            User._map_registration_error(FakeDatabaseError("23505")),
+            "duplicate_email",
+        )
+        self.assertEqual(
+            User._map_registration_error(FakeDatabaseError("23514", "chk_user_height")),
+            "invalid_height",
+        )
+        self.assertEqual(
+            User._map_registration_error(FakeDatabaseError("23514", "chk_weight_range")),
+            "initial_weight_out_of_range",
+        )
 
 
 class DailyLogCalculationTests(unittest.TestCase):
+    def test_entry_fetchers_accept_user_scope(self):
+        self.assertIn("user_id", inspect.signature(DailyLog.get_food_entries).parameters)
+        self.assertIn("user_id", inspect.signature(DailyLog.get_activity_entries).parameters)
+
     def test_energy_balance_is_calories_in_minus_burned(self):
         daily_log = DailyLog(
             user_id=1,

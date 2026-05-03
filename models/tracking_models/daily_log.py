@@ -2,6 +2,22 @@ import datetime
 import pandas as pd
 from database import get_connection
 
+
+def format_optional_activity_count(value) -> str:
+    """Formats optional sets/reps values without leaking Pandas float artifacts such as 6.0."""
+    if value is None or pd.isna(value):
+        return "-"
+
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+
+    if numeric_value.is_integer():
+        return str(int(numeric_value))
+    return str(numeric_value)
+
+
 class DailyLog:
     """
     Represents the daily nutritional and fitness summary for a user.
@@ -291,10 +307,11 @@ class DailyLog:
                 conn.close()
 
     @classmethod
-    def get_food_entries(cls, log_id: int) -> "pd.DataFrame":
+    def get_food_entries(cls, log_id: int, user_id: int = None) -> "pd.DataFrame":
         """
         Returns all FoodLog entries for a given daily_log id as a DataFrame,
         including both catalog food items and custom meals.
+        When user_id is provided, the daily log must belong to that user.
         """
         conn = get_connection()
         if not conn:
@@ -302,8 +319,17 @@ class DailyLog:
         
         try:
             cursor = conn.cursor()
+            user_join = "JOIN daily_logs dl ON dl.id = fl.log_id" if user_id is not None else ""
+            user_filter = "AND dl.user_id = %s" if user_id is not None else ""
+            params = [log_id]
+            if user_id is not None:
+                params.append(user_id)
+            params.append(log_id)
+            if user_id is not None:
+                params.append(user_id)
+
             cursor.execute(
-                """
+                f"""
                 WITH meal_totals AS (
                     SELECT
                         ri.meal_id,
@@ -324,8 +350,11 @@ class DailyLog:
                         fl.meal_type AS "Masă",
                         fl.meal_time AS "Ora"
                     FROM food_logs fl
+                    {user_join}
                     JOIN food_items fi ON fi.id = fl.food_id
-                    WHERE fl.log_id = %s AND fl.food_id IS NOT NULL
+                    WHERE fl.log_id = %s
+                      {user_filter}
+                      AND fl.food_id IS NOT NULL
 
                     UNION ALL
 
@@ -343,13 +372,16 @@ class DailyLog:
                         fl.meal_type AS "Masă",
                         fl.meal_time AS "Ora"
                     FROM food_logs fl
+                    {user_join}
                     JOIN custom_meals cm ON cm.id = fl.custom_meal_id
                     LEFT JOIN meal_totals mt ON mt.meal_id = cm.id
-                    WHERE fl.log_id = %s AND fl.custom_meal_id IS NOT NULL
+                    WHERE fl.log_id = %s
+                      {user_filter}
+                      AND fl.custom_meal_id IS NOT NULL
                 ) entries
                 ORDER BY "Ora" ASC NULLS LAST
                 """,
-                (log_id, log_id)
+                tuple(params)
             )
             rows = cursor.fetchall()
             if rows:
@@ -375,10 +407,11 @@ class DailyLog:
         return WeightLog.get_latest_for_user(user_id, target_date)
 
     @classmethod
-    def get_activity_entries(cls, log_id: int) -> "pd.DataFrame":
+    def get_activity_entries(cls, log_id: int, user_id: int = None) -> "pd.DataFrame":
         """
         Returns all ActivityLog entries for a given daily_log id as a DataFrame,
         joined with activities to show names, categories, and calculated burned calories.
+        When user_id is provided, the daily log must belong to that user.
         """
         conn = get_connection()
         if not conn:
@@ -388,10 +421,16 @@ class DailyLog:
             cursor = conn.cursor()
             # We use a CTE to get the user's latest weight relative to the log_date
             # to dynamically calculate the burned calories per activity row.
+            user_filter = "AND user_id = %s" if user_id is not None else ""
+            params = [log_id]
+            if user_id is not None:
+                params.append(user_id)
+            params.append(log_id)
+
             cursor.execute(
-                """
+                f"""
                 WITH user_info AS (
-                    SELECT user_id, log_date FROM daily_logs WHERE id = %s
+                    SELECT user_id, log_date FROM daily_logs WHERE id = %s {user_filter}
                 ),
                 latest_weight AS (
                     SELECT COALESCE(
@@ -425,17 +464,17 @@ class DailyLog:
                 FROM activity_logs al
                 JOIN activities a ON a.id = al.activity_id
                 WHERE al.log_id = %s
+                  AND EXISTS (SELECT 1 FROM user_info)
                 ORDER BY al.id ASC
                 """,
-                (log_id, log_id)
+                tuple(params)
             )
             rows = cursor.fetchall()
             if rows:
                 columns = ["id", "_activity_id", "Activitate", "Categorie", "Durată (min)", "Seturi", "Repetări", "Calorii Arse"]
                 df = pd.DataFrame(rows, columns=columns)
-                # Clean up None/NaN values for Sets and Reps to display cleanly in UI
-                df['Seturi'] = df['Seturi'].fillna('-').astype(str)
-                df['Repetări'] = df['Repetări'].fillna('-').astype(str)
+                df['Seturi'] = df['Seturi'].apply(format_optional_activity_count)
+                df['Repetări'] = df['Repetări'].apply(format_optional_activity_count)
                 return df.set_index("id")
             return pd.DataFrame()
         except Exception as e:

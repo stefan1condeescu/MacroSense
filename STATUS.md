@@ -56,14 +56,39 @@
 - [x] Stabilizare `WeightLog`: validare unitară 30-300 kg în UI și model, warning la actualizarea unei date existente, recalculare limitată la zilele cu antrenamente afectate efectiv de schimbarea referinței de greutate și avertizare în Jurnal Activități când MET folosește prima greutate disponibilă pentru date anterioare primei măsurări.
 - [x] Stabilizare `DailyLog`: vizualizarea unei date în Jurnal Alimentar/Jurnal Activități nu mai creează rânduri goale în `daily_logs`; rândul zilnic se creează doar la salvarea primei înregistrări reale și se șterge automat dacă ultima înregistrare alimentară/antrenament a zilei este eliminată.
 - [x] Stabilizare creare cont: greutatea inițială nu mai este ajustată automat la 30 kg; valorile în afara intervalului 30-300 kg sunt blocate cu eroare explicită în UI și în `User.register()`.
+- [x] Extindere catalog alimente cu metadate de proveniență (`source`, `source_type`, `external_id`, `source_url`) și constrângere de unicitate pentru importuri externe.
+- [x] Implementare import alimente din USDA FoodData Central, disponibil doar pentru Administrator: căutare în sursele nebranduite `SR Legacy`, `Foundation` și `Survey (FNDDS)`, preview calorii/macronutrienți per 100g, verificare duplicate și salvare locală în `food_items`.
+- [x] Adăugare seed SQL `database/seeds/seed_food_items_usda_starter.sql` cu alimente reale de pornire din USDA și teste automate pentru normalizarea valorilor USDA, inclusiv valori nutriționale egale cu zero.
+- [x] Stabilizare UI/UX Catalog Alimente: sursa alimentelor manuale este afișată ca `MacroSense`, tabelele au căutare/filtre, importul USDA afișează rezultate într-o listă clară, iar categoria locală este sugerată automat pe baza descrierii USDA.
+- [x] Validare Admin Catalog Alimente: nu se mai pot salva alimente manuale fără denumire sau cu toate valorile nutriționale egale cu 0.
+- [x] Stabilizare căutare USDA: interfața indică folosirea termenilor în engleză, iar clientul filtrează rezultatele astfel încât descrierea USDA să conțină termenii căutați, reducând rezultatele irelevante și timpul de încărcare.
+- [x] Stabilizare selecție alimente în „Jurnal Alimentar”: selectbox-ul pentru catalog a fost înlocuit cu o căutare după nume, filtru pe categorie și tabel selectabil, mai potrivit pentru un catalog mare.
+- [x] Polish UI „Jurnal Alimentar”: alegerea tipului de masă la adăugarea alimentelor/meselor personalizate folosește opțiuni radio vizibile, iar dropdown-urile rămase au contrast CSS îmbunătățit.
+- [x] Hardening post-review Catalog Alimente/USDA: căutările din tabele tratează caracterele speciale ca text simplu, selecția din tabelul Jurnal Alimentar se resetează corect la schimbarea filtrului, importul USDA respinge sursele nepermise întoarse accidental de API și filtrarea suportă pluraluri uzuale.
+- [x] Hardening post-review modele/UI/DB: textele utilizatorilor afișate prin HTML custom sunt escapate, email-urile sunt curățate doar de spații fără conversie automată la lowercase, `Activity` și `ActivityLog` validează mai strict datele, seturile/repetările se afișează fără sufix `.0`, iar `schema.sql` include constrângeri suplimentare pentru integritate.
+- [x] Stabilizare creare cont: mesajele de eroare la înregistrare sunt specifice cauzei reale (email duplicat, date profil invalide, greutate invalidă sau conexiune DB), în loc să afișeze generic că email-ul există deja.
+- [x] Stabilizare validări UI: denumirile de mese personalizate resping caractere HTML evidente (`<`, `>`), iar coeficientul MET din Admin nu mai este ajustat automat la 0.9 de Streamlit; valorile sub minim sunt blocate cu eroare explicită.
+- [x] Stabilizare Jurnal Alimentar + Mese Personalizate după import USDA: selecțiile de alimente afișează sursa (`MacroSense`, `USDA SR`, `USDA Foundation`, `USDA FNDDS`), căutarea este tolerantă la diacritice, ingredientele din Mese Personalizate folosesc selector tabelar cu filtru/căutare, `FoodLog` validează `meal_type` la nivel de model, iar metricile zilnice se afișează și pe zile cu antrenamente dar fără alimente.
+- [x] Întărire validări catalog/jurnal: `FoodItem` validează la nivel de model denumirea, categoria și valorile nutriționale, importul USDA ignoră alimentele cu nutriție complet zero, căutarea din tabelele de catalog este tolerantă la diacritice, `FoodLog` cere oră validă, iar schema blochează perechile `sets`/`reps` completate parțial.
+- [x] Stabilizare creare cont: înălțimea și vârsta nu mai sunt ajustate automat de Streamlit la limita minimă/maximă; valorile invalide sunt blocate explicit în UI și în `User.register()`.
+- [x] Stabilizare UI Admin Catalog: butoanele de salvare din formularele Admin folosesc aceeași culoare verde ca fluxurile User, formularul de aliment păstrează denumirea când apar erori de validare, iar denumirile de alimente cu caractere HTML evidente sunt blocate în UI, model și schema DB.
+- [x] Întărire anti-injection și reguli nutriționale: câmpurile text persistente pentru utilizatori, alimente, activități și mese personalizate blochează caractere HTML evidente (`<`, `>`), iar alimentele necesită calorii > 0 și cel puțin un macronutrient > 0.
+- [x] Stabilizare validări Admin Catalog Alimente: câmpurile nutriționale nu mai folosesc clamp automat Streamlit, astfel valorile negative sunt blocate explicit, iar formularul afișează doar prima eroare de validare la un moment dat.
+- [x] Stabilizare validări cantități în Jurnal Alimentar și Mese Personalizate: câmpurile de gramaj nu mai folosesc clamp automat Streamlit, iar valorile sub 1g sau peste 5000g sunt blocate manual înainte de salvare.
+- [x] Stabilizare preview Mese Personalizate: cantitățile invalide nu mai intră în tabelul de ingrediente și nu mai recalculează totalurile/macronutrienții afișați.
+- [x] Hardening model/DB pentru cantități: `FoodLog`, `RecipeIngredient`, `CustomMeal.create_with_ingredients()`, `CustomMeal.update_with_ingredients()` și `schema.sql` aplică același interval 1-5000g ca UI-ul.
+- [x] Hardening izolare utilizatori în jurnale: `DailyLog.get_food_entries()` și `DailyLog.get_activity_entries()` acceptă `user_id`, iar paginile Jurnal Alimentar/Jurnal Activități îl trimit explicit la citirea intrărilor.
+- [x] Stabilizare navigare Utilizator: meniul din sidebar afișează permanent toate paginile, inclusiv `Acasă`, fără dropdown scrollabil care ascundea prima opțiune.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Testare manuală UI pentru fluxul complet „Jurnal Greutate”: adăugare → actualizare aceeași zi → editare → ștergere → recalculare jurnale zilnice.
+- [ ] Testare manuală UI pentru fluxul complet „Catalog Alimente”: validări Admin → import USDA Admin → afișare sursă/categorie în catalog → Catalog User → folosire aliment importat în Jurnal Alimentar și Mese Personalizate.
 
 ## 🔴 Ce urmează (Backlog):
+- [ ] Extindere viitoare a catalogului de activități cu surse MET documentate și eventual seed realist, într-o etapă separată de importul alimentelor.
 - [ ] Modulul de Machine Learning — predicția greutății.
 - [ ] Recomandări personalizate de mese.
 - [ ] Recomandări personalizate de antrenamente.
+- [ ] Stabilizare istoric „Mese Personalizate”: salvarea unui snapshot nutrițional în `food_logs` pentru mesele personalizate adăugate în jurnal, astfel încât editarea unei rețete să afecteze doar folosirile viitoare, nu istoricul deja înregistrat.
 - [ ] Simulator What-if (scenarii calorice).
 - [ ] Dashboard și generare grafice pentru progres.
 - [ ] Sincronizare documentație licență/diagrame după finalizarea funcționalităților principale.

@@ -1,8 +1,13 @@
 import datetime
 import streamlit as st
 from models.tracking import CustomMeal, DailyLog, FoodItem, FoodLog
+from ui.food_selection import build_food_selection_dataframe, build_food_selection_state_key, get_food_category_filter_options
 from ui.formatters import format_food_entries_for_display, format_time_for_display
-from ui.tables import food_log_table_config, render_table
+from ui.quantity_validation import quantity_range_help, validate_quantity_g
+from ui.tables import food_log_table_config, get_table_height, render_table
+
+
+MEAL_TYPES = list(FoodLog.VALID_MEAL_TYPES)
 
 
 def render_food_journal_page() -> None:
@@ -74,26 +79,94 @@ def render_food_journal_page() -> None:
             if not food_options:
                 st.warning("Catalogul de alimente este gol. Administratorul trebuie să adauge alimente mai întâi.")
             else:
-                col1, col2 = st.columns(2)
-                with col1:
-                    selected_food_id = st.selectbox(
-                        "Aliment",
-                        options=list(food_options.keys()),
-                        format_func=lambda food_id: food_options[food_id]["name"],
-                        key="food_log_food_select"
+                filter_col, category_col = st.columns([2, 1])
+                with filter_col:
+                    food_search_text = st.text_input(
+                        "Caută aliment",
+                        placeholder="Ex: banane, broccoli, salmon",
+                        key="food_log_food_search"
                     )
-                    quantity = st.number_input("Cantitate (g)", min_value=1.0, max_value=5000.0, value=100.0, step=1.0, key="food_log_food_quantity")
-                with col2:
-                    meal_type = st.selectbox("Masă", ["Mic dejun", "Prânz", "Cină", "Gustare"], key="food_log_food_meal_type")
+                with category_col:
+                    food_category_filter = st.selectbox(
+                        "Categorie",
+                        get_food_category_filter_options(food_options),
+                        key="food_log_food_category_filter"
+                    )
+
+                food_selection_df = build_food_selection_dataframe(
+                    food_options,
+                    food_search_text,
+                    food_category_filter
+                )
+                selected_food_id = None
+                if food_selection_df.empty:
+                    st.info("Nu există alimente pentru căutarea și categoria selectate.")
+                else:
+                    st.caption("Selectează alimentul din tabelul de mai jos. Coloana Sursă diferențiază alimentele MacroSense de cele USDA.")
+                    food_selection_state = st.dataframe(
+                        food_selection_df,
+                        width="stretch",
+                        height=get_table_height(food_selection_df, max_rows=8),
+                        hide_index=True,
+                        column_order=["Denumire", "Categorie", "Sursă", "Kcal/100g", "Proteine", "Carbohidrați", "Grăsimi"],
+                        column_config={
+                            "Denumire": st.column_config.TextColumn("Denumire", width="medium"),
+                            "Categorie": st.column_config.TextColumn("Categorie", width="small"),
+                            "Sursă": st.column_config.TextColumn("Sursă", width="small"),
+                            "Kcal/100g": st.column_config.NumberColumn("Kcal/100g", format="%.1f kcal", width="small"),
+                            "Proteine": st.column_config.NumberColumn("Proteine", format="%.1f g", width="small"),
+                            "Carbohidrați": st.column_config.NumberColumn("Carbohidrați", format="%.1f g", width="small"),
+                            "Grăsimi": st.column_config.NumberColumn("Grăsimi", format="%.1f g", width="small"),
+                        },
+                        key=build_food_selection_state_key(food_search_text, food_category_filter),
+                        on_select="rerun",
+                        selection_mode="single-row",
+                        row_height=32
+                    )
+                    selected_rows = food_selection_state.selection.rows
+                    if selected_rows and selected_rows[0] < len(food_selection_df):
+                        selected_food_id = int(food_selection_df.iloc[selected_rows[0]]["_food_id"])
+
+                quantity_col, time_col = st.columns(2)
+                with quantity_col:
+                    quantity = st.number_input(
+                        "Cantitate (g)",
+                        value=100.0,
+                        step=1.0,
+                        key="food_log_food_quantity",
+                        help=quantity_range_help()
+                    )
+                with time_col:
                     meal_time = st.time_input("Ora consumului", value=datetime.time(12, 0), key="food_log_food_time")
-    
-                selected_food = food_options[selected_food_id]
-                estimated_calories = round(selected_food["calories_100g"] * float(quantity) / 100.0, 2)
-                st.caption(f"🔥 Calorii estimate: **{estimated_calories} kcal**")
-    
-                submit_food = st.button("Salvează înregistrarea", width="stretch", key="btn_save_food", type="primary")
-    
+                meal_type = st.radio("Masă", MEAL_TYPES, horizontal=True, key="food_log_food_meal_type")
+
+                selected_food = food_options.get(selected_food_id) if selected_food_id else None
+                quantity_error = validate_quantity_g(quantity, "Cantitatea")
+                if selected_food:
+                    if quantity_error:
+                        st.error(quantity_error)
+                    else:
+                        estimated_calories = round(selected_food["calories_100g"] * float(quantity) / 100.0, 2)
+                        st.caption(
+                            f"🔥 Aliment selectat: **{selected_food['name']}** "
+                            f"({selected_food.get('source_label', 'MacroSense')}) · "
+                            f"Calorii estimate: **{estimated_calories} kcal**"
+                        )
+                else:
+                    st.caption("Selectează un aliment pentru a calcula estimarea calorică.")
+
+                submit_food = st.button(
+                    "Salvează înregistrarea",
+                    width="stretch",
+                    key="btn_save_food",
+                    type="primary",
+                    disabled=selected_food is None
+                )
+
                 if submit_food:
+                    if quantity_error:
+                        return
+
                     try:
                         daily_log_for_write = DailyLog.get_or_create(user_id, selected_date)
                         if not daily_log_for_write:
@@ -128,18 +201,31 @@ def render_food_journal_page() -> None:
                         format_func=lambda meal_id: custom_meal_options[meal_id]["recipe_name"],
                         key="food_log_custom_meal_select"
                     )
-                    custom_quantity = st.number_input("Cantitate consumată (g)", min_value=1.0, max_value=5000.0, value=100.0, step=1.0, key="food_log_custom_meal_quantity")
+                    custom_quantity = st.number_input(
+                        "Cantitate consumată (g)",
+                        value=100.0,
+                        step=1.0,
+                        key="food_log_custom_meal_quantity",
+                        help=quantity_range_help()
+                    )
                 with col2:
-                    custom_meal_type = st.selectbox("Masă", ["Mic dejun", "Prânz", "Cină", "Gustare"], key="food_log_custom_meal_type")
                     custom_meal_time = st.time_input("Ora consumului", value=datetime.time(12, 0), key="food_log_custom_meal_time")
+                custom_meal_type = st.radio("Masă", MEAL_TYPES, horizontal=True, key="food_log_custom_meal_type")
     
                 selected_custom_meal = custom_meal_options[selected_meal_id]
-                estimated_custom_calories = round(selected_custom_meal["calories_per_g"] * float(custom_quantity), 2)
-                st.caption(f"🔥 Calorii estimate: **{estimated_custom_calories} kcal**")
+                custom_quantity_error = validate_quantity_g(custom_quantity, "Cantitatea consumată")
+                if custom_quantity_error:
+                    st.error(custom_quantity_error)
+                else:
+                    estimated_custom_calories = round(selected_custom_meal["calories_per_g"] * float(custom_quantity), 2)
+                    st.caption(f"🔥 Calorii estimate: **{estimated_custom_calories} kcal**")
     
                 submit_custom_meal = st.button("Salvează masa în jurnal", width="stretch", key="btn_save_custom_meal_log", type="primary")
     
                 if submit_custom_meal:
+                    if custom_quantity_error:
+                        return
+
                     try:
                         daily_log_for_write = DailyLog.get_or_create(user_id, selected_date)
                         if not daily_log_for_write:
@@ -175,14 +261,16 @@ def render_food_journal_page() -> None:
     formatted_date = f"{selected_date.day} {romanian_months[selected_date.month]} {selected_date.year}"
     st.subheader(f"📋 Alimente consumate pe {formatted_date}")
     
-    df_entries = DailyLog.get_food_entries(daily_log.id) if daily_log else None
+    df_entries = DailyLog.get_food_entries(daily_log.id, user_id) if daily_log else None
     
-    if df_entries is not None and not df_entries.empty:
+    has_food_entries = df_entries is not None and not df_entries.empty
+
+    if has_food_entries:
         render_table(format_food_entries_for_display(df_entries), column_config=food_log_table_config, max_rows=7)
     
         @st.fragment
         def render_food_edit_panel():
-            current_entries = DailyLog.get_food_entries(daily_log.id)
+            current_entries = DailyLog.get_food_entries(daily_log.id, user_id)
             if current_entries.empty:
                 return
     
@@ -209,7 +297,7 @@ def render_food_journal_page() -> None:
                 st.session_state["food_log_edit_selected_id"] = int(selected_edit_food_log_id)
     
                 selected_edit_row = current_entries.loc[selected_edit_food_log_id]
-                meal_options = ["Mic dejun", "Prânz", "Cină", "Gustare"]
+                meal_options = MEAL_TYPES
                 current_meal_type = selected_edit_row["Masă"]
                 meal_type_index = meal_options.index(current_meal_type) if current_meal_type in meal_options else 0
                 current_time = selected_edit_row["Ora"]
@@ -223,11 +311,10 @@ def render_food_journal_page() -> None:
                 with col_edit1:
                     edited_quantity = st.number_input(
                         "Cantitate nouă (g)",
-                        min_value=1.0,
-                        max_value=5000.0,
                         value=float(selected_edit_row["Cantitate (g)"]),
                         step=1.0,
-                        key=f"food_log_edit_quantity_{selected_edit_food_log_id}"
+                        key=f"food_log_edit_quantity_{selected_edit_food_log_id}",
+                        help=quantity_range_help()
                     )
                     edited_meal_type = st.selectbox(
                         "Masă nouă",
@@ -243,6 +330,11 @@ def render_food_journal_page() -> None:
                     )
     
                 if st.button("Salvează modificările", width="stretch", key="btn_update_food_log", type="primary"):
+                    quantity_error = validate_quantity_g(edited_quantity, "Cantitatea nouă")
+                    if quantity_error:
+                        st.error(quantity_error)
+                        return
+
                     try:
                         if FoodLog.update(
                             int(selected_edit_food_log_id),
@@ -263,7 +355,7 @@ def render_food_journal_page() -> None:
     
         @st.fragment
         def render_food_delete_panel():
-            current_entries = DailyLog.get_food_entries(daily_log.id)
+            current_entries = DailyLog.get_food_entries(daily_log.id, user_id)
             if current_entries.empty:
                 return
     
@@ -312,7 +404,10 @@ def render_food_journal_page() -> None:
     
         render_food_edit_panel()
         render_food_delete_panel()
-    
+    else:
+        st.info("Nu există înregistrări alimentare pentru această zi. Adaugă primul aliment folosind formularul de mai sus.")
+
+    if daily_log:
         st.divider()
         col1, col2, col3 = st.columns(3)
         col1.metric("🍽️ Calorii consumate", f"{daily_log.total_calories_in:.0f} kcal")
@@ -320,5 +415,3 @@ def render_food_journal_page() -> None:
         col3.metric("⚖️ Balanță energetică",
                     f"{daily_log.calculate_energy_balance():.0f} kcal",
                     delta=f"{daily_log.calculate_energy_balance():.0f}")
-    else:
-        st.info("Nu există înregistrări pentru această zi. Adaugă primul aliment folosind formularul de mai sus.")

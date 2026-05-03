@@ -1,0 +1,42 @@
+import unittest
+from pathlib import Path
+
+
+class SchemaConstraintTests(unittest.TestCase):
+    def setUp(self):
+        self.schema_sql = Path("schema.sql").read_text(encoding="utf-8")
+
+    def test_activity_log_sets_reps_constraint_rejects_half_filled_pairs(self):
+        self.assertIn("sets IS NULL AND reps IS NULL", self.schema_sql)
+        self.assertIn("sets IS NOT NULL AND reps IS NOT NULL AND sets > 0 AND reps > 0", self.schema_sql)
+
+    def test_food_items_require_non_empty_category(self):
+        self.assertIn("category VARCHAR(50) NOT NULL", self.schema_sql)
+        self.assertIn("chk_food_category_not_empty", self.schema_sql)
+        self.assertIn("chk_food_name_no_html", self.schema_sql)
+        self.assertIn("chk_food_calories_positive", self.schema_sql)
+        self.assertIn("chk_food_has_macro", self.schema_sql)
+
+    def test_users_reject_html_like_persisted_text_at_schema_level(self):
+        self.assertIn("chk_user_email_no_html", self.schema_sql)
+        self.assertIn("chk_user_full_name_no_html", self.schema_sql)
+
+    def test_activities_reject_html_like_names_at_schema_level(self):
+        self.assertIn("chk_activity_name_no_html", self.schema_sql)
+
+    def test_custom_meals_reject_html_like_names_at_schema_level(self):
+        self.assertIn("chk_custom_meal_name_no_html", self.schema_sql)
+
+    def test_food_logs_require_meal_type_and_time(self):
+        self.assertIn("meal_type VARCHAR(50) NOT NULL", self.schema_sql)
+        self.assertIn("meal_time TIME NOT NULL", self.schema_sql)
+        self.assertNotIn("meal_type IS NULL OR", self.schema_sql)
+
+    def test_food_and_recipe_quantities_have_supported_range(self):
+        self.assertIn("chk_food_log_quantity_range", self.schema_sql)
+        self.assertIn("chk_recipe_ingredient_quantity_range", self.schema_sql)
+        self.assertIn("quantity_g BETWEEN 1 AND 5000", self.schema_sql)
+
+
+if __name__ == "__main__":
+    unittest.main()

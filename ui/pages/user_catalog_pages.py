@@ -1,6 +1,6 @@
 import streamlit as st
 from models.tracking import Activity, FoodItem
-from ui.tables import activity_catalog_table_config, food_catalog_table_config, render_table
+from ui.tables import activity_catalog_table_config, render_food_catalog_table, render_table
 
 
 def render_user_food_catalog_page() -> None:
@@ -8,7 +8,7 @@ def render_user_food_catalog_page() -> None:
     st.subheader("Baza de date nutrițională")
     df_foods = FoodItem.get_all_as_dataframe()
     if not df_foods.empty:
-        render_table(df_foods, column_config=food_catalog_table_config)
+        render_food_catalog_table(df_foods, key_prefix="user")
     else:
         st.info("Catalogul este gol în acest moment. Administratorul va adăuga date în curând.")
 
