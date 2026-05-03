@@ -6,11 +6,22 @@ class Activity:
     Represents a physical activity in the system's catalog.
     Maps exactly to the Activity class in the UML Class Diagram.
     """
+    MIN_MET_MULTIPLIER = 0.9
+
     def __init__(self, name: str, met_multiplier: float, category: str, activity_id: int = None):
         self.id = activity_id
-        self.name = name
-        self.met_multiplier = met_multiplier
-        self.category = category
+        self.name = name.strip() if name else ""
+        self.met_multiplier = float(met_multiplier or 0)
+        self.category = category.strip() if category else ""
+
+        if not self.name:
+            raise ValueError("Activity name cannot be empty.")
+        if "<" in self.name or ">" in self.name:
+            raise ValueError("Activity name cannot contain HTML-like characters.")
+        if self.met_multiplier < self.MIN_MET_MULTIPLIER:
+            raise ValueError("Activity MET multiplier is below the supported minimum.")
+        if not self.category:
+            raise ValueError("Activity category cannot be empty.")
 
     def save(self) -> bool:
         """Saves the Activity object state to the PostgreSQL database."""

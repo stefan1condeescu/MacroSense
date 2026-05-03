@@ -22,9 +22,9 @@ class CustomMeal:
 
     @staticmethod
     def is_valid_recipe_name(recipe_name: str) -> bool:
-        """Checks that a custom meal name starts with a letter."""
+        """Checks that a custom meal name starts with a letter and is not HTML-like markup."""
         cleaned_name = recipe_name.strip() if recipe_name else ""
-        return bool(cleaned_name) and cleaned_name[0].isalpha()
+        return bool(cleaned_name) and cleaned_name[0].isalpha() and "<" not in cleaned_name and ">" not in cleaned_name
 
     def save(self) -> bool:
         """Saves the custom meal header and updates the instance with the generated ID."""
@@ -85,8 +85,7 @@ class CustomMeal:
 
             for ingredient in ingredients:
                 quantity_g = float(ingredient["quantity_g"])
-                if quantity_g <= 0:
-                    raise ValueError("Ingredient quantity must be strictly positive.")
+                RecipeIngredient.validate_quantity(quantity_g)
                 cursor.execute(
                     """
                     INSERT INTO recipe_ingredients (meal_id, food_id, quantity_g)
@@ -146,8 +145,7 @@ class CustomMeal:
 
             for ingredient in ingredients:
                 quantity_g = float(ingredient["quantity_g"])
-                if quantity_g <= 0:
-                    raise ValueError("Ingredient quantity must be strictly positive.")
+                RecipeIngredient.validate_quantity(quantity_g)
                 cursor.execute(
                     """
                     INSERT INTO recipe_ingredients (meal_id, food_id, quantity_g)
@@ -411,7 +409,18 @@ class CustomMeal:
                     fi.calories_100g,
                     fi.protein_g,
                     fi.carbs_g,
-                    fi.fats_g
+                    fi.fats_g,
+                    COALESCE(
+                        CASE
+                            WHEN fi.source = 'USDA' AND fi.source_type = 'SR Legacy' THEN 'USDA SR'
+                            WHEN fi.source = 'USDA' AND fi.source_type = 'Foundation' THEN 'USDA Foundation'
+                            WHEN fi.source = 'USDA' AND fi.source_type = 'Survey (FNDDS)' THEN 'USDA FNDDS'
+                            WHEN fi.source IS NOT NULL AND fi.source_type IS NOT NULL THEN fi.source || ' ' || fi.source_type
+                            WHEN fi.source IS NOT NULL THEN fi.source
+                            ELSE NULL
+                        END,
+                        'MacroSense'
+                    ) AS source_label
                 FROM recipe_ingredients ri
                 JOIN food_items fi ON fi.id = ri.food_id
                 JOIN custom_meals cm ON cm.id = ri.meal_id
@@ -431,6 +440,7 @@ class CustomMeal:
                     "protein_g": float(row[5] or 0),
                     "carbs_g": float(row[6] or 0),
                     "fats_g": float(row[7] or 0),
+                    "source_label": row[8] or "MacroSense",
                 })
             return ingredients
         except Exception as e:
@@ -453,6 +463,17 @@ class CustomMeal:
                 """
                 SELECT
                     fi.name,
+                    COALESCE(
+                        CASE
+                            WHEN fi.source = 'USDA' AND fi.source_type = 'SR Legacy' THEN 'USDA SR'
+                            WHEN fi.source = 'USDA' AND fi.source_type = 'Foundation' THEN 'USDA Foundation'
+                            WHEN fi.source = 'USDA' AND fi.source_type = 'Survey (FNDDS)' THEN 'USDA FNDDS'
+                            WHEN fi.source IS NOT NULL AND fi.source_type IS NOT NULL THEN fi.source || ' ' || fi.source_type
+                            WHEN fi.source IS NOT NULL THEN fi.source
+                            ELSE NULL
+                        END,
+                        'MacroSense'
+                    ) AS source_label,
                     ri.quantity_g,
                     ROUND(fi.calories_100g * ri.quantity_g / 100.0, 2),
                     ROUND(fi.protein_g * ri.quantity_g / 100.0, 2),
@@ -468,7 +489,7 @@ class CustomMeal:
             )
             rows = cursor.fetchall()
             if rows:
-                columns = ["Ingredient", "Cantitate (g)", "Calorii", "Proteine (g)", "Carbohidrați (g)", "Grăsimi (g)"]
+                columns = ["Ingredient", "Sursă", "Cantitate (g)", "Calorii", "Proteine (g)", "Carbohidrați (g)", "Grăsimi (g)"]
                 return pd.DataFrame(rows, columns=columns)
             return pd.DataFrame()
         except Exception as e:

@@ -14,8 +14,43 @@ div[data-testid="stDataFrame"] div[role="grid"] {
     font-size: 0.93rem;
 }
 
+div[data-baseweb="popover"] div[role="listbox"] {
+    background: #ffffff !important;
+    border: 1px solid #d9e1ec !important;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16) !important;
+    filter: none !important;
+    backdrop-filter: none !important;
+}
+
+div[data-baseweb="select"] > div,
+div[data-baseweb="select"] div {
+    color: #0f172a !important;
+    opacity: 1 !important;
+    filter: none !important;
+    text-shadow: none !important;
+}
+
+div[data-baseweb="popover"] div[role="option"],
+div[data-baseweb="popover"] div[role="option"] *,
+div[data-baseweb="menu"] div[role="option"],
+div[data-baseweb="menu"] div[role="option"] *,
+div[role="listbox"] div[role="option"],
+div[role="listbox"] div[role="option"] * {
+    color: #0f172a !important;
+    opacity: 1 !important;
+    filter: none !important;
+    font-weight: 500 !important;
+    text-shadow: none !important;
+}
+
+div[data-baseweb="popover"] div[role="option"][aria-selected="true"],
+div[data-baseweb="menu"] div[role="option"][aria-selected="true"] {
+    background: #eef2ff !important;
+}
+
 .stButton button[kind="primary"],
 .stFormSubmitButton button[kind="primary"],
+div[data-testid="stFormSubmitButton"] button,
 button[data-testid="stBaseButton-primary"] {
     background: #15803d;
     border-color: #15803d;
@@ -24,6 +59,7 @@ button[data-testid="stBaseButton-primary"] {
 
 .stButton button[kind="primary"]:hover,
 .stFormSubmitButton button[kind="primary"]:hover,
+div[data-testid="stFormSubmitButton"] button:hover,
 button[data-testid="stBaseButton-primary"]:hover {
     background: #166534;
     border-color: #166534;

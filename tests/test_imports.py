@@ -38,7 +38,9 @@ class ArchitectureImportTests(unittest.TestCase):
     def test_ui_modules_are_importable(self):
         module_names = [
             "ui.config",
+            "ui.food_selection",
             "ui.formatters",
+            "ui.quantity_validation",
             "ui.tables",
             "ui.pages.activity_journal_page",
             "ui.pages.admin_catalog_pages",
@@ -50,6 +52,7 @@ class ArchitectureImportTests(unittest.TestCase):
             "ui.pages.user_catalog_pages",
             "ui.pages.user_routes",
             "ui.pages.weight_journal_page",
+            "services.usda_food_data",
         ]
 
         for module_name in module_names:
