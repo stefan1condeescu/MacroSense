@@ -79,12 +79,20 @@
 - [x] Hardening model/DB pentru cantități: `FoodLog`, `RecipeIngredient`, `CustomMeal.create_with_ingredients()`, `CustomMeal.update_with_ingredients()` și `schema.sql` aplică același interval 1-5000g ca UI-ul.
 - [x] Hardening izolare utilizatori în jurnale: `DailyLog.get_food_entries()` și `DailyLog.get_activity_entries()` acceptă `user_id`, iar paginile Jurnal Alimentar/Jurnal Activități îl trimit explicit la citirea intrărilor.
 - [x] Stabilizare navigare Utilizator: meniul din sidebar afișează permanent toate paginile, inclusiv `Acasă`, fără dropdown scrollabil care ascundea prima opțiune.
+- [x] Extindere catalog activități cu metadate de proveniență: `Activity` și `activities` suportă `source`, `source_type`, `external_id`, `source_url`, `met_source_code`, `met_source_description` și `met_estimation_method`, diferențiind activitățile oficiale Compendium de mapările MacroSense.
+- [x] Adăugare seed-uri SQL pentru activități: `seed_activities_compendium_official.sql` cu activități MET oficiale din 2024 Adult Compendium și `seed_activities_macrosense_mappings.sql` cu exerciții practice de sală mapate explicit pe coduri generale Compendium.
+- [x] Extindere Jurnal Activități cu calorii manuale opționale: utilizatorul poate salva caloriile raportate de ceas/aparat cardio, iar valoarea manuală înlocuiește formula MET/TUT doar pentru înregistrarea respectivă.
+- [x] Stabilizare recalculare WeightLog pentru activități manuale: zilele care conțin doar calorii introduse manual nu mai sunt numărate ca afectate de schimbarea greutății.
+- [x] Polish catalog activități: tabelele Admin/User includ căutare, filtre pe categorie, sursă și metodă MET, plus afișare clară `Compendium` vs `MacroSense`.
+- [x] Stabilizare UI Jurnal Activități după extinderea catalogului: selectbox-ul pentru alegerea activității a fost înlocuit cu tabel selectabil filtrabil, iar durata/seturile/repetările/caloriile manuale folosesc validare manuală unitară fără warning-uri native Streamlit care pot salva valori vechi.
+- [x] Ajustare durată Jurnal Activități: `duration_min` acceptă valori zecimale de la 0.1 minute la 600 minute, pentru exerciții/seturi foarte scurte, cu afișare și validare coerente în UI/model/DB.
+- [x] Hardening validări text persistente: alimentele și activitățile trebuie să aibă denumiri cu cel puțin o literă, iar numele complet al utilizatorului acceptă doar litere, spații, cratimă și apostrof; regulile sunt aplicate în UI, modele și `schema.sql`.
+- [x] Polish liste zilnice: intrările din Jurnal Alimentar, Jurnal Activități și Jurnal Greutate sunt afișate ca rânduri/carduri compacte, mai vizibile decât tabelele brute, fără schimbarea logicii de salvare/editare/ștergere.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Testare manuală UI pentru fluxul complet „Catalog Alimente”: validări Admin → import USDA Admin → afișare sursă/categorie în catalog → Catalog User → folosire aliment importat în Jurnal Alimentar și Mese Personalizate.
+- [ ] Testare manuală UI pentru fluxul complet „Catalog Activități”: seed Compendium/MacroSense → afișare Admin/User → adăugare/editare antrenament estimat → adăugare/editare antrenament cu calorii manuale → verificare recalculare după modificarea greutății.
 
 ## 🔴 Ce urmează (Backlog):
-- [ ] Extindere viitoare a catalogului de activități cu surse MET documentate și eventual seed realist, într-o etapă separată de importul alimentelor.
 - [ ] Modulul de Machine Learning — predicția greutății.
 - [ ] Recomandări personalizate de mese.
 - [ ] Recomandări personalizate de antrenamente.

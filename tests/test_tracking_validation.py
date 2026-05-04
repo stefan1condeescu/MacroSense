@@ -105,6 +105,15 @@ class ActivityLogValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ActivityLog(log_id=1, activity_id=1, duration_min=0)
 
+    def test_activity_log_accepts_subminute_duration(self):
+        activity_log = ActivityLog(log_id=1, activity_id=1, duration_min=0.1)
+
+        self.assertEqual(activity_log.duration_min, 0.1)
+
+    def test_activity_log_rejects_duration_above_supported_range(self):
+        with self.assertRaises(ValueError):
+            ActivityLog(log_id=1, activity_id=1, duration_min=601)
+
     def test_activity_log_update_validates_sets_and_reps_together_before_db(self):
         with self.assertRaises(ValueError):
             ActivityLog.update(
@@ -133,6 +142,28 @@ class ActivityLogValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ActivityLog(log_id=1, activity_id=1, duration_min=30, sets=0, reps=10)
 
+    def test_activity_log_validates_optional_manual_calories(self):
+        valid_log = ActivityLog(
+            log_id=1,
+            activity_id=1,
+            duration_min=30,
+            manual_calories_burned=250,
+        )
+
+        self.assertEqual(valid_log.manual_calories_burned, 250.0)
+
+        with self.assertRaises(ValueError):
+            ActivityLog(log_id=1, activity_id=1, duration_min=30, manual_calories_burned=0)
+
+        with self.assertRaises(ValueError):
+            ActivityLog.update(
+                log_entry_id=1,
+                user_id=1,
+                activity_id=1,
+                duration_min=30,
+                manual_calories_burned=5000.1,
+            )
+
     def test_activity_requires_name_category_and_positive_met(self):
         with self.assertRaises(ValueError):
             Activity(name="", met_multiplier=5.0, category="Cardio")
@@ -146,11 +177,38 @@ class ActivityLogValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             Activity(name="A <span>Test</span>", met_multiplier=5.0, category="Cardio")
 
+        with self.assertRaises(ValueError):
+            Activity(name="///", met_multiplier=5.0, category="Cardio")
+
+        with self.assertRaises(ValueError):
+            Activity(
+                name="Test",
+                met_multiplier=5.0,
+                category="Cardio",
+                met_estimation_method="invented_method",
+            )
+
     def test_activity_normalizes_name_and_met(self):
-        activity = Activity(name="  Alergare  ", met_multiplier=8, category="Cardio")
+        activity = Activity(
+            name="  Alergare  ",
+            met_multiplier=8,
+            category="Cardio",
+            source=" Compendium ",
+            external_id=" 12020 ",
+            met_estimation_method="official_compendium",
+        )
 
         self.assertEqual(activity.name, "Alergare")
         self.assertEqual(activity.met_multiplier, 8.0)
+        self.assertEqual(activity.source, "Compendium")
+        self.assertEqual(activity.external_id, "12020")
+        self.assertEqual(activity.met_estimation_method, "official_compendium")
+
+    def test_activity_name_normalization_is_diacritic_insensitive(self):
+        self.assertEqual(
+            Activity.normalize_name("  Înot   liber  "),
+            Activity.normalize_name("inot liber"),
+        )
 
 
 class FoodItemValidationTests(unittest.TestCase):
@@ -158,6 +216,7 @@ class FoodItemValidationTests(unittest.TestCase):
         invalid_examples = [
             {"name": "", "calories": 100, "protein": 1, "carbs": 2, "fats": 3, "category": "Altele"},
             {"name": "A <span>Test</span>", "calories": 100, "protein": 1, "carbs": 2, "fats": 3, "category": "Altele"},
+            {"name": "///", "calories": 100, "protein": 1, "carbs": 2, "fats": 3, "category": "Altele"},
             {"name": "Test", "calories": 100, "protein": 1, "carbs": 2, "fats": 3, "category": ""},
             {"name": "Test", "calories": 0, "protein": 0, "carbs": 0, "fats": 0, "category": "Altele"},
             {"name": "Test", "calories": 0, "protein": 1, "carbs": 0, "fats": 0, "category": "Altele"},
@@ -351,6 +410,20 @@ class UserRegistrationValidationTests(unittest.TestCase):
             self.assertFalse(user.register("test123", 75))
             self.assertEqual(user.last_error_code, "invalid_full_name")
 
+    def test_user_register_rejects_special_only_full_name_before_db(self):
+        user = User(
+            email="invalid.special.fullname@example.com",
+            full_name="///",
+            height_cm=180,
+            age=24,
+            gender="M",
+            goal="menținere",
+        )
+
+        with redirect_stdout(io.StringIO()):
+            self.assertFalse(user.register("test123", 75))
+            self.assertEqual(user.last_error_code, "invalid_full_name")
+
     def test_user_register_rejects_html_like_email_before_db(self):
         user = User(
             email="<user>@example.com",
@@ -424,6 +497,14 @@ class UserRegistrationValidationTests(unittest.TestCase):
         self.assertEqual(
             User._map_registration_error(FakeDatabaseError("23514", "chk_user_height")),
             "invalid_height",
+        )
+        self.assertEqual(
+            User._map_registration_error(FakeDatabaseError("23514", "chk_user_full_name_chars")),
+            "invalid_full_name",
+        )
+        self.assertEqual(
+            User._map_registration_error(FakeDatabaseError("23514", "chk_user_full_name_has_letter")),
+            "invalid_full_name",
         )
         self.assertEqual(
             User._map_registration_error(FakeDatabaseError("23514", "chk_weight_range")),

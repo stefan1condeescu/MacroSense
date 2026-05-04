@@ -21,6 +21,7 @@ class ArchitectureImportTests(unittest.TestCase):
 
     def test_tracking_modules_are_importable(self):
         module_names = [
+            "models.text_validation",
             "models.tracking_models.activity",
             "models.tracking_models.activity_log",
             "models.tracking_models.custom_meal",
@@ -38,6 +39,8 @@ class ArchitectureImportTests(unittest.TestCase):
     def test_ui_modules_are_importable(self):
         module_names = [
             "ui.config",
+            "ui.activity_selection",
+            "ui.activity_validation",
             "ui.food_selection",
             "ui.formatters",
             "ui.quantity_validation",

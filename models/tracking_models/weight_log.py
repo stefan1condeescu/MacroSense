@@ -267,6 +267,7 @@ class WeightLog:
                       SELECT 1
                       FROM activity_logs al
                       WHERE al.log_id = dl.id
+                        AND al.manual_calories_burned IS NULL
                   )
                 ORDER BY dl.log_date ASC
                 """,
@@ -323,6 +324,7 @@ class WeightLog:
                       SELECT 1
                       FROM activity_logs al
                       WHERE al.log_id = dl.id
+                        AND al.manual_calories_burned IS NULL
                   )
                 ORDER BY dl.log_date ASC
                 """,

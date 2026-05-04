@@ -4,7 +4,7 @@ from models.tracking import CustomMeal, DailyLog, FoodItem, FoodLog
 from ui.food_selection import build_food_selection_dataframe, build_food_selection_state_key, get_food_category_filter_options
 from ui.formatters import format_food_entries_for_display, format_time_for_display
 from ui.quantity_validation import quantity_range_help, validate_quantity_g
-from ui.tables import food_log_table_config, get_table_height, render_table
+from ui.tables import get_table_height, render_food_log_cards
 
 
 MEAL_TYPES = list(FoodLog.VALID_MEAL_TYPES)
@@ -266,7 +266,7 @@ def render_food_journal_page() -> None:
     has_food_entries = df_entries is not None and not df_entries.empty
 
     if has_food_entries:
-        render_table(format_food_entries_for_display(df_entries), column_config=food_log_table_config, max_rows=7)
+        render_food_log_cards(format_food_entries_for_display(df_entries))
     
         @st.fragment
         def render_food_edit_panel():

@@ -1,6 +1,6 @@
 import streamlit as st
 from models.tracking import Activity, FoodItem
-from ui.tables import activity_catalog_table_config, render_food_catalog_table, render_table
+from ui.tables import render_activity_catalog_table, render_food_catalog_table
 
 
 def render_user_food_catalog_page() -> None:
@@ -18,6 +18,6 @@ def render_user_activity_catalog_page() -> None:
     st.subheader("Lista activităților disponibile")
     df_activities = Activity.get_all_as_dataframe()
     if not df_activities.empty:
-        render_table(df_activities, column_config=activity_catalog_table_config)
+        render_activity_catalog_table(df_activities, key_prefix="user")
     else:
         st.info("Catalogul de activități este gol în acest moment.")

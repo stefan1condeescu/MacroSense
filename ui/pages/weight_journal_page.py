@@ -1,7 +1,7 @@
 import datetime
 import streamlit as st
 from models.tracking import WeightLog
-from ui.tables import render_table, weight_log_table_config
+from ui.tables import render_weight_log_cards
 
 
 def render_weight_journal_page() -> None:
@@ -188,7 +188,7 @@ def render_weight_journal_page() -> None:
         st.info("Adaugă prima greutate folosind formularul de mai sus.")
         return
 
-    render_table(weight_entries, column_config=weight_log_table_config, max_rows=8)
+    render_weight_log_cards(weight_entries)
 
     @st.fragment
     def render_weight_edit_panel():

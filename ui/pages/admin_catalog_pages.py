@@ -2,8 +2,9 @@ import os
 import re
 import streamlit as st
 from models.tracking import Activity, FoodItem
+from models.text_validation import contains_letter, has_obvious_html_chars
 from services.usda_food_data import USDAFoodDataClient
-from ui.tables import activity_catalog_table_config, render_food_catalog_table, render_table
+from ui.tables import render_activity_catalog_table, render_food_catalog_table
 
 
 FOOD_CATEGORIES = [
@@ -28,6 +29,14 @@ FOOD_CATEGORIES = [
     "Altele",
 ]
 USDA_DATA_TYPES = ["SR Legacy", "Foundation", "Survey (FNDDS)"]
+ACTIVITY_CATEGORIES = [
+    "Cardio",
+    "Forță",
+    "Flexibilitate",
+    "Sport de echipă",
+    "Activități zilnice",
+    "Altele",
+]
 CATEGORY_KEYWORDS = [
     ("Alcoolice", ["beer", "wine", "vodka", "whiskey", "alcohol", "liqueur"]),
     ("Dulciuri", ["ice cream", "cake", "cookie", "chocolate", "candy", "dessert", "pie", "sweet"]),
@@ -88,8 +97,10 @@ def validate_food_item_input(name: str, calories: float, protein: float, carbs: 
     errors = []
     if not name or not name.strip():
         errors.append("Denumirea alimentului este obligatorie.")
-    elif "<" in name or ">" in name:
+    elif has_obvious_html_chars(name):
         errors.append("Denumirea alimentului nu poate conține caractere de tip HTML.")
+    elif not contains_letter(name):
+        errors.append("Denumirea alimentului trebuie să conțină cel puțin o literă.")
 
     nutrition_values = [float(calories or 0), float(protein or 0), float(carbs or 0), float(fats or 0)]
     if any(value < 0 for value in nutrition_values):
@@ -102,13 +113,17 @@ def validate_food_item_input(name: str, calories: float, protein: float, carbs: 
     return errors
 
 
-def validate_activity_input(name: str, met: float, category: str) -> list[str]:
+def validate_activity_input(name: str, met: float, category: str, check_duplicate: bool = False) -> list[str]:
     """Validates manual activity catalog input before saving from the Admin UI."""
     errors = []
     if not name or not name.strip():
         errors.append("Denumirea activității este obligatorie.")
-    elif "<" in name or ">" in name:
+    elif has_obvious_html_chars(name):
         errors.append("Denumirea activității nu poate conține caractere de tip HTML.")
+    elif not contains_letter(name):
+        errors.append("Denumirea activității trebuie să conțină cel puțin o literă.")
+    elif check_duplicate and Activity.name_exists_normalized(name):
+        errors.append("Există deja o activitate cu această denumire.")
     if float(met or 0) < Activity.MIN_MET_MULTIPLIER:
         errors.append(f"Coeficientul MET trebuie să fie cel puțin {Activity.MIN_MET_MULTIPLIER:.1f}.")
     if not category or not category.strip():
@@ -125,6 +140,12 @@ def show_first_validation_error(errors: list[str]) -> None:
 
 def show_admin_food_catalog_toasts() -> None:
     message = st.session_state.pop("admin_food_catalog_toast", None)
+    if message:
+        st.toast(message, icon="✅")
+
+
+def show_admin_activity_catalog_toasts() -> None:
+    message = st.session_state.pop("admin_activity_catalog_toast", None)
     if message:
         st.toast(message, icon="✅")
 
@@ -336,31 +357,46 @@ def render_admin_food_catalog_page() -> None:
 
 def render_admin_activity_catalog_page() -> None:
     st.header("🏃‍♂️ Gestiune Catalog Activități")
+    show_admin_activity_catalog_toasts()
+
+    if st.session_state.pop("admin_activity_form_reset", False):
+        for key in (
+            "admin_activity_name",
+            "admin_activity_category",
+            "admin_activity_met",
+        ):
+            st.session_state.pop(key, None)
+
     with st.expander("➕ Adaugă o activitate nouă", expanded=True):
-        with st.form("add_activity_form", clear_on_submit=True):
+        with st.form("add_activity_form", clear_on_submit=False):
             col1, col2 = st.columns(2)
             with col1:
-                name = st.text_input("Denumire activitate")
-                category = st.selectbox("Categorie", ["Cardio", "Forță", "Flexibilitate", "Sport de echipă"])
+                name = st.text_input("Denumire activitate", key="admin_activity_name")
+                category = st.selectbox("Categorie", ACTIVITY_CATEGORIES, key="admin_activity_category")
             with col2:
                 met = st.number_input(
                     "Coeficient MET",
                     value=1.0,
                     step=0.1,
+                    key="admin_activity_met",
                     help=f"Valoarea minimă acceptată este {Activity.MIN_MET_MULTIPLIER:.1f}. Ex: Alergat = 8.0"
                 )
 
             submit_act = st.form_submit_button("Salvează activitatea", type="primary")
 
             if submit_act:
-                validation_errors = validate_activity_input(name, met, category)
+                validation_errors = validate_activity_input(name, met, category, check_duplicate=True)
                 if validation_errors:
                     show_first_validation_error(validation_errors)
                 else:
                     try:
                         new_activity = Activity(name.strip(), met, category)
                         if new_activity.save():
-                            st.success(f"Activitatea „{name.strip()}” a fost adăugată cu succes!")
+                            st.session_state["admin_activity_catalog_toast"] = (
+                                f"Activitatea „{name.strip()}” a fost adăugată cu succes!"
+                            )
+                            st.session_state["admin_activity_form_reset"] = True
+                            st.rerun()
                         else:
                             st.error("Eroare la adăugarea activității.")
                     except ValueError as ve:
@@ -369,6 +405,6 @@ def render_admin_activity_catalog_page() -> None:
     st.subheader("Lista activităților disponibile")
     df_activities = Activity.get_all_as_dataframe()
     if not df_activities.empty:
-        render_table(df_activities, column_config=activity_catalog_table_config)
+        render_activity_catalog_table(df_activities, key_prefix="admin")
     else:
         st.info("Catalogul de activități este gol.")

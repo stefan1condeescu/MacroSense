@@ -151,3 +151,116 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 .custom-meal-card.archived .custom-meal-card-header strong {
     color: #475569;
 }
+
+.log-entry-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin: 8px 0;
+}
+
+.log-entry-list .log-entry-card {
+    margin: 0;
+}
+
+.log-entry-card {
+    border: 1px solid #d7dee8;
+    border-left: 4px solid #2563eb;
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin: 8px 0;
+    background: #ffffff;
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
+}
+
+.log-entry-card.food {
+    border-left-color: #16a34a;
+}
+
+.log-entry-card.activity {
+    border-left-color: #f59e0b;
+}
+
+.log-entry-card.weight {
+    border-left-color: #2563eb;
+}
+
+.log-entry-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.log-entry-card-header strong {
+    color: #0f172a;
+    font-size: 0.96rem;
+}
+
+.log-entry-badge {
+    border-radius: 999px;
+    font-size: 0.74rem;
+    font-weight: 600;
+    padding: 3px 9px;
+    white-space: nowrap;
+}
+
+.log-entry-badge.food {
+    background: #dcfce7;
+    color: #166534;
+    border: 1px solid #86efac;
+}
+
+.log-entry-badge.manual {
+    background: #fef3c7;
+    color: #92400e;
+    border: 1px solid #fcd34d;
+}
+
+.log-entry-badge.estimated {
+    background: #dbeafe;
+    color: #1d4ed8;
+    border: 1px solid #93c5fd;
+}
+
+.log-entry-badge.weight {
+    background: #e0f2fe;
+    color: #075985;
+    border: 1px solid #7dd3fc;
+}
+
+.log-entry-card-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 10px;
+}
+
+.log-entry-card-grid.five {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.log-entry-card-grid.two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.log-entry-card-grid span {
+    display: block;
+    color: #64748b;
+    font-size: 0.74rem;
+    margin-bottom: 4px;
+}
+
+.log-entry-card-grid strong {
+    color: #0f172a;
+    font-size: 0.88rem;
+}
+
+@media (max-width: 700px) {
+    .custom-meal-card-grid,
+    .log-entry-card-grid,
+    .log-entry-card-grid.five,
+    .log-entry-card-grid.two {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}

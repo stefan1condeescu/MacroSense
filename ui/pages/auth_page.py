@@ -1,5 +1,6 @@
 import streamlit as st
 from models.authentication import Admin, User
+from models.text_validation import has_obvious_html_chars, is_valid_person_name
 from models.tracking import WeightLog
 
 
@@ -9,7 +10,7 @@ def get_registration_error_message(error_code: str) -> str:
         "duplicate_email": "Există deja un cont creat cu această adresă de email.",
         "missing_required_fields": "Te rog să completezi toate câmpurile obligatorii.",
         "invalid_email": "Adresa de email nu este validă.",
-        "invalid_full_name": "Numele complet nu poate conține caractere de tip HTML.",
+        "invalid_full_name": "Numele complet poate conține doar litere, spații, cratimă sau apostrof.",
         "invalid_height": (
             "Înălțimea trebuie să fie între "
             f"{User.MIN_HEIGHT_CM:.0f} și {User.MAX_HEIGHT_CM:.0f} cm."
@@ -79,11 +80,11 @@ def render_auth_page() -> None:
                 st.warning("Te rog să completezi toate câmpurile obligatorii (Email, Parolă, Nume complet)!")
             elif len(password) < 6:
                 st.warning("Parola trebuie să conțină cel puțin 6 caractere!")
-            elif "<" in cleaned_email or ">" in cleaned_email:
+            elif has_obvious_html_chars(cleaned_email):
                 st.warning("Te rog introdu o adresă de email validă!")
             elif "@" not in cleaned_email or cleaned_email.count("@") != 1 or "." not in cleaned_email.split("@")[1]:
                 st.warning("Te rog introdu o adresă de email validă!")
-            elif "<" in cleaned_full_name or ">" in cleaned_full_name:
+            elif not is_valid_person_name(cleaned_full_name):
                 st.error(get_registration_error_message("invalid_full_name"))
             elif not User.MIN_HEIGHT_CM <= float(height) <= User.MAX_HEIGHT_CM:
                 st.error(get_registration_error_message("invalid_height"))

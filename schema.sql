@@ -15,6 +15,8 @@ CREATE TABLE users (
     CONSTRAINT chk_user_email_trimmed CHECK (email = BTRIM(email)),
     CONSTRAINT chk_user_email_no_html CHECK (POSITION('<' IN email) = 0 AND POSITION('>' IN email) = 0),
     CONSTRAINT chk_user_full_name_no_html CHECK (full_name IS NULL OR (POSITION('<' IN full_name) = 0 AND POSITION('>' IN full_name) = 0)),
+    CONSTRAINT chk_user_full_name_chars CHECK (full_name IS NULL OR full_name ~ '^[[:alpha:][:space:]''-]+$'),
+    CONSTRAINT chk_user_full_name_has_letter CHECK (full_name IS NULL OR full_name ~ '[[:alpha:]]'),
     CONSTRAINT chk_user_height CHECK (height_cm IS NULL OR height_cm BETWEEN 100 AND 250),
     CONSTRAINT chk_user_age CHECK (age IS NULL OR age BETWEEN 10 AND 120),
     CONSTRAINT chk_user_gender CHECK (gender IS NULL OR gender IN ('M', 'F'))
@@ -46,6 +48,7 @@ CREATE TABLE food_items (
     CONSTRAINT uq_food_source_external UNIQUE (source, external_id),
     CONSTRAINT chk_food_name_not_empty CHECK (BTRIM(name) <> ''),
     CONSTRAINT chk_food_name_no_html CHECK (POSITION('<' IN name) = 0 AND POSITION('>' IN name) = 0),
+    CONSTRAINT chk_food_name_has_letter CHECK (name ~ '[[:alpha:]]'),
     CONSTRAINT chk_food_nutrition_non_negative CHECK (
         calories_100g >= 0
         AND COALESCE(protein_g, 0) >= 0
@@ -66,10 +69,22 @@ CREATE TABLE activities (
     name VARCHAR(100) NOT NULL,
     met_multiplier DECIMAL(5,2) NOT NULL,
     category VARCHAR(50),
+    source VARCHAR(50),
+    source_type VARCHAR(100),
+    external_id VARCHAR(100),
+    source_url TEXT,
+    met_source_code VARCHAR(100),
+    met_source_description TEXT,
+    met_estimation_method VARCHAR(50) NOT NULL DEFAULT 'manual_admin',
+    CONSTRAINT uq_activity_source_external UNIQUE (source, external_id),
     CONSTRAINT chk_activity_name_not_empty CHECK (BTRIM(name) <> ''),
     CONSTRAINT chk_activity_name_no_html CHECK (POSITION('<' IN name) = 0 AND POSITION('>' IN name) = 0),
+    CONSTRAINT chk_activity_name_has_letter CHECK (name ~ '[[:alpha:]]'),
     CONSTRAINT chk_activity_met_supported CHECK (met_multiplier >= 0.9),
-    CONSTRAINT chk_activity_category_not_empty CHECK (category IS NOT NULL AND BTRIM(category) <> '')
+    CONSTRAINT chk_activity_category_not_empty CHECK (category IS NOT NULL AND BTRIM(category) <> ''),
+    CONSTRAINT chk_activity_met_estimation_method CHECK (
+        met_estimation_method IN ('official_compendium', 'compendium_mapping', 'manual_admin')
+    )
 );
 
 -- ==========================================
@@ -123,13 +138,17 @@ CREATE TABLE activity_logs (
     id SERIAL PRIMARY KEY,
     log_id INT NOT NULL REFERENCES daily_logs(id) ON DELETE CASCADE,
     activity_id INT NOT NULL REFERENCES activities(id) ON DELETE CASCADE,
-    duration_min INT NOT NULL, -- Fix: now NOT NULL to support MET formula
+    duration_min DECIMAL(6,2) NOT NULL,
     sets INT,
     reps INT,
-    CONSTRAINT chk_activity_log_duration_positive CHECK (duration_min > 0),
+    manual_calories_burned DECIMAL(8,2),
+    CONSTRAINT chk_activity_log_duration_range CHECK (duration_min BETWEEN 0.1 AND 600),
     CONSTRAINT chk_activity_log_sets_reps CHECK (
         (sets IS NULL AND reps IS NULL)
         OR (sets IS NOT NULL AND reps IS NOT NULL AND sets > 0 AND reps > 0)
+    ),
+    CONSTRAINT chk_activity_log_manual_calories CHECK (
+        manual_calories_burned IS NULL OR manual_calories_burned BETWEEN 1 AND 5000
     )
 );
 

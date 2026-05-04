@@ -1,7 +1,18 @@
 import datetime
 import streamlit as st
 from models.tracking import Activity, ActivityLog, DailyLog, WeightLog
-from ui.tables import activity_log_table_config, render_table
+from ui.activity_selection import (
+    build_activity_selection_dataframe,
+    build_activity_selection_state_key,
+    get_activity_category_filter_options,
+)
+from ui.activity_validation import (
+    duration_range_help,
+    validate_duration_minutes,
+    validate_reps,
+    validate_sets,
+)
+from ui.tables import get_table_height, render_activity_log_cards
 
 
 def render_activity_journal_page() -> None:
@@ -30,6 +41,10 @@ def render_activity_journal_page() -> None:
                 "activity_log_edit_duration_",
                 "activity_log_edit_sets_",
                 "activity_log_edit_reps_",
+                "activity_log_edit_activity_search_",
+                "activity_log_edit_activity_category_",
+                "activity_log_edit_manual_override_",
+                "activity_log_edit_manual_calories_",
             ))
         ]
         for key in activity_widget_keys:
@@ -55,12 +70,90 @@ def render_activity_journal_page() -> None:
     
     def format_activity_log_option(entries_df, log_entry_id):
         row = entries_df.loc[log_entry_id]
-        return f"{row['Activitate']} ({row['Categorie']}, {row['Durată (min)']} min, {row['Calorii Arse']} kcal)"
+        duration = float(row["Durată (min)"])
+        formatted_duration = f"{duration:.1f}".rstrip("0").rstrip(".")
+        return f"{row['Activitate']} ({row['Categorie']}, {formatted_duration} min, {row['Calorii Arse']} kcal)"
     
     def parse_optional_int(value, default_value):
         if value in (None, "-", ""):
             return default_value
         return int(float(value))
+
+    def parse_optional_float(value):
+        if value in (None, "-", "") or (isinstance(value, float) and value != value):
+            return None
+        return float(value)
+
+    def validate_manual_calories_input(value) -> str | None:
+        try:
+            ActivityLog.validate_manual_calories(value)
+        except ValueError:
+            return (
+                "Caloriile manuale trebuie să fie între "
+                f"{ActivityLog.MIN_MANUAL_CALORIES_BURNED:.0f} și "
+                f"{ActivityLog.MAX_MANUAL_CALORIES_BURNED:.0f} kcal."
+            )
+        return None
+
+    def get_first_error(*errors) -> str | None:
+        return next((error for error in errors if error), None)
+
+    def render_activity_selector(
+        activity_options: dict,
+        key_prefix: str,
+        caption_text: str,
+        default_activity_id: int = None,
+    ) -> int | None:
+        filter_col, category_col = st.columns([2, 1])
+        with filter_col:
+            search_text = st.text_input(
+                "Caută activitate",
+                placeholder="Ex: alergare, flotări, chest press",
+                key=f"{key_prefix}_activity_search"
+            )
+        with category_col:
+            category_filter = st.selectbox(
+                "Categorie",
+                get_activity_category_filter_options(activity_options),
+                key=f"{key_prefix}_activity_category"
+            )
+
+        activity_selection_df = build_activity_selection_dataframe(
+            activity_options,
+            search_text,
+            category_filter,
+        )
+        if activity_selection_df.empty:
+            st.info("Nu există activități pentru căutarea și categoria selectate.")
+            return default_activity_id
+
+        st.caption(caption_text)
+        selection_state = st.dataframe(
+            activity_selection_df,
+            width="stretch",
+            height=get_table_height(activity_selection_df, max_rows=8),
+            hide_index=True,
+            column_order=["Denumire", "Categorie", "Sursă", "Metodă MET", "MET"],
+            column_config={
+                "Denumire": st.column_config.TextColumn("Denumire", width="medium"),
+                "Categorie": st.column_config.TextColumn("Categorie", width="small"),
+                "Sursă": st.column_config.TextColumn("Sursă", width="small"),
+                "Metodă MET": st.column_config.TextColumn("Metodă MET", width="medium"),
+                "MET": st.column_config.NumberColumn("MET", format="%.1f", width="small"),
+            },
+            key=build_activity_selection_state_key(
+                search_text,
+                category_filter,
+                f"{key_prefix}_activity_selection_table"
+            ),
+            on_select="rerun",
+            selection_mode="single-row",
+            row_height=32
+        )
+        selected_rows = selection_state.selection.rows
+        if selected_rows and selected_rows[0] < len(activity_selection_df):
+            return int(activity_selection_df.iloc[selected_rows[0]]["_activity_id"])
+        return default_activity_id
 
     def format_reference_date(value) -> str:
         if isinstance(value, datetime.datetime):
@@ -89,32 +182,34 @@ def render_activity_journal_page() -> None:
             st.warning("Catalogul de activități este gol. Administratorul trebuie să adauge date mai întâi.")
             return
     
-        selected_activity_id = st.selectbox(
-            "1. Alege activitatea",
-            options=list(activity_options.keys()),
-            format_func=lambda activity_id: activity_options[activity_id]["name"],
-            key="activity_select"
+        selected_activity_id = render_activity_selector(
+            activity_options,
+            key_prefix="activity_log_add",
+            caption_text="Selectează activitatea din tabelul de mai jos. Coloanele Sursă și Metodă MET explică proveniența valorii MET."
         )
-        selected_activity = activity_options[selected_activity_id]
-        is_strength = is_strength_activity(selected_activity)
+        selected_activity = activity_options.get(selected_activity_id) if selected_activity_id else None
+        if selected_activity:
+            st.caption(
+                f"Sursă MET: {selected_activity.get('source_label', 'MacroSense')} · "
+                f"{selected_activity.get('met_method_label', 'Manual Admin')}"
+            )
+        is_strength = is_strength_activity(selected_activity) if selected_activity else False
         latest_weight = weight_reference["weight"]
     
         col1, col2 = st.columns(2)
         with col1:
             duration = st.number_input(
                 "Durată TOTALĂ sesiune (minute)",
-                min_value=1,
-                max_value=600,
-                value=30,
-                step=5,
+                value=30.0,
+                step=0.1,
                 key="activity_log_duration",
-                help="Timpul total petrecut la acest exercițiu (inclusiv pauzele dintre seturi)."
+                help=f"Timpul total petrecut la acest exercițiu (inclusiv pauzele dintre seturi). {duration_range_help()}"
             )
     
         with col2:
             if is_strength:
-                sets = st.number_input("Seturi", min_value=1, max_value=50, value=3, step=1, key="activity_log_sets")
-                reps = st.number_input("Repetări pe set", min_value=1, max_value=200, value=12, step=1, key="activity_log_reps")
+                sets = st.number_input("Seturi", value=3, step=1, key="activity_log_sets")
+                reps = st.number_input("Repetări pe set", value=12, step=1, key="activity_log_reps")
             else:
                 st.info("📌 Seturile și repetările se aplică doar la exerciții de Forță.")
                 sets = 0
@@ -122,17 +217,55 @@ def render_activity_journal_page() -> None:
     
         calc_sets = sets if is_strength else 0
         calc_reps = reps if is_strength else 0
-        estimated_burned = DailyLog.calculate_hybrid_calories(
-            (selected_activity["category"] or "").strip(),
-            selected_activity["met"],
-            latest_weight,
-            duration,
-            calc_sets,
-            calc_reps
+        duration_error = validate_duration_minutes(duration, "Durata totală")
+        sets_error = validate_sets(calc_sets) if is_strength else None
+        reps_error = validate_reps(calc_reps) if is_strength else None
+        estimated_burned = None
+        if selected_activity and not get_first_error(duration_error, sets_error, reps_error):
+            estimated_burned = DailyLog.calculate_hybrid_calories(
+                (selected_activity["category"] or "").strip(),
+                selected_activity["met"],
+                latest_weight,
+                duration,
+                calc_sets,
+                calc_reps
+            )
+            st.caption(f"🔥 Calorii estimate consumate: **{estimated_burned} kcal**")
+        elif not selected_activity:
+            st.caption("Selectează o activitate pentru a calcula estimarea calorică.")
+
+        use_manual_calories = st.checkbox(
+            "Folosesc caloriile raportate de ceas/aparat cardio",
+            key="activity_log_manual_override",
+            help="Valoarea manuală va fi salvată în locul estimării MET/TUT pentru această înregistrare."
         )
-        st.caption(f"🔥 Calorii estimate consumate: **{estimated_burned} kcal**")
-    
-        if st.button("Salvează antrenamentul", width="stretch", key="btn_save_act", type="primary"):
+        manual_calories = None
+        manual_calories_error = None
+        if use_manual_calories:
+            manual_calories = st.number_input(
+                "Calorii arse raportate",
+                value=float(max(1, round(estimated_burned or 1, 1))),
+                step=1.0,
+                key="activity_log_manual_calories"
+            )
+            manual_calories_error = validate_manual_calories_input(manual_calories)
+            if not manual_calories_error:
+                st.caption(f"Se va salva valoarea manuală: **{manual_calories:.1f} kcal**")
+
+        validation_error = get_first_error(duration_error, sets_error, reps_error, manual_calories_error)
+        if validation_error:
+            st.error(validation_error)
+
+        if st.button(
+            "Salvează antrenamentul",
+            width="stretch",
+            key="btn_save_act",
+            type="primary",
+            disabled=selected_activity is None
+        ):
+            if validation_error:
+                return
+
             db_sets = calc_sets if calc_sets > 0 else None
             db_reps = calc_reps if calc_reps > 0 else None
     
@@ -147,7 +280,8 @@ def render_activity_journal_page() -> None:
                     activity_id=selected_activity["id"],
                     duration_min=duration,
                     sets=db_sets,
-                    reps=db_reps
+                    reps=db_reps,
+                    manual_calories_burned=manual_calories if use_manual_calories else None
                 )
                 if act_log_entry.save():
                     daily_log_for_write.recalculate_totals()
@@ -172,8 +306,8 @@ def render_activity_journal_page() -> None:
     df_entries = DailyLog.get_activity_entries(daily_log.id, user_id) if daily_log else None
     
     if df_entries is not None and not df_entries.empty:
-        visible_activity_entries = df_entries.drop(columns=["_activity_id"], errors="ignore")
-        render_table(visible_activity_entries, column_config=activity_log_table_config, max_rows=7)
+        visible_activity_entries = df_entries.drop(columns=["_activity_id", "_manual_calories_burned"], errors="ignore")
+        render_activity_log_cards(visible_activity_entries)
     
         @st.fragment
         def render_activity_edit_panel():
@@ -209,17 +343,24 @@ def render_activity_journal_page() -> None:
     
                 selected_edit_row = current_entries.loc[selected_edit_activity_log_id]
                 current_activity_id = int(selected_edit_row["_activity_id"])
-                activity_ids = list(activity_options.keys())
-                activity_select_index = activity_ids.index(current_activity_id) if current_activity_id in activity_ids else 0
-                edited_activity_id = st.selectbox(
-                    "Activitate nouă",
-                    options=activity_ids,
-                    format_func=lambda activity_id: activity_options[activity_id]["name"],
-                    index=activity_select_index,
-                    key=f"activity_log_edit_activity_{selected_edit_activity_log_id}"
+                current_activity = activity_options.get(current_activity_id)
+                if current_activity:
+                    st.caption(
+                        f"Activitate curentă: **{current_activity['name']}**. "
+                        "Selectează alt rând din tabel doar dacă vrei să schimbi activitatea."
+                    )
+                edited_activity_id = render_activity_selector(
+                    activity_options,
+                    key_prefix=f"activity_log_edit_{selected_edit_activity_log_id}",
+                    caption_text="Selectează o activitate nouă din tabel sau lasă tabelul neselectat pentru a păstra activitatea curentă.",
+                    default_activity_id=current_activity_id
                 )
     
                 edited_activity = activity_options[edited_activity_id]
+                st.caption(
+                    f"Sursă MET: {edited_activity.get('source_label', 'MacroSense')} · "
+                    f"{edited_activity.get('met_method_label', 'Manual Admin')}"
+                )
                 edited_is_strength = is_strength_activity(edited_activity)
                 latest_weight = weight_reference["weight"]
     
@@ -227,26 +368,21 @@ def render_activity_journal_page() -> None:
                 with col_edit1:
                     edited_duration = st.number_input(
                         "Durată nouă (minute)",
-                        min_value=1,
-                        max_value=600,
-                        value=int(selected_edit_row["Durată (min)"]),
-                        step=5,
-                        key=f"activity_log_edit_duration_{selected_edit_activity_log_id}"
+                        value=float(selected_edit_row["Durată (min)"]),
+                        step=0.1,
+                        key=f"activity_log_edit_duration_{selected_edit_activity_log_id}",
+                        help=duration_range_help()
                     )
                 with col_edit2:
                     if edited_is_strength:
                         edited_sets = st.number_input(
                             "Seturi noi",
-                            min_value=1,
-                            max_value=50,
                             value=parse_optional_int(selected_edit_row["Seturi"], 3),
                             step=1,
                             key=f"activity_log_edit_sets_{selected_edit_activity_log_id}"
                         )
                         edited_reps = st.number_input(
                             "Repetări noi pe set",
-                            min_value=1,
-                            max_value=200,
                             value=parse_optional_int(selected_edit_row["Repetări"], 12),
                             step=1,
                             key=f"activity_log_edit_reps_{selected_edit_activity_log_id}"
@@ -258,17 +394,54 @@ def render_activity_journal_page() -> None:
     
                 calc_sets = edited_sets if edited_is_strength else 0
                 calc_reps = edited_reps if edited_is_strength else 0
-                estimated_burned = DailyLog.calculate_hybrid_calories(
-                    (edited_activity["category"] or "").strip(),
-                    edited_activity["met"],
-                    latest_weight,
-                    edited_duration,
-                    calc_sets,
-                    calc_reps
+                edited_duration_error = validate_duration_minutes(edited_duration, "Durata nouă")
+                edited_sets_error = validate_sets(calc_sets) if edited_is_strength else None
+                edited_reps_error = validate_reps(calc_reps) if edited_is_strength else None
+                estimated_burned = None
+                if not get_first_error(edited_duration_error, edited_sets_error, edited_reps_error):
+                    estimated_burned = DailyLog.calculate_hybrid_calories(
+                        (edited_activity["category"] or "").strip(),
+                        edited_activity["met"],
+                        latest_weight,
+                        edited_duration,
+                        calc_sets,
+                        calc_reps
+                    )
+                    st.caption(f"🔥 Calorii estimate după modificare: **{estimated_burned} kcal**")
+
+                current_manual_calories = parse_optional_float(selected_edit_row.get("_manual_calories_burned"))
+                edit_manual_override = st.checkbox(
+                    "Folosesc caloriile raportate de ceas/aparat cardio",
+                    value=current_manual_calories is not None,
+                    key=f"activity_log_edit_manual_override_{selected_edit_activity_log_id}",
+                    help="Valoarea manuală va înlocui estimarea MET/TUT doar pentru această înregistrare."
                 )
-                st.caption(f"🔥 Calorii estimate după modificare: **{estimated_burned} kcal**")
+                edited_manual_calories = None
+                edited_manual_calories_error = None
+                if edit_manual_override:
+                    edited_manual_calories = st.number_input(
+                        "Calorii arse raportate",
+                        value=float(current_manual_calories or max(1, round(estimated_burned or 1, 1))),
+                        step=1.0,
+                        key=f"activity_log_edit_manual_calories_{selected_edit_activity_log_id}"
+                    )
+                    edited_manual_calories_error = validate_manual_calories_input(edited_manual_calories)
+                    if not edited_manual_calories_error:
+                        st.caption(f"Se va salva valoarea manuală: **{edited_manual_calories:.1f} kcal**")
+
+                edited_validation_error = get_first_error(
+                    edited_duration_error,
+                    edited_sets_error,
+                    edited_reps_error,
+                    edited_manual_calories_error
+                )
+                if edited_validation_error:
+                    st.error(edited_validation_error)
     
                 if st.button("Salvează modificările", width="stretch", key="btn_update_activity_log", type="primary"):
+                    if edited_validation_error:
+                        return
+
                     db_sets = calc_sets if calc_sets > 0 else None
                     db_reps = calc_reps if calc_reps > 0 else None
     
@@ -279,7 +452,8 @@ def render_activity_journal_page() -> None:
                             edited_activity["id"],
                             edited_duration,
                             db_sets,
-                            db_reps
+                            db_reps,
+                            manual_calories_burned=edited_manual_calories if edit_manual_override else None
                         ):
                             daily_log.recalculate_totals()
                             st.session_state["activity_log_edit_selected_id"] = int(selected_edit_activity_log_id)
@@ -352,12 +526,12 @@ def render_activity_journal_page() -> None:
         col1.metric(
             "🏋️ Calorii Forță",
             f"{cals_strength:.0f} kcal",
-            help="Calculate pe baza modelului Time Under Tension (TUT)."
+            help="Calculate pe baza modelului Time Under Tension (TUT) sau a valorii manuale, dacă a fost introdusă."
         )
         col2.metric(
             "🏃 Calorii Cardio & Altele",
             f"{cals_cardio_other:.0f} kcal",
-            help="Calculate pe baza formulei standard MET × Greutate × Durată."
+            help="Calculate pe baza formulei standard MET × Greutate × Durată sau a valorii manuale, dacă a fost introdusă."
         )
         col3.metric(
             "🔥 Total Calorii Arse",
