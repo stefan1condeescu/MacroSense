@@ -1,5 +1,6 @@
 import pandas as pd
 from database import get_connection
+from models.text_validation import contains_letter, has_obvious_html_chars
 
 
 class FoodItem:
@@ -36,8 +37,10 @@ class FoodItem:
         nutrition_values = [self.calories_100g, self.protein_g, self.carbs_g, self.fats_g]
         if not self.name:
             raise ValueError("Food item name cannot be empty.")
-        if "<" in self.name or ">" in self.name:
+        if has_obvious_html_chars(self.name):
             raise ValueError("Food item name cannot contain HTML-like characters.")
+        if not contains_letter(self.name):
+            raise ValueError("Food item name must contain at least one letter.")
         if not self.category:
             raise ValueError("Food item category cannot be empty.")
         if any(value < 0 for value in nutrition_values):

@@ -1,0 +1,70 @@
+-- Optional starter seed for practical gym activities.
+-- These are MacroSense mappings based on official generic 2024 Adult Compendium rows.
+-- They are intentionally not marked as official Compendium activities because the
+-- Compendium usually defines generic resistance-training categories, not every
+-- individual gym exercise.
+-- Run after schema.sql and seed_activities_compendium_official.sql in pgAdmin.
+
+INSERT INTO activities (
+    name,
+    met_multiplier,
+    category,
+    source,
+    source_type,
+    external_id,
+    source_url,
+    met_source_code,
+    met_source_description,
+    met_estimation_method
+) VALUES
+('Chest press la aparat', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-001', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Împins la piept cu haltera', 6.0, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-002', 'https://pacompendium.com/conditioning-exercise/', '02050', 'Mapped from resistance weight lifting, vigorous effort', 'compendium_mapping'),
+('Împins la piept cu gantere', 5.0, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-003', 'https://pacompendium.com/conditioning-exercise/', '02052', 'Mapped from resistance weight training, squats/deadlift, slow or explosive effort', 'compendium_mapping'),
+('Flotări moderate', 3.8, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-004', 'https://pacompendium.com/conditioning-exercise/', '02022', 'Mapped from calisthenics, moderate effort', 'compendium_mapping'),
+('Flotări intense', 6.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-005', 'https://pacompendium.com/conditioning-exercise/', '02057', 'Mapped from body weight resistance exercises, high intensity', 'compendium_mapping'),
+('Tracțiuni', 7.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-006', 'https://pacompendium.com/conditioning-exercise/', '02020', 'Mapped from vigorous calisthenics including pull-ups', 'compendium_mapping'),
+('Ramat la cablu', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-007', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Ramat cu haltera', 5.0, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-008', 'https://pacompendium.com/conditioning-exercise/', '02052', 'Mapped from resistance weight training, slow or explosive effort', 'compendium_mapping'),
+('Lat pulldown', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-009', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Shoulder press la aparat', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-010', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Împins deasupra capului cu gantere', 5.0, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-011', 'https://pacompendium.com/conditioning-exercise/', '02052', 'Mapped from resistance weight training, slow or explosive effort', 'compendium_mapping'),
+('Ridicări laterale', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-012', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Face pulls', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-013', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Biceps curls cu gantere', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-014', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Biceps curls la cablu', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-015', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Triceps extensions la cablu', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-016', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Dips la paralele', 6.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-017', 'https://pacompendium.com/conditioning-exercise/', '02057', 'Mapped from body weight resistance exercises, high intensity', 'compendium_mapping'),
+('Genuflexiuni cu haltera', 5.0, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-018', 'https://pacompendium.com/conditioning-exercise/', '02052', 'Mapped from resistance weight training, squats/deadlift', 'compendium_mapping'),
+('Îndreptări cu haltera', 5.0, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-019', 'https://pacompendium.com/conditioning-exercise/', '02052', 'Mapped from resistance weight training, squats/deadlift', 'compendium_mapping'),
+('Leg press', 5.0, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-020', 'https://pacompendium.com/conditioning-exercise/', '02052', 'Mapped from resistance weight training, slow or explosive effort', 'compendium_mapping'),
+('Fandări cu gantere', 3.8, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-021', 'https://pacompendium.com/conditioning-exercise/', '02022', 'Mapped from calisthenics including lunges, moderate effort', 'compendium_mapping'),
+('Hip thrust', 5.0, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-022', 'https://pacompendium.com/conditioning-exercise/', '02052', 'Mapped from resistance weight training, slow or explosive effort', 'compendium_mapping'),
+('Leg extension', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-023', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Leg curl', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-024', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Ridicări pe vârfuri pentru gambe', 3.5, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-025', 'https://pacompendium.com/conditioning-exercise/', '02054', 'Mapped from resistance weight training, multiple exercises, 8-15 reps', 'compendium_mapping'),
+('Crunch abdominal', 2.8, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-026', 'https://pacompendium.com/conditioning-exercise/', '02024', 'Mapped from light calisthenics including abdominal crunches', 'compendium_mapping'),
+('Plank', 2.8, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-027', 'https://pacompendium.com/conditioning-exercise/', '02024', 'Mapped from light calisthenics including plank', 'compendium_mapping'),
+('Ridicări de picioare pentru abdomen', 2.8, 'Forță', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-STR-028', 'https://pacompendium.com/conditioning-exercise/', '02024', 'Mapped from light calisthenics and abdominal work', 'compendium_mapping'),
+('Burpees', 11.0, 'Cardio', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-CAR-001', 'https://pacompendium.com/conditioning-exercise/', '02214', 'Mapped from HIIT vigorous effort including burpees', 'compendium_mapping'),
+('Mountain climbers', 11.0, 'Cardio', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-CAR-002', 'https://pacompendium.com/conditioning-exercise/', '02214', 'Mapped from HIIT vigorous effort including mountain climbers', 'compendium_mapping'),
+('Sărituri jumping jacks', 7.5, 'Cardio', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-CAR-003', 'https://pacompendium.com/conditioning-exercise/', '02020', 'Mapped from vigorous calisthenics including jumping jacks', 'compendium_mapping'),
+('Bandă alergare mers înclinat moderat', 5.3, 'Cardio', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-CAR-004', 'https://pacompendium.com/walking/', '17034', 'Mapped from climbing hills, moderate-to-brisk pace', 'compendium_mapping'),
+('Bandă alergare mers rapid', 4.8, 'Cardio', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-CAR-005', 'https://pacompendium.com/walking/', '17200', 'Mapped from brisk walking for exercise', 'compendium_mapping'),
+('Bandă alergare jogging ușor', 7.5, 'Cardio', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-CAR-006', 'https://pacompendium.com/running/', '12020', 'Mapped from jogging, general, self-selected pace', 'compendium_mapping'),
+('Bike erg moderat', 6.0, 'Cardio', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-CAR-007', 'https://pacompendium.com/bicycling/', '01220', 'Mapped from stationary bicycling, moderate to vigorous', 'compendium_mapping'),
+('Bike erg intens', 9.0, 'Cardio', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-CAR-008', 'https://pacompendium.com/bicycling/', '01270', 'Mapped from stationary RPM/Spin bike class', 'compendium_mapping'),
+('Row erg moderat', 5.0, 'Cardio', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-CAR-009', 'https://pacompendium.com/conditioning-exercise/', '02071', 'Mapped from rowing ergometer, moderate effort', 'compendium_mapping'),
+('Row erg intens', 7.3, 'Cardio', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-CAR-010', 'https://pacompendium.com/conditioning-exercise/', '02070', 'Mapped from rowing ergometer, vigorous effort', 'compendium_mapping'),
+('Mobilitate umeri', 2.3, 'Flexibilitate', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-MOB-001', 'https://pacompendium.com/conditioning-exercise/', '02101', 'Mapped from stretching, mild', 'compendium_mapping'),
+('Mobilitate șolduri', 2.3, 'Flexibilitate', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-MOB-002', 'https://pacompendium.com/conditioning-exercise/', '02101', 'Mapped from stretching, mild', 'compendium_mapping'),
+('Încălzire dinamică', 3.8, 'Flexibilitate', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-MOB-003', 'https://pacompendium.com/conditioning-exercise/', '02064', 'Mapped from home exercise, general', 'compendium_mapping'),
+('Foam rolling', 2.3, 'Flexibilitate', 'MacroSense', 'Compendium-based mapping', 'MS-MAP-MOB-004', 'https://pacompendium.com/conditioning-exercise/', '02101', 'Mapped from stretching, mild', 'compendium_mapping')
+ON CONFLICT (source, external_id) DO UPDATE SET
+    name = EXCLUDED.name,
+    met_multiplier = EXCLUDED.met_multiplier,
+    category = EXCLUDED.category,
+    source_type = EXCLUDED.source_type,
+    source_url = EXCLUDED.source_url,
+    met_source_code = EXCLUDED.met_source_code,
+    met_source_description = EXCLUDED.met_source_description,
+    met_estimation_method = EXCLUDED.met_estimation_method;

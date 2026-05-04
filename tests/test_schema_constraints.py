@@ -9,20 +9,33 @@ class SchemaConstraintTests(unittest.TestCase):
     def test_activity_log_sets_reps_constraint_rejects_half_filled_pairs(self):
         self.assertIn("sets IS NULL AND reps IS NULL", self.schema_sql)
         self.assertIn("sets IS NOT NULL AND reps IS NOT NULL AND sets > 0 AND reps > 0", self.schema_sql)
+        self.assertIn("manual_calories_burned DECIMAL(8,2)", self.schema_sql)
+        self.assertIn("chk_activity_log_manual_calories", self.schema_sql)
+        self.assertIn("chk_activity_log_duration_range", self.schema_sql)
+        self.assertIn("duration_min DECIMAL(6,2) NOT NULL", self.schema_sql)
+        self.assertIn("duration_min BETWEEN 0.1 AND 600", self.schema_sql)
 
     def test_food_items_require_non_empty_category(self):
         self.assertIn("category VARCHAR(50) NOT NULL", self.schema_sql)
         self.assertIn("chk_food_category_not_empty", self.schema_sql)
         self.assertIn("chk_food_name_no_html", self.schema_sql)
+        self.assertIn("chk_food_name_has_letter", self.schema_sql)
         self.assertIn("chk_food_calories_positive", self.schema_sql)
         self.assertIn("chk_food_has_macro", self.schema_sql)
 
     def test_users_reject_html_like_persisted_text_at_schema_level(self):
         self.assertIn("chk_user_email_no_html", self.schema_sql)
         self.assertIn("chk_user_full_name_no_html", self.schema_sql)
+        self.assertIn("chk_user_full_name_chars", self.schema_sql)
+        self.assertIn("chk_user_full_name_has_letter", self.schema_sql)
 
     def test_activities_reject_html_like_names_at_schema_level(self):
         self.assertIn("chk_activity_name_no_html", self.schema_sql)
+        self.assertIn("chk_activity_name_has_letter", self.schema_sql)
+        self.assertIn("source_type VARCHAR(100)", self.schema_sql)
+        self.assertIn("met_estimation_method VARCHAR(50)", self.schema_sql)
+        self.assertIn("uq_activity_source_external", self.schema_sql)
+        self.assertIn("chk_activity_met_estimation_method", self.schema_sql)
 
     def test_custom_meals_reject_html_like_names_at_schema_level(self):
         self.assertIn("chk_custom_meal_name_no_html", self.schema_sql)

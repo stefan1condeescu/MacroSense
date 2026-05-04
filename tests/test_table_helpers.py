@@ -2,7 +2,13 @@ import unittest
 
 import pandas as pd
 
-from ui.tables import filter_food_catalog_dataframe
+from ui.activity_selection import (
+    build_activity_selection_dataframe,
+    build_activity_selection_state_key,
+    get_activity_category_filter_options,
+)
+from ui.activity_validation import validate_duration_minutes, validate_reps, validate_sets
+from ui.tables import escape_display_text, filter_activity_catalog_dataframe, filter_food_catalog_dataframe
 
 
 class TableHelperTests(unittest.TestCase):
@@ -26,11 +32,30 @@ class TableHelperTests(unittest.TestCase):
                 },
             ]
         )
+        self.activities = pd.DataFrame(
+            [
+                {
+                    "Denumire": "Flotări moderate",
+                    "Categorie": "Forță",
+                    "Sursă": "MacroSense",
+                    "Metodă MET": "Mapare MacroSense",
+                },
+                {
+                    "Denumire": "Alergare ușoară generală",
+                    "Categorie": "Cardio",
+                    "Sursă": "Compendium",
+                    "Metodă MET": "Oficial Compendium",
+                },
+            ]
+        )
 
     def test_food_catalog_search_treats_special_characters_as_plain_text(self):
         filtered = filter_food_catalog_dataframe(self.foods, "(", "Toate", "Toate")
 
         self.assertEqual(filtered["Denumire"].tolist(), ["Test (raw)"])
+
+    def test_custom_card_text_is_html_escaped(self):
+        self.assertEqual(escape_display_text("<b>Test</b>"), "&lt;b&gt;Test&lt;/b&gt;")
 
     def test_food_catalog_search_does_not_crash_on_invalid_regex_text(self):
         filtered = filter_food_catalog_dataframe(self.foods, "[", "Toate", "Toate")
@@ -51,6 +76,50 @@ class TableHelperTests(unittest.TestCase):
         filtered = filter_food_catalog_dataframe(self.foods, "capsuni", "Toate", "Toate")
 
         self.assertEqual(filtered["Denumire"].tolist(), ["Căpșuni, crude"])
+
+    def test_activity_catalog_filter_combines_search_source_and_method(self):
+        filtered = filter_activity_catalog_dataframe(
+            self.activities,
+            "flotari",
+            "Forță",
+            "MacroSense",
+            "Mapare MacroSense",
+        )
+
+        self.assertEqual(filtered["Denumire"].tolist(), ["Flotări moderate"])
+
+    def test_activity_selection_filters_without_diacritics(self):
+        activity_options = {
+            1: {
+                "id": 1,
+                "name": "Flotări moderate",
+                "category": "Forță",
+                "source_label": "MacroSense",
+                "met_method_label": "Mapare MacroSense",
+                "met": 3.8,
+            }
+        }
+
+        filtered = build_activity_selection_dataframe(activity_options, "flotari", "Toate")
+
+        self.assertEqual(filtered["Denumire"].tolist(), ["Flotări moderate"])
+        self.assertEqual(get_activity_category_filter_options(activity_options), ["Toate", "Forță"])
+
+    def test_activity_selection_key_changes_when_visible_context_changes(self):
+        self.assertNotEqual(
+            build_activity_selection_state_key("flotari", "Toate"),
+            build_activity_selection_state_key("flotari", "Forță"),
+        )
+
+    def test_activity_ui_validation_blocks_native_number_input_edge_cases(self):
+        self.assertEqual(validate_duration_minutes(0, "Durata nouă"), "Durata nouă trebuie să fie cel puțin 0.1 minute.")
+        self.assertEqual(validate_duration_minutes(601, "Durata nouă"), "Durata nouă trebuie să fie cel mult 600 minute.")
+        self.assertEqual(validate_sets(0), "Seturile trebuie să fie cel puțin 1.")
+        self.assertEqual(validate_reps(201), "Repetările trebuie să fie cel mult 200.")
+
+    def test_activity_duration_validation_accepts_subminute_values(self):
+        self.assertIsNone(validate_duration_minutes(0.1, "Durata nouă"))
+        self.assertIsNone(validate_duration_minutes(0.5, "Durata nouă"))
 
 
 if __name__ == "__main__":

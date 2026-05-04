@@ -154,7 +154,7 @@ class DailyLog:
                 conn.close()
 
     @staticmethod
-    def calculate_hybrid_calories(category: str, met: float, weight: float, duration_min: int, sets: int, reps: int) -> float:
+    def calculate_hybrid_calories(category: str, met: float, weight: float, duration_min: float, sets: int, reps: int) -> float:
         """
         Helper method to compute calories ensuring DRY logic between UI preview and DB.
         Applies standard MET for Cardio and Hybrid TUT (Time Under Tension) for Strength training.
@@ -242,6 +242,9 @@ class DailyLog:
                 """
                 SELECT COALESCE(SUM(
                     CASE 
+                        -- Manual wearable/cardio-machine override
+                        WHEN al.manual_calories_burned IS NOT NULL THEN
+                            al.manual_calories_burned
                         -- Strength Training: Hybrid TUT Model
                         WHEN a.category = 'Forță' AND al.sets IS NOT NULL AND al.reps IS NOT NULL THEN
                             (a.met_multiplier * %s * (LEAST(al.duration_min, (al.sets * al.reps * 3.0)/60.0) / 60.0)) + 
@@ -452,8 +455,15 @@ class DailyLog:
                     al.duration_min AS "Durată (min)",
                     al.sets AS "Seturi",
                     al.reps AS "Repetări",
+                    al.manual_calories_burned AS "_manual_calories_burned",
+                    CASE
+                        WHEN al.manual_calories_burned IS NOT NULL THEN 'Manual'
+                        ELSE 'Estimare MacroSense'
+                    END AS "Metodă calcul",
                     ROUND(
                         CASE 
+                            WHEN al.manual_calories_burned IS NOT NULL THEN
+                                al.manual_calories_burned
                             WHEN a.category = 'Forță' AND al.sets IS NOT NULL AND al.reps IS NOT NULL THEN
                                 (a.met_multiplier * (SELECT weight FROM latest_weight) * (LEAST(al.duration_min, (al.sets * al.reps * 3.0)/60.0) / 60.0)) + 
                                 (1.5 * (SELECT weight FROM latest_weight) * (GREATEST(0, al.duration_min - ((al.sets * al.reps * 3.0)/60.0)) / 60.0))
@@ -471,7 +481,18 @@ class DailyLog:
             )
             rows = cursor.fetchall()
             if rows:
-                columns = ["id", "_activity_id", "Activitate", "Categorie", "Durată (min)", "Seturi", "Repetări", "Calorii Arse"]
+                columns = [
+                    "id",
+                    "_activity_id",
+                    "Activitate",
+                    "Categorie",
+                    "Durată (min)",
+                    "Seturi",
+                    "Repetări",
+                    "_manual_calories_burned",
+                    "Metodă calcul",
+                    "Calorii Arse",
+                ]
                 df = pd.DataFrame(rows, columns=columns)
                 df['Seturi'] = df['Seturi'].apply(format_optional_activity_count)
                 df['Repetări'] = df['Repetări'].apply(format_optional_activity_count)

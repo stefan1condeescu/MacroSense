@@ -5,18 +5,51 @@ class ActivityLog:
     Represents a physical activity event logged by the user in a given day.
     Maps to the ActivityLog class in the UML Class Diagram.
     """
-    def __init__(self, log_id: int, activity_id: int, duration_min: int, sets: int = None, reps: int = None, log_entry_id: int = None):
+    MIN_MANUAL_CALORIES_BURNED = 1.0
+    MAX_MANUAL_CALORIES_BURNED = 5000.0
+    MIN_DURATION_MINUTES = 0.1
+    MAX_DURATION_MINUTES = 600.0
+
+    def __init__(
+        self,
+        log_id: int,
+        activity_id: int,
+        duration_min: float,
+        sets: int = None,
+        reps: int = None,
+        log_entry_id: int = None,
+        manual_calories_burned: float = None,
+    ):
         self.id = log_entry_id
         self.log_id = log_id
         self.activity_id = activity_id
-        self.duration_min = duration_min
+        try:
+            self.duration_min = float(duration_min)
+        except (TypeError, ValueError):
+            raise ValueError("Duration must be a valid number.")
         self.sets = sets
         self.reps = reps
+        self.manual_calories_burned = (
+            float(manual_calories_burned)
+            if manual_calories_burned is not None
+            else None
+        )
 
-        # Enforce duration constraint at object level
-        if self.duration_min <= 0:
-            raise ValueError("Duration must be strictly positive for MET calculation.")
+        self.validate_duration(self.duration_min)
         self.validate_sets_and_reps(self.sets, self.reps)
+        self.validate_manual_calories(self.manual_calories_burned)
+
+    @classmethod
+    def validate_duration(cls, duration_min: float) -> None:
+        """Validates supported activity duration consistently for save and update flows."""
+        try:
+            duration_value = float(duration_min)
+        except (TypeError, ValueError):
+            raise ValueError("Duration must be a valid number.")
+        if duration_value < cls.MIN_DURATION_MINUTES:
+            raise ValueError("Duration must be strictly positive for MET calculation.")
+        if duration_value > cls.MAX_DURATION_MINUTES:
+            raise ValueError("Duration is above the supported maximum.")
 
     @staticmethod
     def validate_sets_and_reps(sets: int = None, reps: int = None) -> None:
@@ -25,6 +58,14 @@ class ActivityLog:
             raise ValueError("Sets and reps must be provided together.")
         if sets is not None and (sets <= 0 or reps <= 0):
             raise ValueError("Sets and reps must be strictly positive when provided.")
+
+    @classmethod
+    def validate_manual_calories(cls, manual_calories_burned: float = None) -> None:
+        """Validates optional calories imported from a wearable or cardio machine."""
+        if manual_calories_burned is None:
+            return
+        if not cls.MIN_MANUAL_CALORIES_BURNED <= float(manual_calories_burned) <= cls.MAX_MANUAL_CALORIES_BURNED:
+            raise ValueError("Manual calories burned must be between 1 and 5000.")
 
     def save(self) -> bool:
         """Saves the ActivityLog entry to the PostgreSQL database."""
@@ -35,9 +76,20 @@ class ActivityLog:
         try:
             cursor = conn.cursor()
             cursor.execute(
-                """INSERT INTO activity_logs (log_id, activity_id, duration_min, sets, reps) 
-                   VALUES (%s, %s, %s, %s, %s) RETURNING id""",
-                (self.log_id, self.activity_id, self.duration_min, self.sets, self.reps)
+                """
+                INSERT INTO activity_logs (
+                    log_id, activity_id, duration_min, sets, reps, manual_calories_burned
+                )
+                VALUES (%s, %s, %s, %s, %s, %s) RETURNING id
+                """,
+                (
+                    self.log_id,
+                    self.activity_id,
+                    self.duration_min,
+                    self.sets,
+                    self.reps,
+                    self.manual_calories_burned,
+                )
             )
             self.id = cursor.fetchone()[0]
             conn.commit()
@@ -80,11 +132,20 @@ class ActivityLog:
                 conn.close()
 
     @classmethod
-    def update(cls, log_entry_id: int, user_id: int, activity_id: int, duration_min: int, sets: int = None, reps: int = None) -> bool:
+    def update(
+        cls,
+        log_entry_id: int,
+        user_id: int,
+        activity_id: int,
+        duration_min: float,
+        sets: int = None,
+        reps: int = None,
+        manual_calories_burned: float = None,
+    ) -> bool:
         """Updates editable ActivityLog fields only if the entry belongs to the given user."""
-        if duration_min <= 0:
-            raise ValueError("Duration must be strictly positive for MET calculation.")
+        cls.validate_duration(duration_min)
         cls.validate_sets_and_reps(sets, reps)
+        cls.validate_manual_calories(manual_calories_burned)
 
         conn = get_connection()
         if not conn:
@@ -98,14 +159,15 @@ class ActivityLog:
                 SET activity_id = %s,
                     duration_min = %s,
                     sets = %s,
-                    reps = %s
+                    reps = %s,
+                    manual_calories_burned = %s
                 FROM daily_logs dl
                 WHERE al.log_id = dl.id
                   AND al.id = %s
                   AND dl.user_id = %s
                 RETURNING al.id
                 """,
-                (activity_id, duration_min, sets, reps, log_entry_id, user_id)
+                (activity_id, duration_min, sets, reps, manual_calories_burned, log_entry_id, user_id)
             )
             updated_row = cursor.fetchone()
             conn.commit()

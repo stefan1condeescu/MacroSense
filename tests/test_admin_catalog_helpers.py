@@ -20,6 +20,11 @@ class AdminFoodCatalogHelperTests(unittest.TestCase):
 
         self.assertIn("Denumirea alimentului nu poate conține caractere de tip HTML.", errors)
 
+    def test_manual_food_rejects_special_only_name(self):
+        errors = validate_food_item_input("///", 100, 1, 2, 3)
+
+        self.assertIn("Denumirea alimentului trebuie să conțină cel puțin o literă.", errors)
+
     def test_manual_food_rejects_zero_calories_and_empty_macros(self):
         errors = validate_food_item_input("Test", 0, 0, 0, 0)
 
@@ -80,6 +85,11 @@ class AdminFoodCatalogHelperTests(unittest.TestCase):
 
         self.assertIn("Denumirea activității nu poate conține caractere de tip HTML.", errors)
 
+    def test_manual_activity_rejects_special_only_name(self):
+        errors = validate_activity_input("///", 5.0, "Cardio")
+
+        self.assertIn("Denumirea activității trebuie să conțină cel puțin o literă.", errors)
+
     def test_manual_activity_requires_positive_met(self):
         errors = validate_activity_input("Test", 0, "Cardio")
 
@@ -89,6 +99,12 @@ class AdminFoodCatalogHelperTests(unittest.TestCase):
         errors = validate_activity_input("Alergare", 8.0, "Cardio")
 
         self.assertEqual(errors, [])
+
+    @patch("ui.pages.admin_catalog_pages.Activity.name_exists_normalized", return_value=True)
+    def test_manual_activity_rejects_duplicate_name_when_requested(self, _mock_exists):
+        errors = validate_activity_input("Alergare", 8.0, "Cardio", check_duplicate=True)
+
+        self.assertIn("Există deja o activitate cu această denumire.", errors)
 
 
 if __name__ == "__main__":

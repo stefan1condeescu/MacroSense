@@ -1,5 +1,6 @@
 import hashlib
 from database import get_connection
+from models.text_validation import has_obvious_html_chars, is_valid_person_name
 from models.tracking_models.weight_log import WeightLog
 
 class UserAccount:
@@ -144,12 +145,12 @@ class User(UserAccount):
             self.last_error_code = "missing_required_fields"
             return False
 
-        if "<" in self.email or ">" in self.email:
+        if has_obvious_html_chars(self.email):
             print("Registration blocked: Invalid email.")
             self.last_error_code = "invalid_email"
             return False
 
-        if "<" in self.full_name or ">" in self.full_name:
+        if not is_valid_person_name(self.full_name):
             print("Registration blocked: Invalid full name.")
             self.last_error_code = "invalid_full_name"
             return False
@@ -248,6 +249,10 @@ class User(UserAccount):
             if constraint_name == "chk_user_email_no_html":
                 return "invalid_email"
             if constraint_name == "chk_user_full_name_no_html":
+                return "invalid_full_name"
+            if constraint_name == "chk_user_full_name_chars":
+                return "invalid_full_name"
+            if constraint_name == "chk_user_full_name_has_letter":
                 return "invalid_full_name"
             if constraint_name == "chk_user_height":
                 return "invalid_height"
