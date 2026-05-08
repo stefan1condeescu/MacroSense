@@ -160,6 +160,11 @@ CREATE TABLE food_logs (
     quantity_g DECIMAL(6,2) NOT NULL, -- Integration of the previously discussed fix
     meal_type VARCHAR(50) NOT NULL,
     meal_time TIME NOT NULL,
+    snapshot_name VARCHAR(100),
+    snapshot_calories_100g DECIMAL(8,2),
+    snapshot_protein_100g DECIMAL(8,2),
+    snapshot_carbs_100g DECIMAL(8,2),
+    snapshot_fats_100g DECIMAL(8,2),
     CONSTRAINT chk_xor_food_meal CHECK (
         (food_id IS NOT NULL AND custom_meal_id IS NULL) OR 
         (food_id IS NULL AND custom_meal_id IS NOT NULL)
@@ -167,6 +172,43 @@ CREATE TABLE food_logs (
     CONSTRAINT chk_food_log_quantity_range CHECK (quantity_g BETWEEN 1 AND 5000),
     CONSTRAINT chk_food_log_meal_type CHECK (
         meal_type IN ('Mic dejun', 'Prânz', 'Cină', 'Gustare')
+    ),
+    CONSTRAINT chk_food_log_snapshot_complete CHECK (
+        (
+            snapshot_name IS NULL AND
+            snapshot_calories_100g IS NULL AND
+            snapshot_protein_100g IS NULL AND
+            snapshot_carbs_100g IS NULL AND
+            snapshot_fats_100g IS NULL
+        ) OR (
+            snapshot_name IS NOT NULL AND
+            snapshot_calories_100g IS NOT NULL AND
+            snapshot_protein_100g IS NOT NULL AND
+            snapshot_carbs_100g IS NOT NULL AND
+            snapshot_fats_100g IS NOT NULL
+        )
+    ),
+    CONSTRAINT chk_food_log_catalog_snapshot_null CHECK (
+        food_id IS NULL OR (
+            snapshot_name IS NULL AND
+            snapshot_calories_100g IS NULL AND
+            snapshot_protein_100g IS NULL AND
+            snapshot_carbs_100g IS NULL AND
+            snapshot_fats_100g IS NULL
+        )
+    ),
+    CONSTRAINT chk_food_log_snapshot_name_valid CHECK (
+        snapshot_name IS NULL OR (
+            BTRIM(snapshot_name) <> '' AND
+            POSITION('<' IN snapshot_name) = 0 AND
+            POSITION('>' IN snapshot_name) = 0
+        )
+    ),
+    CONSTRAINT chk_food_log_snapshot_nutrition CHECK (
+        (snapshot_calories_100g IS NULL OR snapshot_calories_100g > 0) AND
+        (snapshot_protein_100g IS NULL OR snapshot_protein_100g >= 0) AND
+        (snapshot_carbs_100g IS NULL OR snapshot_carbs_100g >= 0) AND
+        (snapshot_fats_100g IS NULL OR snapshot_fats_100g >= 0)
     )
 );
 

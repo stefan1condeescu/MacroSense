@@ -81,7 +81,9 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - FoodLog: save(), update(), delete()
   (`meal_type` trebuie să fie una dintre valorile UI/DB: `Mic dejun`,
   `Prânz`, `Cină`, `Gustare`; `meal_time` trebuie să fie un `datetime.time`
-  valid, nu `None`; `quantity_g` trebuie să rămână în intervalul 1-5000g)
+  valid, nu `None`; `quantity_g` trebuie să rămână în intervalul 1-5000g;
+  pentru `custom_meal_id`, `save()` salvează snapshot nutrițional per 100g
+  în `food_logs`, iar `update()` păstrează snapshot-ul existent)
 - ActivityLog: save(), update(), delete()
   (`sets` și `reps` trebuie validate împreună și la constructor, nu doar la
   update/UI; fie sunt ambele nule, fie ambele valori sunt pozitive;
@@ -201,7 +203,8 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - Nu executa comenzi psql direct — generează fișiere .sql pentru rulare manuală
 - schema.sql este sursa de adevăr pentru structura DB
 - `database/seeds/seed_food_items_usda_starter.sql` este seed opțional pentru
-  alimente reale de pornire, rulat manual după `schema.sql` în pgAdmin.
+  catalog alimentar extins, cu alimente reale USDA, rulat manual după
+  `schema.sql` în pgAdmin.
 - `database/seeds/seed_activities_compendium_official.sql` este seed opțional
   pentru activități MET oficiale din 2024 Adult Compendium of Physical
   Activities.
@@ -212,6 +215,10 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - Seed-urile pentru activități se rulează manual după `schema.sql`: mai întâi
   `seed_activities_compendium_official.sql`, apoi
   `seed_activities_macrosense_mappings.sql`.
+- `database/seeds/seed_demo_users.sql` este seed opțional pentru utilizatori
+  demo sintetici, cu istoric de greutate, jurnale alimentare, jurnale de
+  activități și mese personalizate. Se rulează ultimul, după seed-urile de
+  alimente și activități.
 - Importul USDA folosește cheia `FDC_API_KEY` din `.streamlit/secrets.toml`
   sau din variabilele de mediu; cheia nu se comite niciodată în Git.
 - Pentru importul de alimente sunt permise inițial doar sursele USDA
@@ -239,9 +246,9 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   fie custom_meal_id (nu ambele simultan)
 - Mesele personalizate nu se șterg fizic din UI; se arhivează prin
   `status = 'Arhivată'` pentru a păstra istoricul din Jurnal Alimentar
-- În implementarea viitoare, mesele personalizate salvate în Jurnal Alimentar
-  trebuie să păstreze snapshot nutrițional per înregistrare, ca editarea unei
-  rețete să afecteze doar folosirile viitoare, nu istoricul deja logat.
+- Mesele personalizate salvate în Jurnal Alimentar păstrează snapshot
+  nutrițional per înregistrare în `food_logs`, astfel încât editarea unei
+  rețete afectează doar folosirile viitoare, nu istoricul deja logat.
 - `schema.sql` trebuie să păstreze constrângeri explicite pentru intervale și
   integritate de bază: email normalizat, valori nutriționale nenegative,
   calorii pozitive și cel puțin un macronutrient pozitiv pentru alimente,
@@ -258,4 +265,3 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - Recomandări personalizate de antrenamente
 - Dashboard cu grafice (Plotly/Altair)
 - Simulator What-if (scenarii calorice)
-- Snapshot nutrițional pentru mesele personalizate logate în Jurnal Alimentar
