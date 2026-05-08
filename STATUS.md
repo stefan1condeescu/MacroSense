@@ -58,7 +58,7 @@
 - [x] Stabilizare creare cont: greutatea inițială nu mai este ajustată automat la 30 kg; valorile în afara intervalului 30-300 kg sunt blocate cu eroare explicită în UI și în `User.register()`.
 - [x] Extindere catalog alimente cu metadate de proveniență (`source`, `source_type`, `external_id`, `source_url`) și constrângere de unicitate pentru importuri externe.
 - [x] Implementare import alimente din USDA FoodData Central, disponibil doar pentru Administrator: căutare în sursele nebranduite `SR Legacy`, `Foundation` și `Survey (FNDDS)`, preview calorii/macronutrienți per 100g, verificare duplicate și salvare locală în `food_items`.
-- [x] Adăugare seed SQL `database/seeds/seed_food_items_usda_starter.sql` cu alimente reale de pornire din USDA și teste automate pentru normalizarea valorilor USDA, inclusiv valori nutriționale egale cu zero.
+- [x] Adăugare seed SQL `database/seeds/seed_food_items_usda_starter.sql` cu catalog alimentar extins din USDA FoodData Central, acoperind peste 170 de alimente din categoriile MacroSense principale.
 - [x] Stabilizare UI/UX Catalog Alimente: sursa alimentelor manuale este afișată ca `MacroSense`, tabelele au căutare/filtre, importul USDA afișează rezultate într-o listă clară, iar categoria locală este sugerată automat pe baza descrierii USDA.
 - [x] Validare Admin Catalog Alimente: nu se mai pot salva alimente manuale fără denumire sau cu toate valorile nutriționale egale cu 0.
 - [x] Stabilizare căutare USDA: interfața indică folosirea termenilor în engleză, iar clientul filtrează rezultatele astfel încât descrierea USDA să conțină termenii căutați, reducând rezultatele irelevante și timpul de încărcare.
@@ -88,15 +88,16 @@
 - [x] Ajustare durată Jurnal Activități: `duration_min` acceptă valori zecimale de la 0.1 minute la 600 minute, pentru exerciții/seturi foarte scurte, cu afișare și validare coerente în UI/model/DB.
 - [x] Hardening validări text persistente: alimentele și activitățile trebuie să aibă denumiri cu cel puțin o literă, iar numele complet al utilizatorului acceptă doar litere, spații, cratimă și apostrof; regulile sunt aplicate în UI, modele și `schema.sql`.
 - [x] Polish liste zilnice: intrările din Jurnal Alimentar, Jurnal Activități și Jurnal Greutate sunt afișate ca rânduri/carduri compacte, mai vizibile decât tabelele brute, fără schimbarea logicii de salvare/editare/ștergere.
+- [x] Stabilizare istoric „Mese Personalizate”: `food_logs` salvează snapshot nutrițional per 100g pentru mesele personalizate logate, iar `DailyLog.recalculate_totals()` și afișarea jurnalului folosesc snapshot-ul pentru ca editarea unei rețete să afecteze doar folosirile viitoare.
+- [x] Demo Data Foundation: adăugare `database/seeds/seed_demo_users.sql` cu 5 utilizatori demo sintetici, parole documentate pentru testare, istoric de greutate pe perioade diferite, jurnale alimentare, activități estimate/manuale și mese personalizate cu snapshot.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Testare manuală UI pentru fluxul complet „Catalog Activități”: seed Compendium/MacroSense → afișare Admin/User → adăugare/editare antrenament estimat → adăugare/editare antrenament cu calorii manuale → verificare recalculare după modificarea greutății.
+- [ ] Testare manuală UI pentru Demo Data Foundation: rulare seed-uri în ordinea corectă → login pe utilizatorii demo → verificare Jurnal Alimentar, Jurnal Activități, Jurnal Greutate, Mese Personalizate și pregătire pentru Dashboard v1.
 
 ## 🔴 Ce urmează (Backlog):
 - [ ] Modulul de Machine Learning — predicția greutății.
 - [ ] Recomandări personalizate de mese.
 - [ ] Recomandări personalizate de antrenamente.
-- [ ] Stabilizare istoric „Mese Personalizate”: salvarea unui snapshot nutrițional în `food_logs` pentru mesele personalizate adăugate în jurnal, astfel încât editarea unei rețete să afecteze doar folosirile viitoare, nu istoricul deja înregistrat.
 - [ ] Simulator What-if (scenarii calorice).
 - [ ] Dashboard și generare grafice pentru progres.
 - [ ] Sincronizare documentație licență/diagrame după finalizarea funcționalităților principale.

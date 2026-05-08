@@ -48,6 +48,43 @@ class FoodLog:
         if not isinstance(meal_time, datetime.time):
             raise ValueError("FoodLog meal time must be a valid time.")
 
+    @staticmethod
+    def _build_custom_meal_snapshot(cursor, custom_meal_id: int, log_id: int) -> dict:
+        """Builds a per-100g nutritional snapshot for a custom meal at log time."""
+        cursor.execute(
+            """
+            SELECT
+                cm.recipe_name,
+                COALESCE(SUM(ri.quantity_g), 0) AS total_quantity_g,
+                COALESCE(SUM(fi.calories_100g * ri.quantity_g / 100.0), 0) AS total_calories,
+                COALESCE(SUM(fi.protein_g * ri.quantity_g / 100.0), 0) AS total_protein_g,
+                COALESCE(SUM(fi.carbs_g * ri.quantity_g / 100.0), 0) AS total_carbs_g,
+                COALESCE(SUM(fi.fats_g * ri.quantity_g / 100.0), 0) AS total_fats_g
+            FROM custom_meals cm
+            JOIN daily_logs dl ON dl.user_id = cm.user_id AND dl.id = %s
+            JOIN recipe_ingredients ri ON ri.meal_id = cm.id
+            JOIN food_items fi ON fi.id = ri.food_id
+            WHERE cm.id = %s
+            GROUP BY cm.id, cm.recipe_name
+            """,
+            (log_id, custom_meal_id)
+        )
+        row = cursor.fetchone()
+        if not row:
+            raise ValueError("Custom meal snapshot could not be created.")
+
+        total_quantity_g = float(row[1])
+        if total_quantity_g <= 0:
+            raise ValueError("Custom meal snapshot requires at least one ingredient.")
+
+        return {
+            "name": row[0],
+            "calories_100g": round(float(row[2]) / total_quantity_g * 100.0, 2),
+            "protein_100g": round(float(row[3]) / total_quantity_g * 100.0, 2),
+            "carbs_100g": round(float(row[4]) / total_quantity_g * 100.0, 2),
+            "fats_100g": round(float(row[5]) / total_quantity_g * 100.0, 2),
+        }
+
     def save(self) -> bool:
         """
         Saves the FoodLog entry to the PostgreSQL database 
@@ -59,10 +96,33 @@ class FoodLog:
         
         try:
             cursor = conn.cursor()
+            snapshot = None
+            if self.custom_meal_id is not None:
+                snapshot = self._build_custom_meal_snapshot(cursor, self.custom_meal_id, self.log_id)
+
             cursor.execute(
-                """INSERT INTO food_logs (log_id, food_id, custom_meal_id, quantity_g, meal_type, meal_time) 
-                   VALUES (%s, %s, %s, %s, %s, %s) RETURNING id""",
-                (self.log_id, self.food_id, self.custom_meal_id, self.quantity_g, self.meal_type, self.meal_time)
+                """
+                INSERT INTO food_logs (
+                    log_id, food_id, custom_meal_id, quantity_g, meal_type, meal_time,
+                    snapshot_name, snapshot_calories_100g, snapshot_protein_100g,
+                    snapshot_carbs_100g, snapshot_fats_100g
+                )
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                RETURNING id
+                """,
+                (
+                    self.log_id,
+                    self.food_id,
+                    self.custom_meal_id,
+                    self.quantity_g,
+                    self.meal_type,
+                    self.meal_time,
+                    snapshot["name"] if snapshot else None,
+                    snapshot["calories_100g"] if snapshot else None,
+                    snapshot["protein_100g"] if snapshot else None,
+                    snapshot["carbs_100g"] if snapshot else None,
+                    snapshot["fats_100g"] if snapshot else None,
+                )
             )
             # Retrieve the auto-generated primary key
             self.id = cursor.fetchone()[0]
@@ -70,6 +130,8 @@ class FoodLog:
             return True
         except Exception as e:
             print(f"Error saving food log: {e}")
+            if conn:
+                conn.rollback()
             return False
         finally:
             if conn:

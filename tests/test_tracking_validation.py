@@ -3,6 +3,7 @@ import inspect
 import io
 import unittest
 from contextlib import redirect_stdout
+from unittest.mock import patch
 
 from models.authentication import User
 from models.tracking import Activity, ActivityLog, CustomMeal, DailyLog, FoodItem, FoodLog, RecipeIngredient, WeightLog
@@ -98,6 +99,101 @@ class FoodLogValidationTests(unittest.TestCase):
         self.assertIsNone(catalog_entry.custom_meal_id)
         self.assertEqual(custom_entry.custom_meal_id, 1)
         self.assertIsNone(custom_entry.food_id)
+
+    def test_food_log_save_stores_snapshot_for_custom_meal(self):
+        class FakeCursor:
+            def __init__(self):
+                self.calls = []
+
+            def execute(self, query, params):
+                self.calls.append((query, params))
+
+            def fetchone(self):
+                last_query = self.calls[-1][0]
+                if "FROM custom_meals cm" in last_query:
+                    return ("Masa test", 250, 500, 25, 50, 12.5)
+                return (42,)
+
+        class FakeConnection:
+            def __init__(self):
+                self.cursor_instance = FakeCursor()
+                self.committed = False
+                self.closed = False
+
+            def cursor(self):
+                return self.cursor_instance
+
+            def commit(self):
+                self.committed = True
+
+            def rollback(self):
+                pass
+
+            def close(self):
+                self.closed = True
+
+        fake_conn = FakeConnection()
+        food_log = FoodLog(
+            log_id=7,
+            quantity_g=125,
+            meal_type=FoodLog.VALID_MEAL_TYPES[0],
+            meal_time=datetime.time(12, 0),
+            custom_meal_id=3,
+        )
+
+        with patch("models.tracking_models.food_log.get_connection", return_value=fake_conn):
+            self.assertTrue(food_log.save())
+
+        insert_query, insert_params = fake_conn.cursor_instance.calls[-1]
+        self.assertIn("snapshot_calories_100g", insert_query)
+        self.assertEqual(food_log.id, 42)
+        self.assertEqual(insert_params[0:6], (7, None, 3, 125, FoodLog.VALID_MEAL_TYPES[0], datetime.time(12, 0)))
+        self.assertEqual(insert_params[6:], ("Masa test", 200.0, 10.0, 20.0, 5.0))
+        self.assertTrue(fake_conn.committed)
+        self.assertTrue(fake_conn.closed)
+
+    def test_food_log_save_keeps_snapshot_empty_for_catalog_food(self):
+        class FakeCursor:
+            def __init__(self):
+                self.calls = []
+
+            def execute(self, query, params):
+                self.calls.append((query, params))
+
+            def fetchone(self):
+                return (43,)
+
+        class FakeConnection:
+            def __init__(self):
+                self.cursor_instance = FakeCursor()
+
+            def cursor(self):
+                return self.cursor_instance
+
+            def commit(self):
+                pass
+
+            def rollback(self):
+                pass
+
+            def close(self):
+                pass
+
+        fake_conn = FakeConnection()
+        food_log = FoodLog(
+            log_id=8,
+            quantity_g=100,
+            meal_type=FoodLog.VALID_MEAL_TYPES[0],
+            meal_time=datetime.time(13, 0),
+            food_id=5,
+        )
+
+        with patch("models.tracking_models.food_log.get_connection", return_value=fake_conn):
+            self.assertTrue(food_log.save())
+
+        self.assertEqual(len(fake_conn.cursor_instance.calls), 1)
+        _, insert_params = fake_conn.cursor_instance.calls[0]
+        self.assertEqual(insert_params[6:], (None, None, None, None, None))
 
 
 class ActivityLogValidationTests(unittest.TestCase):
@@ -516,6 +612,14 @@ class DailyLogCalculationTests(unittest.TestCase):
     def test_entry_fetchers_accept_user_scope(self):
         self.assertIn("user_id", inspect.signature(DailyLog.get_food_entries).parameters)
         self.assertIn("user_id", inspect.signature(DailyLog.get_activity_entries).parameters)
+
+    def test_daily_log_uses_custom_meal_snapshot_when_available(self):
+        recalculate_source = inspect.getsource(DailyLog.recalculate_totals)
+        entries_source = inspect.getsource(DailyLog.get_food_entries)
+
+        self.assertIn("fl.snapshot_calories_100g * fl.quantity_g / 100.0", recalculate_source)
+        self.assertIn("COALESCE(fl.snapshot_name, cm.recipe_name)", entries_source)
+        self.assertIn("fl.snapshot_calories_100g * fl.quantity_g / 100.0", entries_source)
 
     def test_energy_balance_is_calories_in_minus_burned(self):
         daily_log = DailyLog(

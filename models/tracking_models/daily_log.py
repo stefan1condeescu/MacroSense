@@ -201,12 +201,14 @@ class DailyLog:
                 )
                 SELECT COALESCE(SUM(
                     CASE
+                        WHEN fl.snapshot_calories_100g IS NOT NULL THEN
+                            fl.snapshot_calories_100g * fl.quantity_g / 100.0
                         WHEN mt.total_quantity_g > 0 THEN mt.total_calories * fl.quantity_g / mt.total_quantity_g
                         ELSE 0
                     END
                 ), 0)
                 FROM food_logs fl
-                JOIN meal_totals mt ON mt.meal_id = fl.custom_meal_id
+                LEFT JOIN meal_totals mt ON mt.meal_id = fl.custom_meal_id
                 WHERE fl.log_id = %s AND fl.custom_meal_id IS NOT NULL
                 """,
                 (self.id,)
@@ -364,10 +366,12 @@ class DailyLog:
                     SELECT
                         fl.id,
                         'Masă personalizată' AS "Tip",
-                        cm.recipe_name AS "Aliment / Masă",
+                        COALESCE(fl.snapshot_name, cm.recipe_name) AS "Aliment / Masă",
                         fl.quantity_g AS "Cantitate (g)",
                         ROUND(
                             CASE
+                                WHEN fl.snapshot_calories_100g IS NOT NULL THEN
+                                    fl.snapshot_calories_100g * fl.quantity_g / 100.0
                                 WHEN mt.total_quantity_g > 0 THEN mt.total_calories * fl.quantity_g / mt.total_quantity_g
                                 ELSE 0
                             END

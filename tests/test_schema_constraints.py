@@ -45,6 +45,16 @@ class SchemaConstraintTests(unittest.TestCase):
         self.assertIn("meal_time TIME NOT NULL", self.schema_sql)
         self.assertNotIn("meal_type IS NULL OR", self.schema_sql)
 
+    def test_food_logs_support_custom_meal_snapshots(self):
+        self.assertIn("snapshot_name VARCHAR(100)", self.schema_sql)
+        self.assertIn("snapshot_calories_100g DECIMAL(8,2)", self.schema_sql)
+        self.assertIn("snapshot_protein_100g DECIMAL(8,2)", self.schema_sql)
+        self.assertIn("snapshot_carbs_100g DECIMAL(8,2)", self.schema_sql)
+        self.assertIn("snapshot_fats_100g DECIMAL(8,2)", self.schema_sql)
+        self.assertIn("chk_food_log_snapshot_complete", self.schema_sql)
+        self.assertIn("chk_food_log_catalog_snapshot_null", self.schema_sql)
+        self.assertIn("chk_food_log_snapshot_nutrition", self.schema_sql)
+
     def test_food_and_recipe_quantities_have_supported_range(self):
         self.assertIn("chk_food_log_quantity_range", self.schema_sql)
         self.assertIn("chk_recipe_ingredient_quantity_range", self.schema_sql)
