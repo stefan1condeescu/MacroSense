@@ -8,7 +8,10 @@ class SchemaConstraintTests(unittest.TestCase):
 
     def test_activity_log_sets_reps_constraint_rejects_half_filled_pairs(self):
         self.assertIn("sets IS NULL AND reps IS NULL", self.schema_sql)
-        self.assertIn("sets IS NOT NULL AND reps IS NOT NULL AND sets > 0 AND reps > 0", self.schema_sql)
+        self.assertIn("sets IS NOT NULL", self.schema_sql)
+        self.assertIn("reps IS NOT NULL", self.schema_sql)
+        self.assertIn("sets BETWEEN 1 AND 50", self.schema_sql)
+        self.assertIn("reps BETWEEN 1 AND 200", self.schema_sql)
         self.assertIn("manual_calories_burned DECIMAL(8,2)", self.schema_sql)
         self.assertIn("chk_activity_log_manual_calories", self.schema_sql)
         self.assertIn("chk_activity_log_duration_range", self.schema_sql)
@@ -28,6 +31,8 @@ class SchemaConstraintTests(unittest.TestCase):
         self.assertIn("chk_user_full_name_no_html", self.schema_sql)
         self.assertIn("chk_user_full_name_chars", self.schema_sql)
         self.assertIn("chk_user_full_name_has_letter", self.schema_sql)
+        self.assertIn("chk_user_goal", self.schema_sql)
+        self.assertIn("goal IN ('Slabire', 'Mentinere', 'Crestere')", self.schema_sql)
 
     def test_activities_reject_html_like_names_at_schema_level(self):
         self.assertIn("chk_activity_name_no_html", self.schema_sql)
@@ -39,6 +44,7 @@ class SchemaConstraintTests(unittest.TestCase):
 
     def test_custom_meals_reject_html_like_names_at_schema_level(self):
         self.assertIn("chk_custom_meal_name_no_html", self.schema_sql)
+        self.assertIn("chk_custom_meal_name_starts_letter", self.schema_sql)
 
     def test_food_logs_require_meal_type_and_time(self):
         self.assertIn("meal_type VARCHAR(50) NOT NULL", self.schema_sql)
@@ -53,6 +59,8 @@ class SchemaConstraintTests(unittest.TestCase):
         self.assertIn("snapshot_fats_100g DECIMAL(8,2)", self.schema_sql)
         self.assertIn("chk_food_log_snapshot_complete", self.schema_sql)
         self.assertIn("chk_food_log_catalog_snapshot_null", self.schema_sql)
+        self.assertIn("chk_food_log_custom_meal_snapshot_required", self.schema_sql)
+        self.assertIn("custom_meal_id IS NULL OR", self.schema_sql)
         self.assertIn("chk_food_log_snapshot_nutrition", self.schema_sql)
 
     def test_food_and_recipe_quantities_have_supported_range(self):

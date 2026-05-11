@@ -1,7 +1,7 @@
 import html
 import pandas as pd
 import streamlit as st
-from models.tracking import CustomMeal, DailyLog, FoodItem
+from models.tracking import CustomMeal, FoodItem
 from ui.food_selection import build_food_selection_dataframe, build_food_selection_state_key, get_food_category_filter_options
 from ui.quantity_validation import quantity_range_help, validate_quantity_g
 from ui.tables import get_table_height
@@ -10,6 +10,16 @@ from ui.tables import get_table_height
 def escape_html_text(value) -> str:
     """Escapes user-controlled text before inserting it into custom HTML blocks."""
     return html.escape(str(value))
+
+
+def get_edit_quantity_widget_keys_to_reset(session_keys, meal_id) -> list[str]:
+    """Returns edit quantity widget keys that can be reset without rebuilding picker tables."""
+    quantity_prefix = f"custom_meal_edit_qty_{int(meal_id)}_"
+    add_quantity_key = f"custom_meal_edit_add_quantity_{int(meal_id)}"
+    return [
+        key for key in session_keys
+        if key.startswith(quantity_prefix) or key == add_quantity_key
+    ]
 
 
 def render_custom_meals_page() -> None:
@@ -28,10 +38,24 @@ def render_custom_meals_page() -> None:
         st.session_state["custom_meal_edit_row_counter"] = 0
     if "custom_meal_widget_version" not in st.session_state:
         st.session_state["custom_meal_widget_version"] = 0
+    if "custom_meal_name_widget_version" not in st.session_state:
+        st.session_state["custom_meal_name_widget_version"] = 0
     
     custom_meal_message = st.session_state.pop("custom_meal_msg", None)
+    reset_edit_quantity_meal_id = st.session_state.pop(
+        "custom_meal_reset_edit_quantity_widgets",
+        None
+    )
+    if reset_edit_quantity_meal_id is not None:
+        for key in get_edit_quantity_widget_keys_to_reset(
+            list(st.session_state.keys()),
+            reset_edit_quantity_meal_id
+        ):
+            del st.session_state[key]
+
     if st.session_state.pop("custom_meal_reset_widgets", False):
         st.session_state["custom_meal_widget_version"] += 1
+        st.session_state["custom_meal_name_widget_version"] += 1
         custom_meal_widget_keys = [
             key for key in st.session_state.keys()
             if key.startswith((
@@ -327,6 +351,7 @@ def render_custom_meals_page() -> None:
         }
         custom_meal_ids = list(custom_meal_options.keys())
         custom_meal_widget_version = st.session_state["custom_meal_widget_version"]
+        custom_meal_name_widget_version = st.session_state["custom_meal_name_widget_version"]
     
         with st.container(border=True):
             st.markdown("#### Arhivă mese personalizate")
@@ -340,7 +365,7 @@ def render_custom_meals_page() -> None:
                         "Masă activă",
                         options=active_meal_ids,
                         format_func=lambda meal_id: active_meal_options[meal_id]["recipe_name"],
-                        key=f"custom_meal_archive_select_{custom_meal_widget_version}"
+                        key=f"custom_meal_archive_select_{custom_meal_name_widget_version}"
                     )
                     if st.button("Arhivează masa", width="stretch", key="btn_archive_custom_meal", type="tertiary"):
                         if CustomMeal.archive(selected_archive_meal_id, user_id):
@@ -363,7 +388,7 @@ def render_custom_meals_page() -> None:
                         "Masă arhivată",
                         options=archived_meal_ids,
                         format_func=lambda meal_id: archived_meal_options[meal_id]["recipe_name"],
-                        key=f"custom_meal_restore_select_{custom_meal_widget_version}"
+                        key=f"custom_meal_restore_select_{custom_meal_name_widget_version}"
                     )
                     if st.button("Reactivează masa", width="stretch", key="btn_restore_custom_meal", type="primary"):
                         if CustomMeal.restore(selected_restore_meal_id, user_id):
@@ -378,7 +403,7 @@ def render_custom_meals_page() -> None:
                 else:
                     st.info("Nu ai mese arhivate.")
     
-        details_select_key = f"custom_meal_details_select_{custom_meal_widget_version}"
+        details_select_key = f"custom_meal_details_select_{custom_meal_name_widget_version}"
         saved_details_meal_id = st.session_state.get("custom_meal_details_selected_id")
         if saved_details_meal_id not in custom_meal_ids:
             st.session_state.pop("custom_meal_details_selected_id", None)
@@ -401,7 +426,7 @@ def render_custom_meals_page() -> None:
     
         st.divider()
         st.subheader("✏️ Editează o masă personalizată")
-        edit_select_key = f"custom_meal_edit_select_{custom_meal_widget_version}"
+        edit_select_key = f"custom_meal_edit_select_{custom_meal_name_widget_version}"
         saved_edit_meal_id = st.session_state.get("custom_meal_edit_selected_id")
         if saved_edit_meal_id not in custom_meal_ids:
             st.session_state.pop("custom_meal_edit_selected_id", None)
@@ -419,7 +444,7 @@ def render_custom_meals_page() -> None:
         if st.session_state.get("custom_meal_edit_loaded_id") != int(selected_edit_meal_id):
             load_custom_meal_edit_state(selected_edit_meal_id, custom_meal_options)
     
-        edit_name_key = f"custom_meal_edit_name_{selected_edit_meal_id}_{custom_meal_widget_version}"
+        edit_name_key = f"custom_meal_edit_name_{selected_edit_meal_id}_{custom_meal_name_widget_version}"
         edited_recipe_name = st.text_input(
             "Denumire nouă masă",
             value=custom_meal_options[selected_edit_meal_id]["recipe_name"],
@@ -585,7 +610,6 @@ def render_custom_meals_page() -> None:
                         st.error(quantity_error)
                         return
 
-                affected_log_ids = CustomMeal.get_affected_daily_log_ids(selected_edit_meal_id, user_id)
                 updated_meal = CustomMeal.update_with_ingredients(
                     meal_id=selected_edit_meal_id,
                     user_id=user_id,
@@ -593,20 +617,14 @@ def render_custom_meals_page() -> None:
                     ingredients=edit_ingredients
                 )
                 if updated_meal:
-                    recalculated_logs = 0
-                    for log_id in affected_log_ids:
-                        affected_daily_log = DailyLog.get_by_id(log_id, user_id)
-                        if affected_daily_log and affected_daily_log.recalculate_totals():
-                            recalculated_logs += 1
-    
-                    st.session_state["custom_meal_details_selected_id"] = int(selected_edit_meal_id)
                     st.session_state["custom_meal_edit_selected_id"] = int(selected_edit_meal_id)
                     st.session_state["custom_meal_edit_loaded_id"] = None
                     st.session_state["custom_meal_msg"] = (
                         "success",
-                        f"Masa personalizată „{edited_recipe_name.strip()}” a fost actualizată. Jurnale recalculate: {recalculated_logs}."
+                        f"Masa personalizată „{edited_recipe_name.strip()}” a fost actualizată. Intrările deja salvate în jurnal rămân neschimbate."
                     )
-                    st.session_state["custom_meal_reset_widgets"] = True
+                    st.session_state["custom_meal_name_widget_version"] += 1
+                    st.session_state["custom_meal_reset_edit_quantity_widgets"] = int(selected_edit_meal_id)
                     st.rerun()
                 else:
                     st.error("Eroare la actualizarea mesei personalizate.")

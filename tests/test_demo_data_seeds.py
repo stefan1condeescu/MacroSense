@@ -2,6 +2,9 @@ import re
 import unittest
 from pathlib import Path
 
+from models.profile_constants import USER_GOALS
+from ui.catalog_constants import ACTIVITY_CATEGORIES, FOOD_CATEGORIES
+
 
 class FoodCatalogSeedTests(unittest.TestCase):
     def setUp(self):
@@ -16,28 +19,14 @@ class FoodCatalogSeedTests(unittest.TestCase):
         self.assertIn("ON CONFLICT ON CONSTRAINT uq_food_source_external DO NOTHING", self.food_seed)
 
     def test_food_seed_covers_macro_categories(self):
-        expected_categories = [
-            "Fructe",
-            "Legume",
-            "Carne",
-            "Pește",
-            "Ouă",
-            "Lactate",
-            "Cereale",
-            "Pâine & Panificație",
-            "Paste & Orez",
-            "Leguminoase",
-            "Nuci & Semințe",
-            "Uleiuri & Grăsimi",
-            "Mezeluri",
-            "Dulciuri",
-            "Gustări",
-            "Băuturi & Sucuri",
-            "Alcoolice",
-            "Condimente & Sosuri",
-        ]
+        expected_categories = [category for category in FOOD_CATEGORIES if category != "Altele"]
         for category in expected_categories:
             self.assertIn(f"'{category}'", self.food_seed)
+
+    def test_food_seed_categories_match_ui_categories(self):
+        seed_categories = set(re.findall(r",\s*'([^']+)'\s*,\s*'USDA'", self.food_seed))
+        self.assertTrue(seed_categories)
+        self.assertTrue(seed_categories.issubset(set(FOOD_CATEGORIES)))
 
     def test_food_seed_does_not_contain_negative_nutrition_values(self):
         self.assertNotRegex(self.food_seed, r"^\s*-[0-9]+\.[0-9]+,", msg="Food seed contains negative nutrition values.")
@@ -67,6 +56,15 @@ class DemoUserSeedTests(unittest.TestCase):
             self.assertIn(email, self.demo_seed)
         self.assertEqual(self.count_inserts("users"), 5)
 
+    def test_demo_seed_uses_supported_user_goals(self):
+        user_rows = re.findall(r"INSERT INTO users .*? VALUES \((.*?)\);", self.demo_seed)
+        seed_goals = {
+            row.rsplit(",", 1)[-1].strip().strip("'")
+            for row in user_rows
+        }
+        self.assertTrue(seed_goals)
+        self.assertTrue(seed_goals.issubset(set(USER_GOALS)))
+
     def test_demo_seed_has_enough_history_for_dashboard_and_ml(self):
         self.assertGreaterEqual(self.count_inserts("daily_logs"), 200)
         self.assertGreaterEqual(self.count_inserts("weight_logs"), 40)
@@ -79,6 +77,21 @@ class DemoUserSeedTests(unittest.TestCase):
         self.assertIn("snapshot_calories_100g", self.demo_seed)
         self.assertIn("Bol proteic demo", self.demo_seed)
         self.assertIn("Pui cu orez demo", self.demo_seed)
+
+
+class ActivityCatalogSeedTests(unittest.TestCase):
+    def setUp(self):
+        self.activity_seeds = "\n".join([
+            Path("database/seeds/seed_activities_compendium_official.sql").read_text(encoding="utf-8"),
+            Path("database/seeds/seed_activities_macrosense_mappings.sql").read_text(encoding="utf-8"),
+        ])
+
+    def test_activity_seed_categories_match_ui_categories(self):
+        seed_categories = set(
+            re.findall(r",\s*'([^']+)'\s*,\s*'(?:Compendium|MacroSense)'", self.activity_seeds)
+        )
+        self.assertTrue(seed_categories)
+        self.assertTrue(seed_categories.issubset(set(ACTIVITY_CATEGORIES)))
 
 
 if __name__ == "__main__":

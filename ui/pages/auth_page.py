@@ -20,6 +20,7 @@ def get_registration_error_message(error_code: str) -> str:
             f"{User.MIN_AGE} și {User.MAX_AGE} ani."
         ),
         "invalid_gender": "Sexul selectat nu este valid.",
+        "invalid_goal": "Obiectivul selectat nu este valid.",
         "invalid_initial_weight": "Greutatea inițială nu este validă.",
         "initial_weight_out_of_range": (
             "Greutatea trebuie să fie între "
@@ -70,7 +71,7 @@ def render_auth_page() -> None:
                 )
             with col2:
                 gender = st.selectbox("Sex", ["M", "F"])
-                goal = st.selectbox("Obiectiv", ["slăbire", "menținere", "creștere"])
+                goal = st.selectbox("Obiectiv", list(User.VALID_GOALS))
             submit_register = st.form_submit_button("Înregistrează-te", width="stretch", type="primary")
     
         if submit_register:
@@ -95,6 +96,8 @@ def render_auth_page() -> None:
                 )
             elif not User.MIN_AGE <= int(age) <= User.MAX_AGE:
                 st.error(get_registration_error_message("invalid_age"))
+            elif goal not in User.VALID_GOALS:
+                st.error(get_registration_error_message("invalid_goal"))
             else:
                 new_user = User(cleaned_email, cleaned_full_name, height, age, gender, goal)
                 if new_user.register(password, weight):

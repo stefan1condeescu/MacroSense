@@ -238,6 +238,12 @@ class ActivityLogValidationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             ActivityLog(log_id=1, activity_id=1, duration_min=30, sets=0, reps=10)
 
+        with self.assertRaises(ValueError):
+            ActivityLog(log_id=1, activity_id=1, duration_min=30, sets=51, reps=10)
+
+        with self.assertRaises(ValueError):
+            ActivityLog(log_id=1, activity_id=1, duration_min=30, sets=3, reps=201)
+
     def test_activity_log_validates_optional_manual_calories(self):
         valid_log = ActivityLog(
             log_id=1,
@@ -359,6 +365,14 @@ class CustomMealValidationTests(unittest.TestCase):
     def test_custom_meal_exposes_archive_statuses(self):
         self.assertNotEqual(CustomMeal.ACTIVE_STATUS, CustomMeal.ARCHIVED_STATUS)
 
+    def test_custom_meal_update_does_not_touch_historical_food_logs(self):
+        update_source = inspect.getsource(CustomMeal.update_with_ingredients)
+
+        self.assertIn("UPDATE custom_meals", update_source)
+        self.assertIn("DELETE FROM recipe_ingredients", update_source)
+        self.assertNotIn("_backfill_missing_food_log_snapshots", update_source)
+        self.assertFalse(hasattr(CustomMeal, "_backfill_missing_food_log_snapshots"))
+
 
 class RecipeIngredientValidationTests(unittest.TestCase):
     def test_recipe_ingredient_requires_positive_quantity(self):
@@ -470,7 +484,7 @@ class UserRegistrationValidationTests(unittest.TestCase):
             height_cm=180,
             age=30,
             gender="M",
-            goal="menținere",
+            goal="Mentinere",
         )
 
         self.assertEqual(user.email, "TEST.USER@EXAMPLE.COM")
@@ -483,7 +497,7 @@ class UserRegistrationValidationTests(unittest.TestCase):
             height_cm=180,
             age=24,
             gender="M",
-            goal="menținere",
+            goal="Mentinere",
         )
 
         with redirect_stdout(io.StringIO()):
@@ -499,7 +513,7 @@ class UserRegistrationValidationTests(unittest.TestCase):
             height_cm=180,
             age=24,
             gender="M",
-            goal="menținere",
+            goal="Mentinere",
         )
 
         with redirect_stdout(io.StringIO()):
@@ -513,7 +527,7 @@ class UserRegistrationValidationTests(unittest.TestCase):
             height_cm=180,
             age=24,
             gender="M",
-            goal="menținere",
+            goal="Mentinere",
         )
 
         with redirect_stdout(io.StringIO()):
@@ -527,7 +541,7 @@ class UserRegistrationValidationTests(unittest.TestCase):
             height_cm=180,
             age=24,
             gender="M",
-            goal="menținere",
+            goal="Mentinere",
         )
 
         with redirect_stdout(io.StringIO()):
@@ -541,7 +555,7 @@ class UserRegistrationValidationTests(unittest.TestCase):
             height_cm=90,
             age=24,
             gender="M",
-            goal="menținere",
+            goal="Mentinere",
         )
 
         with redirect_stdout(io.StringIO()):
@@ -555,7 +569,7 @@ class UserRegistrationValidationTests(unittest.TestCase):
             height_cm=180,
             age=9,
             gender="M",
-            goal="menținere",
+            goal="Mentinere",
         )
 
         with redirect_stdout(io.StringIO()):
@@ -569,12 +583,26 @@ class UserRegistrationValidationTests(unittest.TestCase):
             height_cm=180,
             age=24,
             gender="X",
-            goal="menținere",
+            goal="Mentinere",
         )
 
         with redirect_stdout(io.StringIO()):
             self.assertFalse(user.register("test123", 75))
             self.assertEqual(user.last_error_code, "invalid_gender")
+
+    def test_user_register_rejects_invalid_goal_before_db(self):
+        user = User(
+            email="invalid.goal@example.com",
+            full_name="Invalid Goal",
+            height_cm=180,
+            age=24,
+            gender="M",
+            goal="Performanta",
+        )
+
+        with redirect_stdout(io.StringIO()):
+            self.assertFalse(user.register("test123", 75))
+            self.assertEqual(user.last_error_code, "invalid_goal")
 
     def test_user_registration_maps_database_errors_to_stable_codes(self):
         class FakeDiag:
@@ -603,6 +631,10 @@ class UserRegistrationValidationTests(unittest.TestCase):
             "invalid_full_name",
         )
         self.assertEqual(
+            User._map_registration_error(FakeDatabaseError("23514", "chk_user_goal")),
+            "invalid_goal",
+        )
+        self.assertEqual(
             User._map_registration_error(FakeDatabaseError("23514", "chk_weight_range")),
             "initial_weight_out_of_range",
         )
@@ -618,8 +650,10 @@ class DailyLogCalculationTests(unittest.TestCase):
         entries_source = inspect.getsource(DailyLog.get_food_entries)
 
         self.assertIn("fl.snapshot_calories_100g * fl.quantity_g / 100.0", recalculate_source)
-        self.assertIn("COALESCE(fl.snapshot_name, cm.recipe_name)", entries_source)
+        self.assertNotIn("meal_totals", recalculate_source)
+        self.assertIn('fl.snapshot_name AS "Aliment / Masă"', entries_source)
         self.assertIn("fl.snapshot_calories_100g * fl.quantity_g / 100.0", entries_source)
+        self.assertNotIn("COALESCE(fl.snapshot_name, cm.recipe_name)", entries_source)
 
     def test_energy_balance_is_calories_in_minus_burned(self):
         daily_log = DailyLog(
