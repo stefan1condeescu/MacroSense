@@ -14,9 +14,9 @@ DELETE FROM users WHERE email IN (
 );
 
 INSERT INTO users (email, password_hash, registration_date, full_name, height_cm, age, gender, goal) VALUES ('demo.slabire@test.com', encode(sha256('test123'::bytea), 'hex'), DATE '2026-02-06', 'Ana Demo', 168, 29, 'F', 'Slabire');
-INSERT INTO users (email, password_hash, registration_date, full_name, height_cm, age, gender, goal) VALUES ('demo.masa@test.com', encode(sha256('test123'::bytea), 'hex'), DATE '2026-03-08', 'Mihai Demo', 181, 25, 'M', 'Masa musculara');
+INSERT INTO users (email, password_hash, registration_date, full_name, height_cm, age, gender, goal) VALUES ('demo.masa@test.com', encode(sha256('test123'::bytea), 'hex'), DATE '2026-03-08', 'Mihai Demo', 181, 25, 'M', 'Crestere');
 INSERT INTO users (email, password_hash, registration_date, full_name, height_cm, age, gender, goal) VALUES ('demo.mentinere@test.com', encode(sha256('test123'::bytea), 'hex'), DATE '2026-03-23', 'Ioana Demo', 165, 34, 'F', 'Mentinere');
-INSERT INTO users (email, password_hash, registration_date, full_name, height_cm, age, gender, goal) VALUES ('demo.activ@test.com', encode(sha256('test123'::bytea), 'hex'), DATE '2026-04-07', 'Andrei Demo', 178, 31, 'M', 'Performanta');
+INSERT INTO users (email, password_hash, registration_date, full_name, height_cm, age, gender, goal) VALUES ('demo.activ@test.com', encode(sha256('test123'::bytea), 'hex'), DATE '2026-04-07', 'Andrei Demo', 178, 31, 'M', 'Mentinere');
 INSERT INTO users (email, password_hash, registration_date, full_name, height_cm, age, gender, goal) VALUES ('demo.rar@test.com', encode(sha256('test123'::bytea), 'hex'), DATE '2026-04-13', 'Radu Demo', 175, 40, 'M', 'Slabire');
 
 INSERT INTO custom_meals (user_id, recipe_name, status) VALUES ((SELECT id FROM users WHERE email = 'demo.slabire@test.com'), 'Bol proteic demo', 'Salvată');

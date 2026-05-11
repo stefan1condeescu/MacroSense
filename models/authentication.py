@@ -1,5 +1,6 @@
 import hashlib
 from database import get_connection
+from models.profile_constants import USER_GOALS
 from models.text_validation import has_obvious_html_chars, is_valid_person_name
 from models.tracking_models.weight_log import WeightLog
 
@@ -82,6 +83,7 @@ class User(UserAccount):
     MIN_AGE = 10
     MAX_AGE = 120
     VALID_GENDERS = ("M", "F")
+    VALID_GOALS = USER_GOALS
 
     def __init__(self, email: str, full_name: str = None, height_cm: float = None, age: int = None, gender: str = None, goal: str = None, password_hash: str = None):
         super().__init__(email, password_hash)
@@ -90,7 +92,7 @@ class User(UserAccount):
         self.height_cm = height_cm
         self.age = age
         self.gender = gender
-        self.goal = goal
+        self.goal = goal.strip() if goal else goal
         self.last_error_code = None
 
     def authenticate(self, plain_password: str) -> bool:
@@ -196,6 +198,11 @@ class User(UserAccount):
             self.last_error_code = "invalid_gender"
             return False
 
+        if self.goal not in self.VALID_GOALS:
+            print("Registration blocked: Invalid goal.")
+            self.last_error_code = "invalid_goal"
+            return False
+
         self.height_cm = height_value
         self.age = int(age_numeric)
 
@@ -260,6 +267,8 @@ class User(UserAccount):
                 return "invalid_age"
             if constraint_name == "chk_user_gender":
                 return "invalid_gender"
+            if constraint_name == "chk_user_goal":
+                return "invalid_goal"
             if constraint_name == "chk_weight_range":
                 return "initial_weight_out_of_range"
             return "invalid_profile_data"

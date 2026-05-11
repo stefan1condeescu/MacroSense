@@ -43,7 +43,7 @@
 - [x] Stabilizare UI/UX pentru editare/ștergere în „Jurnal Alimentar”: panouri izolate cu `st.fragment()`, mesaje prin `st.toast()` și eliminarea flicker-ului produs de placeholder-ele de tabel.
 - [x] Implementare editare/ștergere intrare din „Jurnal Activități”: `ActivityLog.update()` și `ActivityLog.delete()` verifică apartenența la utilizator și recalculează automat totalurile zilnice după fiecare operație.
 - [x] Stabilizare UI/UX pentru „Jurnal Activități”: panouri reactive izolate cu `st.fragment()`, selectbox-uri bazate pe ID intern și mesaje de confirmare prin `st.toast()`.
-- [x] Implementare editare „Mese Personalizate”: `CustomMeal.update_with_ingredients()` actualizează atomic denumirea și ingredientele, iar jurnalele alimentare care folosesc masa sunt recalculate după salvare.
+- [x] Implementare editare „Mese Personalizate”: `CustomMeal.update_with_ingredients()` actualizează atomic denumirea și ingredientele, fără să recalculeze intrările istorice deja salvate în Jurnal Alimentar.
 - [x] Extindere UI „Mese Personalizate”: panou de editare cu modificare denumire, adăugare/eliminare ingrediente, ajustare cantități și preview recalculat pentru calorii/macronutrienți.
 - [x] Polish UI „Mese Personalizate”: CSS mutat în `assets/style.css`, listă de mese afișată ca rânduri/carduri compacte și tabele de ingrediente compactate cu `column_config`.
 - [x] Polish UI global: tabelele din Admin, Jurnal Alimentar, Jurnal Activități și Cataloage folosesc randare compactă unitară, iar butoanele de salvare/ștergere au culori sugestive.
@@ -89,15 +89,21 @@
 - [x] Hardening validări text persistente: alimentele și activitățile trebuie să aibă denumiri cu cel puțin o literă, iar numele complet al utilizatorului acceptă doar litere, spații, cratimă și apostrof; regulile sunt aplicate în UI, modele și `schema.sql`.
 - [x] Polish liste zilnice: intrările din Jurnal Alimentar, Jurnal Activități și Jurnal Greutate sunt afișate ca rânduri/carduri compacte, mai vizibile decât tabelele brute, fără schimbarea logicii de salvare/editare/ștergere.
 - [x] Stabilizare istoric „Mese Personalizate”: `food_logs` salvează snapshot nutrițional per 100g pentru mesele personalizate logate, iar `DailyLog.recalculate_totals()` și afișarea jurnalului folosesc snapshot-ul pentru ca editarea unei rețete să afecteze doar folosirile viitoare.
+- [x] Hardening snapshot „Mese Personalizate”: `schema.sql` cere snapshot complet pentru orice intrare cu masă personalizată, editarea unei rețete nu recalculează istoricul deja salvat, iar UI-ul nu mai afișează mesaje tehnice despre jurnale recalculate.
 - [x] Demo Data Foundation: adăugare `database/seeds/seed_demo_users.sql` cu 5 utilizatori demo sintetici, parole documentate pentru testare, istoric de greutate pe perioade diferite, jurnale alimentare, activități estimate/manuale și mese personalizate cu snapshot.
+- [x] Dashboard v1 + strat Analytics: adăugare `services/analytics` cu formule pure pentru BMI/BMR/TDEE estimat, agregări read-only pentru dashboard, carduri de sumar și grafice pentru greutate, calorii consumate vs TDEE, balanță estimată, macronutrienți și activitate fizică. Dashboard-ul nu creează `daily_logs` și tratează zilele fără alimente ca date lipsă, nu ca 0 kcal consumate.
+- [x] Dashboard v1.1 hardening: greutatea de referință are metadate explicite (sursă, imputare, fallback din viitor, distanță în zile), există helper past-only pentru viitorul ML, consistența este separată pe alimente/antrenamente/greutate/general, iar sumarul include proteină medie per kg corp. Cardurile dashboard au fost înlocuite cu layout HTML/CSS local mai lizibil, fără etichete trunchiate cu `...`.
+- [x] Aliniere validări UI/model/DB: obiectivele utilizatorilor sunt standardizate la `Slabire`, `Mentinere`, `Crestere`, numele meselor personalizate trebuie să înceapă cu literă și în `schema.sql`, iar seturile/repetările din Jurnal Activități au aceleași limite în UI, model și DB.
+- [x] Centralizare categorii catalog: categoriile locale MacroSense pentru alimente și activități au fost mutate în `ui/catalog_constants.py`, iar testele verifică faptul că seed-urile nu introduc categorii inexistente în UI.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Testare manuală UI pentru Demo Data Foundation: rulare seed-uri în ordinea corectă → login pe utilizatorii demo → verificare Jurnal Alimentar, Jurnal Activități, Jurnal Greutate, Mese Personalizate și pregătire pentru Dashboard v1.
+- [ ] Testare manuală Dashboard v1.1 pe utilizatorii demo: verificare intervale 7/30/90 zile, grafice, carduri de sumar, consistențe separate, greutate de referință imputată/fallback și diferența dintre calorii arse prin activități și TDEE estimat.
 
 ## 🔴 Ce urmează (Backlog):
+- [ ] Feature engineering extins pentru ML, reutilizând `services/analytics`.
 - [ ] Modulul de Machine Learning — predicția greutății.
 - [ ] Recomandări personalizate de mese.
 - [ ] Recomandări personalizate de antrenamente.
 - [ ] Simulator What-if (scenarii calorice).
-- [ ] Dashboard și generare grafice pentru progres.
+- [ ] Dashboard v2 cu predicții/recomandări ML integrate.
 - [ ] Sincronizare documentație licență/diagrame după finalizarea funcționalităților principale.

@@ -9,6 +9,10 @@ class ActivityLog:
     MAX_MANUAL_CALORIES_BURNED = 5000.0
     MIN_DURATION_MINUTES = 0.1
     MAX_DURATION_MINUTES = 600.0
+    MIN_SETS = 1
+    MAX_SETS = 50
+    MIN_REPS = 1
+    MAX_REPS = 200
 
     def __init__(
         self,
@@ -51,13 +55,28 @@ class ActivityLog:
         if duration_value > cls.MAX_DURATION_MINUTES:
             raise ValueError("Duration is above the supported maximum.")
 
-    @staticmethod
-    def validate_sets_and_reps(sets: int = None, reps: int = None) -> None:
+    @classmethod
+    def validate_sets_and_reps(cls, sets: int = None, reps: int = None) -> None:
         """Validates optional strength-training details consistently for save and update flows."""
         if (sets is None) != (reps is None):
             raise ValueError("Sets and reps must be provided together.")
-        if sets is not None and (sets <= 0 or reps <= 0):
+        if sets is None and reps is None:
+            return
+
+        try:
+            sets_value = int(sets)
+            reps_value = int(reps)
+        except (TypeError, ValueError):
+            raise ValueError("Sets and reps must be valid integers.") from None
+
+        if sets_value != sets or reps_value != reps:
+            raise ValueError("Sets and reps must be whole numbers.")
+        if sets_value <= 0 or reps_value <= 0:
             raise ValueError("Sets and reps must be strictly positive when provided.")
+        if not cls.MIN_SETS <= sets_value <= cls.MAX_SETS:
+            raise ValueError("Sets are outside the supported range.")
+        if not cls.MIN_REPS <= reps_value <= cls.MAX_REPS:
+            raise ValueError("Reps are outside the supported range.")
 
     @classmethod
     def validate_manual_calories(cls, manual_calories_burned: float = None) -> None:

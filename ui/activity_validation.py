@@ -1,9 +1,12 @@
-MIN_DURATION_MINUTES = 0.1
-MAX_DURATION_MINUTES = 600.0
-MIN_SETS = 1
-MAX_SETS = 50
-MIN_REPS = 1
-MAX_REPS = 200
+from models.tracking import ActivityLog
+
+
+MIN_DURATION_MINUTES = ActivityLog.MIN_DURATION_MINUTES
+MAX_DURATION_MINUTES = ActivityLog.MAX_DURATION_MINUTES
+MIN_SETS = ActivityLog.MIN_SETS
+MAX_SETS = ActivityLog.MAX_SETS
+MIN_REPS = ActivityLog.MIN_REPS
+MAX_REPS = ActivityLog.MAX_REPS
 
 
 def validate_duration_minutes(duration, field_label: str = "Durata") -> str | None:

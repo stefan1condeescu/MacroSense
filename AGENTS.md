@@ -7,6 +7,8 @@
   - app.py — entrypoint Streamlit: configurează aplicația și rutează pe roluri
   - assets/style.css — stiluri CSS locale pentru polish UI
   - ui/config.py — configurare Streamlit și încărcare CSS local
+  - ui/catalog_constants.py — categoriile locale MacroSense folosite în
+    Admin UI și în testele de seed
   - ui/activity_selection.py — helper-e comune pentru selecție activități cu
     search fără diacritice, filtru categorie și afișare sursă/metodă MET
   - ui/activity_validation.py — validare comună pentru durată, seturi și
@@ -27,8 +29,14 @@
     - activity_journal_page.py — Jurnal Activități
     - custom_meals_page.py — Mese Personalizate
     - user_catalog_pages.py — cataloage vizibile utilizatorului
-  - services/ — integrări externe controlate:
+  - services/ — integrări externe controlate și analytics:
     - usda_food_data.py — client USDA FoodData Central pentru import alimente
+    - analytics/energy.py — formule pure pentru BMI, BMR, TDEE estimat și
+      balanță calorică estimată
+    - analytics/dashboard_data.py — agregări read-only pentru Dashboard v1,
+      fără creare de `daily_logs`
+  - models/profile_constants.py — valorile canonice pentru câmpurile de profil
+    persistate, inclusiv `USER_GOALS`
   - models/text_validation.py — helper-e comune pentru validarea textelor persistente
   - models/tracking.py — fațadă de compatibilitate care re-exportă clasele din pachetul tracking
   - models/tracking_models/ — pachet domeniu Tracking, separat pe clase:
@@ -86,7 +94,8 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   în `food_logs`, iar `update()` păstrează snapshot-ul existent)
 - ActivityLog: save(), update(), delete()
   (`sets` și `reps` trebuie validate împreună și la constructor, nu doar la
-  update/UI; fie sunt ambele nule, fie ambele valori sunt pozitive;
+  update/UI; fie sunt ambele nule, fie respectă intervalele 1-50 seturi și
+  1-200 repetări;
   `duration_min` trebuie să rămână în intervalul 0.1-600 minute;
   `manual_calories_burned` este opțional și, când există, înlocuiește formula
   MET/TUT pentru acea înregistrare)
@@ -97,6 +106,8 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   calculate_total_macros, calculateTotalMacros,
   get_user_meal_options(include_archived=False), get_affected_daily_log_ids,
   get_all_as_dataframe, get_ingredients, get_ingredients_as_dataframe
+  (`update_with_ingredients()` modifică doar rețeta curentă; nu completează
+  snapshot-uri istorice și nu recalculează jurnalele deja salvate)
 - WeightLog: save(), update(), delete(), get_user_entries(),
   get_reference_for_user(), get_latest_for_user(),
   get_activity_day_weight_references(), get_changed_reference_ids(),
@@ -106,6 +117,8 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   cu snapshot anterior recalculează doar zilele unde referința de greutate s-a
   schimbat efectiv)
 - User: register(password, weight), authenticate(password)
+  (`goal` trebuie să fie una dintre valorile canonice fără diacritice:
+  `Slabire`, `Mentinere`, `Crestere`, definite în `models.profile_constants`)
 - Admin: authenticate(password)
 - FoodItem, Activity: save(), get_all_as_dataframe(), get_catalog_options()
 - FoodItem: external_reference_exists()
@@ -151,6 +164,22 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   raportate de ceas/aparat cardio; această valoare se salvează în
   `activity_logs.manual_calories_burned` și înlocuiește estimarea MET/TUT doar
   pentru înregistrarea respectivă.
+- Dashboard-ul `Acasă` este read-only și consumă `services.analytics`; nu
+  folosește `DailyLog.get_or_create()` și nu creează/modifică date. În
+  dashboard, `daily_logs.total_calories_burned` se interpretează ca total
+  calorii arse prin activități logate, iar TDEE-ul estimat este derivat prin
+  `BMR * 1.2 + activity_calories_burned`.
+- Dashboard-ul tratează zilele fără alimente ca zile cu date lipsă, nu ca zile
+  cu 0 kcal consumate; balanța calorică estimată se calculează doar pentru zile
+  cu alimentație logată.
+- Dashboard-ul păstrează metadate pentru greutatea de referință zilnică:
+  data sursă, dacă valoarea este imputată, dacă folosește fallback din viitor
+  și distanța în zile. Fallback-ul din viitor este permis doar pentru afișare
+  read-only în dashboard; dataset-urile ML trebuie să folosească doar referințe
+  din trecut pentru a evita data leakage.
+- Dashboard-ul raportează separat consistența alimentelor, activităților,
+  greutății și consistența generală; aceste valori devin baza pentru feature
+  engineering și nu trebuie recombinate implicit în ML fără justificare.
 - În Jurnal Activități, alegerea activității din catalog nu folosește selectbox
   pentru liste mari; se face prin căutare, filtru de categorie și tabel
   selectabil, păstrând ID-ul activității doar intern.
@@ -219,6 +248,8 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   demo sintetici, cu istoric de greutate, jurnale alimentare, jurnale de
   activități și mese personalizate. Se rulează ultimul, după seed-urile de
   alimente și activități.
+  Obiectivele demo trebuie să folosească strict valorile canonice
+  `Slabire`, `Mentinere`, `Crestere`.
 - Importul USDA folosește cheia `FDC_API_KEY` din `.streamlit/secrets.toml`
   sau din variabilele de mediu; cheia nu se comite niciodată în Git.
 - Pentru importul de alimente sunt permise inițial doar sursele USDA
@@ -236,6 +267,9 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - Categoriile alimentare sunt categorii locale MacroSense, nu categoriile brute
   USDA; la importul USDA aplicația poate sugera automat categoria, iar Adminul
   o poate ajusta înainte de salvare.
+- Categoriile locale de alimente și activități se definesc în
+  `ui.catalog_constants`; seed-urile trebuie verificate prin teste să nu
+  introducă categorii care nu există în UI.
 - Căutarea USDA din Admin trebuie explicată ca fiind în engleză și trebuie să
   filtreze rezultatele irelevante prin potrivirea termenilor căutați în
   descrierea USDA, pentru a evita rezultate de tip `cream of potato` la
@@ -249,19 +283,24 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - Mesele personalizate salvate în Jurnal Alimentar păstrează snapshot
   nutrițional per înregistrare în `food_logs`, astfel încât editarea unei
   rețete afectează doar folosirile viitoare, nu istoricul deja logat.
+- Pentru intrările cu `custom_meal_id`, snapshot-ul nutrițional este
+  obligatoriu la nivel de DB; aplicația nu menține fluxuri de compatibilitate
+  pentru intrări incomplete fără snapshot.
 - `schema.sql` trebuie să păstreze constrângeri explicite pentru intervale și
   integritate de bază: email normalizat, valori nutriționale nenegative,
   calorii pozitive și cel puțin un macronutrient pozitiv pentru alimente,
   categorie aliment nenulă, denumiri de catalog cu cel puțin o literă, blocare
   caractere HTML evidente în câmpurile text persistente, nume complet fără
-  caractere speciale arbitrare, greutate 30-300 kg, MET minim 0.9, durată antrenament pozitivă
-  în intervalul 0.1-600 minute și pereche validă `sets`/`reps`, calorii manuale
-  antrenament 1-5000 kcal când sunt completate, cantități alimentare/ingrediente
-  1-5000g, plus tip/oră de masă obligatorii pentru înregistrările alimentare.
+  caractere speciale arbitrare, obiectiv utilizator în lista
+  `Slabire`/`Mentinere`/`Crestere`, greutate 30-300 kg, MET minim 0.9,
+  durată antrenament pozitivă în intervalul 0.1-600 minute, pereche validă
+  `sets`/`reps` cu 1-50 seturi și 1-200 repetări, calorii manuale antrenament
+  1-5000 kcal când sunt completate, cantități alimentare/ingrediente 1-5000g,
+  plus tip/oră de masă obligatorii pentru înregistrările alimentare.
 
 ## Ce NU este implementat încă
 - Modul predicție greutate (ML / regresie)
 - Recomandări personalizate de mese
 - Recomandări personalizate de antrenamente
-- Dashboard cu grafice (Plotly/Altair)
+- Dashboard v2 cu predicții/recomandări ML integrate
 - Simulator What-if (scenarii calorice)

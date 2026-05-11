@@ -19,7 +19,8 @@ CREATE TABLE users (
     CONSTRAINT chk_user_full_name_has_letter CHECK (full_name IS NULL OR full_name ~ '[[:alpha:]]'),
     CONSTRAINT chk_user_height CHECK (height_cm IS NULL OR height_cm BETWEEN 100 AND 250),
     CONSTRAINT chk_user_age CHECK (age IS NULL OR age BETWEEN 10 AND 120),
-    CONSTRAINT chk_user_gender CHECK (gender IS NULL OR gender IN ('M', 'F'))
+    CONSTRAINT chk_user_gender CHECK (gender IS NULL OR gender IN ('M', 'F')),
+    CONSTRAINT chk_user_goal CHECK (goal IS NULL OR goal IN ('Slabire', 'Mentinere', 'Crestere'))
 );
 
 CREATE TABLE admins (
@@ -119,6 +120,7 @@ CREATE TABLE custom_meals (
     status VARCHAR(50) NOT NULL DEFAULT 'Salvată',
     CONSTRAINT chk_custom_meal_name_not_empty CHECK (BTRIM(recipe_name) <> ''),
     CONSTRAINT chk_custom_meal_name_no_html CHECK (POSITION('<' IN recipe_name) = 0 AND POSITION('>' IN recipe_name) = 0),
+    CONSTRAINT chk_custom_meal_name_starts_letter CHECK (recipe_name ~ '^[[:alpha:]]'),
     CONSTRAINT chk_custom_meal_status CHECK (status IN ('Salvată', 'Arhivată'))
 );
 
@@ -145,7 +147,12 @@ CREATE TABLE activity_logs (
     CONSTRAINT chk_activity_log_duration_range CHECK (duration_min BETWEEN 0.1 AND 600),
     CONSTRAINT chk_activity_log_sets_reps CHECK (
         (sets IS NULL AND reps IS NULL)
-        OR (sets IS NOT NULL AND reps IS NOT NULL AND sets > 0 AND reps > 0)
+        OR (
+            sets IS NOT NULL
+            AND reps IS NOT NULL
+            AND sets BETWEEN 1 AND 50
+            AND reps BETWEEN 1 AND 200
+        )
     ),
     CONSTRAINT chk_activity_log_manual_calories CHECK (
         manual_calories_burned IS NULL OR manual_calories_burned BETWEEN 1 AND 5000
@@ -195,6 +202,15 @@ CREATE TABLE food_logs (
             snapshot_protein_100g IS NULL AND
             snapshot_carbs_100g IS NULL AND
             snapshot_fats_100g IS NULL
+        )
+    ),
+    CONSTRAINT chk_food_log_custom_meal_snapshot_required CHECK (
+        custom_meal_id IS NULL OR (
+            snapshot_name IS NOT NULL AND
+            snapshot_calories_100g IS NOT NULL AND
+            snapshot_protein_100g IS NOT NULL AND
+            snapshot_carbs_100g IS NOT NULL AND
+            snapshot_fats_100g IS NOT NULL
         )
     ),
     CONSTRAINT chk_food_log_snapshot_name_valid CHECK (

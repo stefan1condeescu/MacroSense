@@ -4,39 +4,10 @@ import streamlit as st
 from models.tracking import Activity, FoodItem
 from models.text_validation import contains_letter, has_obvious_html_chars
 from services.usda_food_data import USDAFoodDataClient
+from ui.catalog_constants import ACTIVITY_CATEGORIES, FOOD_CATEGORIES, USDA_DATA_TYPES
 from ui.tables import render_activity_catalog_table, render_food_catalog_table
 
 
-FOOD_CATEGORIES = [
-    "Fructe",
-    "Legume",
-    "Carne",
-    "Pește",
-    "Ouă",
-    "Lactate",
-    "Cereale",
-    "Pâine & Panificație",
-    "Paste & Orez",
-    "Leguminoase",
-    "Nuci & Semințe",
-    "Uleiuri & Grăsimi",
-    "Mezeluri",
-    "Dulciuri",
-    "Gustări",
-    "Băuturi & Sucuri",
-    "Alcoolice",
-    "Condimente & Sosuri",
-    "Altele",
-]
-USDA_DATA_TYPES = ["SR Legacy", "Foundation", "Survey (FNDDS)"]
-ACTIVITY_CATEGORIES = [
-    "Cardio",
-    "Forță",
-    "Flexibilitate",
-    "Sport de echipă",
-    "Activități zilnice",
-    "Altele",
-]
 CATEGORY_KEYWORDS = [
     ("Alcoolice", ["beer", "wine", "vodka", "whiskey", "alcohol", "liqueur"]),
     ("Dulciuri", ["ice cream", "cake", "cookie", "chocolate", "candy", "dessert", "pie", "sweet"]),

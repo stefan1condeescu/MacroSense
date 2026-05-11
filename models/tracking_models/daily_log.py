@@ -190,25 +190,8 @@ class DailyLog:
 
             cursor.execute(
                 """
-                WITH meal_totals AS (
-                    SELECT
-                        ri.meal_id,
-                        COALESCE(SUM(ri.quantity_g), 0) AS total_quantity_g,
-                        COALESCE(SUM(fi.calories_100g * ri.quantity_g / 100.0), 0) AS total_calories
-                    FROM recipe_ingredients ri
-                    JOIN food_items fi ON fi.id = ri.food_id
-                    GROUP BY ri.meal_id
-                )
-                SELECT COALESCE(SUM(
-                    CASE
-                        WHEN fl.snapshot_calories_100g IS NOT NULL THEN
-                            fl.snapshot_calories_100g * fl.quantity_g / 100.0
-                        WHEN mt.total_quantity_g > 0 THEN mt.total_calories * fl.quantity_g / mt.total_quantity_g
-                        ELSE 0
-                    END
-                ), 0)
+                SELECT COALESCE(SUM(fl.snapshot_calories_100g * fl.quantity_g / 100.0), 0)
                 FROM food_logs fl
-                LEFT JOIN meal_totals mt ON mt.meal_id = fl.custom_meal_id
                 WHERE fl.log_id = %s AND fl.custom_meal_id IS NOT NULL
                 """,
                 (self.id,)
@@ -335,15 +318,6 @@ class DailyLog:
 
             cursor.execute(
                 f"""
-                WITH meal_totals AS (
-                    SELECT
-                        ri.meal_id,
-                        COALESCE(SUM(ri.quantity_g), 0) AS total_quantity_g,
-                        COALESCE(SUM(fi.calories_100g * ri.quantity_g / 100.0), 0) AS total_calories
-                    FROM recipe_ingredients ri
-                    JOIN food_items fi ON fi.id = ri.food_id
-                    GROUP BY ri.meal_id
-                )
                 SELECT *
                 FROM (
                     SELECT
@@ -366,22 +340,14 @@ class DailyLog:
                     SELECT
                         fl.id,
                         'Masă personalizată' AS "Tip",
-                        COALESCE(fl.snapshot_name, cm.recipe_name) AS "Aliment / Masă",
+                        fl.snapshot_name AS "Aliment / Masă",
                         fl.quantity_g AS "Cantitate (g)",
-                        ROUND(
-                            CASE
-                                WHEN fl.snapshot_calories_100g IS NOT NULL THEN
-                                    fl.snapshot_calories_100g * fl.quantity_g / 100.0
-                                WHEN mt.total_quantity_g > 0 THEN mt.total_calories * fl.quantity_g / mt.total_quantity_g
-                                ELSE 0
-                            END
-                        , 2) AS "Calorii",
+                        ROUND(fl.snapshot_calories_100g * fl.quantity_g / 100.0, 2) AS "Calorii",
                         fl.meal_type AS "Masă",
                         fl.meal_time AS "Ora"
                     FROM food_logs fl
                     {user_join}
                     JOIN custom_meals cm ON cm.id = fl.custom_meal_id
-                    LEFT JOIN meal_totals mt ON mt.meal_id = cm.id
                     WHERE fl.log_id = %s
                       {user_filter}
                       AND fl.custom_meal_id IS NOT NULL

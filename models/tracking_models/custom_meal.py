@@ -122,6 +122,20 @@ class CustomMeal:
             cursor = conn.cursor()
             cursor.execute(
                 """
+                SELECT id
+                FROM custom_meals
+                WHERE id = %s AND user_id = %s
+                FOR UPDATE
+                """,
+                (meal_id, user_id)
+            )
+            existing_row = cursor.fetchone()
+            if not existing_row:
+                conn.rollback()
+                return False
+
+            cursor.execute(
+                """
                 UPDATE custom_meals
                 SET recipe_name = %s,
                     status = COALESCE(%s, status)
