@@ -113,6 +113,26 @@ CREATE TABLE daily_logs (
     CONSTRAINT uq_daily_log UNIQUE (user_id, log_date)
 );
 
+CREATE OR REPLACE FUNCTION prevent_future_log_date()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF NEW.log_date > CURRENT_DATE THEN
+        RAISE EXCEPTION 'Log date cannot be in the future.';
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER trg_weight_logs_no_future_date
+BEFORE INSERT OR UPDATE OF log_date ON weight_logs
+FOR EACH ROW
+EXECUTE FUNCTION prevent_future_log_date();
+
+CREATE TRIGGER trg_daily_logs_no_future_date
+BEFORE INSERT OR UPDATE OF log_date ON daily_logs
+FOR EACH ROW
+EXECUTE FUNCTION prevent_future_log_date();
+
 CREATE TABLE custom_meals (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,

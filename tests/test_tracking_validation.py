@@ -423,6 +423,16 @@ class WeightLogValidationTests(unittest.TestCase):
                 weight_kg=75.5,
             )
 
+    def test_weight_log_rejects_future_date(self):
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+
+        with self.assertRaises(ValueError):
+            WeightLog(
+                user_id=1,
+                log_date=tomorrow,
+                weight_kg=75.5,
+            )
+
     def test_weight_log_requires_positive_user_id(self):
         with self.assertRaises(ValueError):
             WeightLog(
@@ -456,6 +466,14 @@ class WeightLogValidationTests(unittest.TestCase):
                 user_id=1,
                 log_date=datetime.date(2026, 4, 29),
                 weight_kg=300.1,
+            )
+
+        with self.assertRaises(ValueError):
+            WeightLog.update(
+                log_entry_id=1,
+                user_id=1,
+                log_date=datetime.date.today() + datetime.timedelta(days=1),
+                weight_kg=75.5,
             )
 
     def test_weight_log_detects_changed_activity_day_references(self):
@@ -654,6 +672,15 @@ class DailyLogCalculationTests(unittest.TestCase):
         self.assertIn('fl.snapshot_name AS "Aliment / Masă"', entries_source)
         self.assertIn("fl.snapshot_calories_100g * fl.quantity_g / 100.0", entries_source)
         self.assertNotIn("COALESCE(fl.snapshot_name, cm.recipe_name)", entries_source)
+
+    def test_daily_log_rejects_future_date(self):
+        tomorrow = datetime.date.today() + datetime.timedelta(days=1)
+
+        with self.assertRaises(ValueError):
+            DailyLog(user_id=1, log_date=tomorrow)
+
+        with self.assertRaises(ValueError):
+            DailyLog.get_or_create(user_id=1, log_date=tomorrow)
 
     def test_energy_balance_is_calories_in_minus_burned(self):
         daily_log = DailyLog(

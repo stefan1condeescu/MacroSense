@@ -95,6 +95,7 @@
 - [x] Dashboard v1.1 hardening: greutatea de referință are metadate explicite (sursă, imputare, fallback din viitor, distanță în zile), există helper past-only pentru viitorul ML, consistența este separată pe alimente/antrenamente/greutate/general, iar sumarul include proteină medie per kg corp. Cardurile dashboard au fost înlocuite cu layout HTML/CSS local mai lizibil, fără etichete trunchiate cu `...`.
 - [x] Aliniere validări UI/model/DB: obiectivele utilizatorilor sunt standardizate la `Slabire`, `Mentinere`, `Crestere`, numele meselor personalizate trebuie să înceapă cu literă și în `schema.sql`, iar seturile/repetările din Jurnal Activități au aceleași limite în UI, model și DB.
 - [x] Centralizare categorii catalog: categoriile locale MacroSense pentru alimente și activități au fost mutate în `ui/catalog_constants.py`, iar testele verifică faptul că seed-urile nu introduc categorii inexistente în UI.
+- [x] Hardening date jurnal: Jurnal Alimentar, Jurnal Activități și Jurnal Greutate blochează salvările pe date viitoare în UI/model, iar `schema.sql` adaugă trigger-e pentru `daily_logs` și `weight_logs`.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
 - [ ] Testare manuală Dashboard v1.1 pe utilizatorii demo: verificare intervale 7/30/90 zile, grafice, carduri de sumar, consistențe separate, greutate de referință imputată/fallback și diferența dintre calorii arse prin activități și TDEE estimat.

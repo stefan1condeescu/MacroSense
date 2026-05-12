@@ -68,6 +68,14 @@ class SchemaConstraintTests(unittest.TestCase):
         self.assertIn("chk_recipe_ingredient_quantity_range", self.schema_sql)
         self.assertIn("quantity_g BETWEEN 1 AND 5000", self.schema_sql)
 
+    def test_journal_tables_block_future_dates_with_triggers(self):
+        self.assertIn("CREATE OR REPLACE FUNCTION prevent_future_log_date()", self.schema_sql)
+        self.assertIn("NEW.log_date > CURRENT_DATE", self.schema_sql)
+        self.assertIn("trg_weight_logs_no_future_date", self.schema_sql)
+        self.assertIn("BEFORE INSERT OR UPDATE OF log_date ON weight_logs", self.schema_sql)
+        self.assertIn("trg_daily_logs_no_future_date", self.schema_sql)
+        self.assertIn("BEFORE INSERT OR UPDATE OF log_date ON daily_logs", self.schema_sql)
+
 
 if __name__ == "__main__":
     unittest.main()

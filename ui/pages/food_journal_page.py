@@ -12,8 +12,10 @@ MEAL_TYPES = list(FoodLog.VALID_MEAL_TYPES)
 
 def render_food_journal_page() -> None:
     st.header("📔 Jurnal Alimentar")
-    
-    selected_date = st.date_input("Selectează ziua:", value=datetime.date.today())
+
+    today = datetime.date.today()
+    selected_date = st.date_input("Selectează ziua:", value=today, max_value=today)
+    date_is_future = selected_date > today
     food_log_message = st.session_state.pop("food_log_msg", None)
     if "food_log_widget_version" not in st.session_state:
         st.session_state["food_log_widget_version"] = 0
@@ -45,7 +47,10 @@ def render_food_journal_page() -> None:
         st.error("Sesiune invalidă. Te rugăm să te reautentifici.")
         st.stop()
     
-    daily_log = DailyLog.get_for_date(user_id, selected_date)
+    if date_is_future:
+        st.error("Nu poți salva înregistrări alimentare pentru o dată viitoare.")
+
+    daily_log = None if date_is_future else DailyLog.get_for_date(user_id, selected_date)
     
     def show_food_log_message(message):
         if not message:
@@ -166,6 +171,9 @@ def render_food_journal_page() -> None:
                 if submit_food:
                     if quantity_error:
                         return
+                    if date_is_future:
+                        st.error("Nu poți salva înregistrări alimentare pentru o dată viitoare.")
+                        return
 
                     try:
                         daily_log_for_write = DailyLog.get_or_create(user_id, selected_date)
@@ -224,6 +232,9 @@ def render_food_journal_page() -> None:
     
                 if submit_custom_meal:
                     if custom_quantity_error:
+                        return
+                    if date_is_future:
+                        st.error("Nu poți salva înregistrări alimentare pentru o dată viitoare.")
                         return
 
                     try:
