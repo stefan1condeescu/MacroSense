@@ -17,8 +17,10 @@ from ui.tables import get_table_height, render_activity_log_cards
 
 def render_activity_journal_page() -> None:
     st.header("🏋️‍♂️ Jurnal Activități Fizice")
-    
-    selected_date = st.date_input("Selectează ziua:", value=datetime.date.today())
+
+    today = datetime.date.today()
+    selected_date = st.date_input("Selectează ziua:", value=today, max_value=today)
+    date_is_future = selected_date > today
     activity_log_message = st.session_state.pop("activity_log_msg", None)
     if "activity_log_widget_version" not in st.session_state:
         st.session_state["activity_log_widget_version"] = 0
@@ -55,7 +57,10 @@ def render_activity_journal_page() -> None:
         st.error("Sesiune invalidă. Te rugăm să te reautentifici.")
         st.stop()
     
-    daily_log = DailyLog.get_for_date(user_id, selected_date)
+    if date_is_future:
+        st.error("Nu poți salva antrenamente pentru o dată viitoare.")
+
+    daily_log = None if date_is_future else DailyLog.get_for_date(user_id, selected_date)
     
     def show_activity_log_message(message):
         if not message:
@@ -264,6 +269,9 @@ def render_activity_journal_page() -> None:
             disabled=selected_activity is None
         ):
             if validation_error:
+                return
+            if date_is_future:
+                st.error("Nu poți salva antrenamente pentru o dată viitoare.")
                 return
 
             db_sets = calc_sets if calc_sets > 0 else None

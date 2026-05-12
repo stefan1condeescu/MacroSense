@@ -19,12 +19,22 @@ class WeightLog:
 
         if self.user_id is None or self.user_id <= 0:
             raise ValueError("WeightLog user_id must be a positive integer.")
-        if not isinstance(self.log_date, datetime.date):
-            raise ValueError("WeightLog log_date must be a valid date.")
+        self.log_date = self.validate_log_date(self.log_date)
         if self.weight_kg <= 0:
             raise ValueError("WeightLog weight must be strictly positive.")
         if not self.MIN_WEIGHT_KG <= self.weight_kg <= self.MAX_WEIGHT_KG:
             raise ValueError("WeightLog weight must be between 30 and 300 kg.")
+
+    @staticmethod
+    def validate_log_date(log_date: datetime.date) -> datetime.date:
+        """Validates that weight journal rows are not dated in the future."""
+        if isinstance(log_date, datetime.datetime):
+            log_date = log_date.date()
+        if not isinstance(log_date, datetime.date):
+            raise ValueError("WeightLog log_date must be a valid date.")
+        if log_date > datetime.date.today():
+            raise ValueError("WeightLog log_date cannot be in the future.")
+        return log_date
 
     def save(self) -> bool:
         """
@@ -60,8 +70,7 @@ class WeightLog:
     @classmethod
     def update(cls, log_entry_id: int, user_id: int, log_date: datetime.date, weight_kg: float) -> bool:
         """Updates a WeightLog entry only if it belongs to the given user."""
-        if not isinstance(log_date, datetime.date):
-            raise ValueError("WeightLog log_date must be a valid date.")
+        log_date = cls.validate_log_date(log_date)
         if weight_kg <= 0:
             raise ValueError("WeightLog weight must be strictly positive.")
         if not cls.MIN_WEIGHT_KG <= weight_kg <= cls.MAX_WEIGHT_KG:

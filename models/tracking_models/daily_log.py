@@ -29,9 +29,20 @@ class DailyLog:
                  log_id: int = None):
         self.id = log_id
         self.user_id = user_id
-        self.log_date = log_date
+        self.log_date = self.validate_log_date(log_date)
         self.total_calories_in = total_calories_in
         self.total_calories_burned = total_calories_burned
+
+    @staticmethod
+    def validate_log_date(log_date: datetime.date) -> datetime.date:
+        """Validates that daily journal rows are not dated in the future."""
+        if isinstance(log_date, datetime.datetime):
+            log_date = log_date.date()
+        if not isinstance(log_date, datetime.date):
+            raise ValueError("DailyLog log_date must be a valid date.")
+        if log_date > datetime.date.today():
+            raise ValueError("DailyLog log_date cannot be in the future.")
+        return log_date
 
     def calculate_energy_balance(self) -> float:
         """Returns the net caloric balance for the day (calories_in - calories_burned)."""
@@ -112,6 +123,7 @@ class DailyLog:
         If it does not exist, creates a new empty record and returns it.
         Uses the UNIQUE constraint (user_id, log_date) to avoid duplicates.
         """
+        log_date = cls.validate_log_date(log_date)
         conn = get_connection()
         if not conn:
             return None

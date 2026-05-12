@@ -85,7 +85,8 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   calculate_energy_balance
   (`get_food_entries()` și `get_activity_entries()` trebuie apelate cu
   `user_id` din UI, pentru a păstra izolarea între utilizatori chiar dacă un
-  `log_id` ajunge accidental într-un context greșit)
+  `log_id` ajunge accidental într-un context greșit; `log_date` nu poate fi
+  în viitor față de ziua curentă)
 - FoodLog: save(), update(), delete()
   (`meal_type` trebuie să fie una dintre valorile UI/DB: `Mic dejun`,
   `Prânz`, `Cină`, `Gustare`; `meal_time` trebuie să fie un `datetime.time`
@@ -115,7 +116,7 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   (`recalculate_user_daily_logs()` recalculează doar zilele cu antrenamente
   calculate prin MET/TUT, ignorând intrările cu `manual_calories_burned`, iar
   cu snapshot anterior recalculează doar zilele unde referința de greutate s-a
-  schimbat efectiv)
+  schimbat efectiv; `log_date` nu poate fi în viitor față de ziua curentă)
 - User: register(password, weight), authenticate(password)
   (`goal` trebuie să fie una dintre valorile canonice fără diacritice:
   `Slabire`, `Mentinere`, `Crestere`, definite în `models.profile_constants`)
@@ -194,6 +195,9 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - Vizualizarea unei date în Jurnal Alimentar sau Jurnal Activități nu trebuie
   să creeze rânduri goale în `daily_logs`; `DailyLog.get_or_create()` se
   folosește doar la salvarea primei înregistrări reale.
+- Jurnal Alimentar, Jurnal Activități și Jurnal Greutate acceptă salvări doar
+  pentru ziua curentă sau date din trecut; datele viitoare se blochează în UI,
+  model și DB.
 - Mesajele de succes care urmează după operații cu rerun trebuie păstrate
   în st.session_state și afișate ca st.toast(), fără să mute tabelul.
 - Selectbox-urile pentru alimente și mese personalizate folosesc ID intern,
@@ -296,7 +300,8 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   durată antrenament pozitivă în intervalul 0.1-600 minute, pereche validă
   `sets`/`reps` cu 1-50 seturi și 1-200 repetări, calorii manuale antrenament
   1-5000 kcal când sunt completate, cantități alimentare/ingrediente 1-5000g,
-  plus tip/oră de masă obligatorii pentru înregistrările alimentare.
+  plus tip/oră de masă obligatorii pentru înregistrările alimentare și trigger-e
+  care blochează `daily_logs.log_date` și `weight_logs.log_date` din viitor.
 
 ## Ce NU este implementat încă
 - Modul predicție greutate (ML / regresie)

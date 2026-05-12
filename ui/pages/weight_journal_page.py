@@ -7,6 +7,7 @@ from ui.tables import render_weight_log_cards
 def render_weight_journal_page() -> None:
     st.header("⚖️ Jurnal Greutate")
 
+    today = datetime.date.today()
     weight_log_message = st.session_state.pop("weight_log_msg", None)
     if "weight_log_widget_version" not in st.session_state:
         st.session_state["weight_log_widget_version"] = 0
@@ -60,6 +61,12 @@ def render_weight_journal_page() -> None:
         if isinstance(value, datetime.datetime):
             return value.date()
         return value
+
+    def is_future_weight_date(value) -> bool:
+        return normalize_weight_date(value) > today
+
+    def future_weight_date_error_message() -> str:
+        return "Data măsurării nu poate fi în viitor."
 
     def format_weight_option(entries_df, weight_entry_id):
         row = entries_df.loc[weight_entry_id]
@@ -131,6 +138,7 @@ def render_weight_journal_page() -> None:
             selected_date = st.date_input(
                 "Data măsurării",
                 value=datetime.date.today(),
+                max_value=today,
                 key=f"weight_log_add_date_{weight_widget_version}"
             )
         with col_add2:
@@ -150,6 +158,9 @@ def render_weight_journal_page() -> None:
         if st.button("Salvează greutatea", width="stretch", key="btn_save_weight_log", type="primary"):
             if not is_weight_in_allowed_range(weight_kg):
                 st.error(weight_range_error_message())
+                return
+            if is_future_weight_date(selected_date):
+                st.error(future_weight_date_error_message())
                 return
 
             try:
@@ -229,6 +240,7 @@ def render_weight_journal_page() -> None:
                 edited_date = st.date_input(
                     "Dată nouă",
                     value=selected_row["Data"],
+                    max_value=today,
                     key=f"weight_log_edit_date_{selected_weight_log_id}_{weight_widget_version}"
                 )
             with col_edit2:
@@ -243,6 +255,9 @@ def render_weight_journal_page() -> None:
             if st.button("Salvează modificările", width="stretch", key="btn_update_weight_log", type="primary"):
                 if not is_weight_in_allowed_range(edited_weight):
                     st.error(weight_range_error_message())
+                    return
+                if is_future_weight_date(edited_date):
+                    st.error(future_weight_date_error_message())
                     return
 
                 duplicate_date = any(
