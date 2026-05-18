@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from datetime import date, datetime
 from html import escape
 from typing import Any
 
@@ -8,6 +9,11 @@ import pandas as pd
 import streamlit as st
 
 from services.analytics.dashboard_data import get_dashboard_data
+from services.ml.prediction import (
+    DEFAULT_PREDICTION_HORIZONS,
+    UserWeightPredictions,
+    get_latest_available_user_weight_predictions,
+)
 
 
 INTERVAL_OPTIONS = {
@@ -58,6 +64,7 @@ def render_dashboard_page() -> None:
         return
 
     _render_current_state(data.get("current", {}))
+    _render_weight_prediction_section(user_id, data.get("end_date"))
 
     st.divider()
     st.subheader("Evoluție pe interval")
@@ -203,6 +210,115 @@ def _render_current_state(current: dict[str, Any]) -> None:
         )
     if status_messages:
         st.info(" ".join(status_messages))
+
+
+def _render_weight_prediction_section(user_id: int, analysis_date: date | None) -> None:
+    st.subheader("Predicție greutate")
+
+    try:
+        prediction_result = get_latest_available_user_weight_predictions(
+            user_id=int(user_id),
+            analysis_date=analysis_date,
+            max_lookback_days=14,
+            prefer_complete_days=True,
+        )
+    except RuntimeError:
+        st.info(
+            "Predicția ML nu este disponibilă momentan. Verifică modelele "
+            "antrenate și conexiunea la baza de date."
+        )
+        return
+
+    cards = _build_weight_prediction_cards(prediction_result)
+    _render_card_grid(cards, columns_count=2)
+
+    if prediction_result.predictions:
+        st.caption(
+            _format_prediction_source_caption(
+                prediction_result,
+                requested_analysis_date=analysis_date,
+            )
+        )
+    else:
+        st.info(
+            "Predicția apare după ce există suficiente alimente, cântăriri și "
+            "modele ML antrenate pentru utilizatorul curent."
+        )
+
+
+def _build_weight_prediction_cards(
+    prediction_result: UserWeightPredictions,
+) -> list[dict[str, Any]]:
+    predictions_by_horizon = {
+        prediction.horizon_days: prediction
+        for prediction in prediction_result.predictions
+    }
+    cards: list[dict[str, Any]] = []
+    for horizon_days in DEFAULT_PREDICTION_HORIZONS:
+        prediction = predictions_by_horizon.get(horizon_days)
+        if prediction:
+            cards.append(
+                {
+                    "label": f"Peste {horizon_days} zile",
+                    "value": _format_kg(prediction.predicted_weight_kg),
+                    "caption": (
+                        "Schimbare estimată: "
+                        f"{_format_kg_delta(prediction.predicted_change_kg) or '—'} | "
+                        f"Data: {_format_date(prediction.target_date)} | "
+                        f"MAE: {_format_prediction_error(prediction.metrics.get('mae'))}"
+                    ),
+                    "accent": "prediction",
+                    "help": (
+                        "Predicție ML calculată din istoricul de "
+                        "alimente, activități și greutate, fără date din viitor."
+                    ),
+                }
+            )
+            continue
+
+        reason = prediction_result.unavailable_horizons.get(
+            horizon_days,
+            "Nu există suficiente date pentru acest interval.",
+        )
+        cards.append(
+            {
+                "label": f"Peste {horizon_days} zile",
+                "value": "Indisponibil",
+                "caption": _format_prediction_unavailable_reason(reason),
+                "accent": "prediction",
+                "help": "Predicția devine disponibilă după ce există date suficiente.",
+            }
+        )
+    return cards
+
+
+def _format_prediction_source_caption(
+    prediction_result: UserWeightPredictions,
+    requested_analysis_date: date | None,
+) -> str:
+    caption = (
+        "Predicție calculată pe baza datelor disponibile până la "
+        f"{_format_date(prediction_result.analysis_date)}."
+    )
+    if requested_analysis_date and prediction_result.analysis_date != requested_analysis_date:
+        caption += (
+            " S-a folosit cea mai recentă zi completă cu date suficiente, ca "
+            "ziua curentă parțială să nu distorsioneze predicția."
+        )
+    return caption
+
+
+def _format_prediction_error(value: Any) -> str:
+    numeric_value = _as_float(value)
+    if numeric_value is None:
+        return "—"
+    return f"{numeric_value:.2f} kg"
+
+
+def _format_prediction_unavailable_reason(reason: str) -> str:
+    if "Missing model artifact" in reason or "Missing metadata artifact" in reason:
+        return "Modelele ML nu au fost antrenate încă."
+    return reason
 
 
 def _resolve_interval_label(value: Any) -> str:
@@ -926,6 +1042,18 @@ def _format_number(value: Any, suffix: str = "") -> str:
     if numeric_value is None:
         return "—"
     return f"{numeric_value:.1f}{suffix}"
+
+
+def _format_date(value: Any) -> str:
+    if value is None:
+        return "—"
+    try:
+        date_value = value.date() if isinstance(value, datetime) else value
+        if not isinstance(date_value, date):
+            date_value = pd.to_datetime(value).date()
+    except (TypeError, ValueError):
+        return "—"
+    return date_value.strftime("%d.%m.%Y")
 
 
 def _as_float(value: Any) -> float | None:

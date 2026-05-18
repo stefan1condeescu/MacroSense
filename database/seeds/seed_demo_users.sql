@@ -3097,4 +3097,233 @@ INSERT INTO food_logs (log_id, food_id, custom_meal_id, quantity_g, meal_type, m
 INSERT INTO food_logs (log_id, food_id, custom_meal_id, quantity_g, meal_type, meal_time) VALUES ((SELECT dl.id FROM daily_logs dl JOIN users u ON u.id = dl.user_id WHERE u.email = 'demo.rar@test.com' AND dl.log_date = DATE '2026-05-05'), (SELECT id FROM food_items WHERE source = 'USDA' AND external_id = '2646170'), NULL, 156.00, 'Cină', TIME '20:00');
 INSERT INTO food_logs (log_id, food_id, custom_meal_id, quantity_g, meal_type, meal_time) VALUES ((SELECT dl.id FROM daily_logs dl JOIN users u ON u.id = dl.user_id WHERE u.email = 'demo.rar@test.com' AND dl.log_date = DATE '2026-05-05'), (SELECT id FROM food_items WHERE source = 'USDA' AND external_id = '2709643'), NULL, 208.00, 'Cină', TIME '20:00');
 
+-- Current demo extension: keeps the demo users usable for Dashboard and ML
+-- predictions through 18 May 2026 without adding another large static block.
+WITH extension_weights(email, log_date, weight_kg) AS (
+    VALUES
+        ('demo.slabire@test.com', DATE '2026-05-12', 76.85),
+        ('demo.slabire@test.com', DATE '2026-05-18', 76.50),
+        ('demo.masa@test.com', DATE '2026-05-12', 75.75),
+        ('demo.masa@test.com', DATE '2026-05-18', 76.05),
+        ('demo.mentinere@test.com', DATE '2026-05-12', 62.44),
+        ('demo.mentinere@test.com', DATE '2026-05-18', 62.51),
+        ('demo.activ@test.com', DATE '2026-05-12', 77.80),
+        ('demo.activ@test.com', DATE '2026-05-18', 77.76),
+        ('demo.rar@test.com', DATE '2026-05-12', 93.72),
+        ('demo.rar@test.com', DATE '2026-05-18', 93.45)
+)
+INSERT INTO weight_logs (user_id, log_date, weight_kg)
+SELECT u.id, ew.log_date, ew.weight_kg
+FROM extension_weights ew
+JOIN users u ON u.email = ew.email
+ON CONFLICT ON CONSTRAINT uq_weight_log DO UPDATE
+SET weight_kg = EXCLUDED.weight_kg;
+
+WITH extension_days(email, log_date) AS (
+    SELECT demo_users.email, generated.day_value::date
+    FROM (
+        VALUES
+            ('demo.slabire@test.com'),
+            ('demo.masa@test.com'),
+            ('demo.mentinere@test.com'),
+            ('demo.activ@test.com'),
+            ('demo.rar@test.com')
+    ) AS demo_users(email)
+    CROSS JOIN generate_series(DATE '2026-05-08', DATE '2026-05-18', INTERVAL '1 day') AS generated(day_value)
+)
+INSERT INTO daily_logs (user_id, log_date, total_calories_in, total_calories_burned)
+SELECT u.id, ed.log_date, 0.00, 0.00
+FROM extension_days ed
+JOIN users u ON u.email = ed.email
+ON CONFLICT ON CONSTRAINT uq_daily_log DO NOTHING;
+
+WITH extension_foods(email, external_id, meal_type, meal_time, base_quantity_g, daily_step_g) AS (
+    VALUES
+        ('demo.slabire@test.com', '2705424', 'Mic dejun', TIME '08:00', 300.00, 15.00),
+        ('demo.slabire@test.com', '2646170', 'Prânz', TIME '13:00', 300.00, 12.00),
+        ('demo.slabire@test.com', '173688', 'Cină', TIME '19:30', 250.00, 10.00),
+        ('demo.slabire@test.com', '2708096', 'Gustare', TIME '16:30', 80.00, 4.00),
+        ('demo.masa@test.com', '168872', 'Mic dejun', TIME '08:30', 170.00, 8.00),
+        ('demo.masa@test.com', '2646170', 'Prânz', TIME '13:30', 360.00, 14.00),
+        ('demo.masa@test.com', '168608', 'Cină', TIME '20:00', 280.00, 12.00),
+        ('demo.masa@test.com', '2708096', 'Gustare', TIME '17:00', 110.00, 5.00),
+        ('demo.mentinere@test.com', '2707730', 'Mic dejun', TIME '08:00', 170.00, 7.00),
+        ('demo.mentinere@test.com', '173706', 'Prânz', TIME '13:00', 230.00, 9.00),
+        ('demo.mentinere@test.com', '173788', 'Cină', TIME '19:00', 300.00, 10.00),
+        ('demo.mentinere@test.com', '2708096', 'Gustare', TIME '16:00', 65.00, 4.00),
+        ('demo.activ@test.com', '2705464', 'Mic dejun', TIME '07:30', 330.00, 12.00),
+        ('demo.activ@test.com', '175153', 'Cină', TIME '20:30', 280.00, 12.00),
+        ('demo.activ@test.com', '2708096', 'Gustare', TIME '17:30', 110.00, 5.00),
+        ('demo.rar@test.com', '172187', 'Mic dejun', TIME '09:00', 240.00, 10.00),
+        ('demo.rar@test.com', '174289', 'Prânz', TIME '14:00', 220.00, 9.00),
+        ('demo.rar@test.com', '2646170', 'Cină', TIME '20:00', 260.00, 10.00),
+        ('demo.rar@test.com', '2708096', 'Gustare', TIME '17:00', 70.00, 4.00)
+),
+extension_days(email, log_date) AS (
+    SELECT demo_users.email, generated.day_value::date
+    FROM (
+        VALUES
+            ('demo.slabire@test.com'),
+            ('demo.masa@test.com'),
+            ('demo.mentinere@test.com'),
+            ('demo.activ@test.com'),
+            ('demo.rar@test.com')
+    ) AS demo_users(email)
+    CROSS JOIN generate_series(DATE '2026-05-08', DATE '2026-05-18', INTERVAL '1 day') AS generated(day_value)
+)
+INSERT INTO food_logs (log_id, food_id, custom_meal_id, quantity_g, meal_type, meal_time)
+SELECT
+    dl.id,
+    fi.id,
+    NULL,
+    ROUND((ef.base_quantity_g + ((MOD(ed.log_date - DATE '2026-05-08', 3) - 1) * ef.daily_step_g))::numeric, 2),
+    ef.meal_type,
+    ef.meal_time
+FROM extension_days ed
+JOIN extension_foods ef ON ef.email = ed.email
+JOIN users u ON u.email = ed.email
+JOIN daily_logs dl ON dl.user_id = u.id AND dl.log_date = ed.log_date
+JOIN food_items fi ON fi.source = 'USDA' AND fi.external_id = ef.external_id;
+
+WITH extension_activities(email, external_id, duration_min, manual_calories_burned, day_offset) AS (
+    VALUES
+        ('demo.slabire@test.com', '17200', 35.00, 360.00, 0),
+        ('demo.masa@test.com', '02035', 45.00, 280.00, 1),
+        ('demo.mentinere@test.com', '01220', 30.00, 190.00, 2),
+        ('demo.activ@test.com', '18240', 50.00, 520.00, 0),
+        ('demo.rar@test.com', '12030', 30.00, 240.00, 1)
+),
+extension_days(email, log_date) AS (
+    SELECT demo_users.email, generated.day_value::date
+    FROM (
+        VALUES
+            ('demo.slabire@test.com'),
+            ('demo.masa@test.com'),
+            ('demo.mentinere@test.com'),
+            ('demo.activ@test.com'),
+            ('demo.rar@test.com')
+    ) AS demo_users(email)
+    CROSS JOIN generate_series(DATE '2026-05-08', DATE '2026-05-18', INTERVAL '1 day') AS generated(day_value)
+)
+INSERT INTO activity_logs (log_id, activity_id, duration_min, sets, reps, manual_calories_burned)
+SELECT
+    dl.id,
+    a.id,
+    ea.duration_min,
+    NULL,
+    NULL,
+    ea.manual_calories_burned
+FROM extension_days ed
+JOIN extension_activities ea ON ea.email = ed.email
+JOIN users u ON u.email = ed.email
+JOIN daily_logs dl ON dl.user_id = u.id AND dl.log_date = ed.log_date
+JOIN activities a ON a.external_id = ea.external_id
+WHERE MOD(ed.log_date - DATE '2026-05-08' + ea.day_offset, 3) = 0;
+
+WITH extension_days(email, log_date) AS (
+    SELECT demo_users.email, generated.day_value::date
+    FROM (
+        VALUES
+            ('demo.slabire@test.com'),
+            ('demo.masa@test.com'),
+            ('demo.mentinere@test.com'),
+            ('demo.activ@test.com'),
+            ('demo.rar@test.com')
+    ) AS demo_users(email)
+    CROSS JOIN generate_series(DATE '2026-05-08', DATE '2026-05-18', INTERVAL '1 day') AS generated(day_value)
+),
+food_totals AS (
+    SELECT
+        dl.id AS log_id,
+        ROUND(COALESCE(SUM(CASE
+            WHEN fl.food_id IS NOT NULL THEN fi.calories_100g * fl.quantity_g / 100.0
+            WHEN fl.custom_meal_id IS NOT NULL THEN fl.snapshot_calories_100g * fl.quantity_g / 100.0
+            ELSE 0
+        END), 0), 2) AS total_calories_in
+    FROM extension_days ed
+    JOIN users u ON u.email = ed.email
+    JOIN daily_logs dl ON dl.user_id = u.id AND dl.log_date = ed.log_date
+    LEFT JOIN food_logs fl ON fl.log_id = dl.id
+    LEFT JOIN food_items fi ON fi.id = fl.food_id
+    GROUP BY dl.id
+)
+UPDATE daily_logs dl
+SET total_calories_in = ft.total_calories_in
+FROM food_totals ft
+WHERE dl.id = ft.log_id;
+
+WITH extension_days(email, log_date) AS (
+    SELECT demo_users.email, generated.day_value::date
+    FROM (
+        VALUES
+            ('demo.slabire@test.com'),
+            ('demo.masa@test.com'),
+            ('demo.mentinere@test.com'),
+            ('demo.activ@test.com'),
+            ('demo.rar@test.com')
+    ) AS demo_users(email)
+    CROSS JOIN generate_series(DATE '2026-05-08', DATE '2026-05-18', INTERVAL '1 day') AS generated(day_value)
+),
+activity_totals AS (
+    SELECT
+        dl.id AS log_id,
+        ROUND(COALESCE(SUM(al.manual_calories_burned), 0), 2) AS total_calories_burned
+    FROM extension_days ed
+    JOIN users u ON u.email = ed.email
+    JOIN daily_logs dl ON dl.user_id = u.id AND dl.log_date = ed.log_date
+    LEFT JOIN activity_logs al ON al.log_id = dl.id
+    GROUP BY dl.id
+)
+UPDATE daily_logs dl
+SET total_calories_burned = act.total_calories_burned
+FROM activity_totals act
+WHERE dl.id = act.log_id;
+
+-- Demo calibration for recent dashboard and ML predictions. The original
+-- historical food logs were intentionally restrictive; this raises recent
+-- intake so the caloric balance is consistent with the observed weight trend.
+WITH food_calibration(email, start_date, end_date, quantity_multiplier) AS (
+    VALUES
+        ('demo.slabire@test.com', DATE '2026-04-19', DATE '2026-05-18', 1.25),
+        ('demo.masa@test.com', DATE '2026-04-19', DATE '2026-05-18', 1.24),
+        ('demo.mentinere@test.com', DATE '2026-04-19', DATE '2026-05-18', 1.18),
+        ('demo.activ@test.com', DATE '2026-04-19', DATE '2026-05-18', 1.10),
+        ('demo.rar@test.com', DATE '2026-04-19', DATE '2026-05-18', 1.10)
+)
+UPDATE food_logs fl
+SET quantity_g = ROUND((fl.quantity_g * fc.quantity_multiplier)::numeric, 2)
+FROM daily_logs dl
+JOIN users u ON u.id = dl.user_id
+JOIN food_calibration fc ON fc.email = u.email
+WHERE fl.log_id = dl.id
+  AND dl.log_date BETWEEN fc.start_date AND fc.end_date;
+
+WITH food_calibration(email, start_date, end_date) AS (
+    VALUES
+        ('demo.slabire@test.com', DATE '2026-04-19', DATE '2026-05-18'),
+        ('demo.masa@test.com', DATE '2026-04-19', DATE '2026-05-18'),
+        ('demo.mentinere@test.com', DATE '2026-04-19', DATE '2026-05-18'),
+        ('demo.activ@test.com', DATE '2026-04-19', DATE '2026-05-18'),
+        ('demo.rar@test.com', DATE '2026-04-19', DATE '2026-05-18')
+),
+food_totals AS (
+    SELECT
+        dl.id AS log_id,
+        ROUND(COALESCE(SUM(CASE
+            WHEN fl.food_id IS NOT NULL THEN fi.calories_100g * fl.quantity_g / 100.0
+            WHEN fl.custom_meal_id IS NOT NULL THEN fl.snapshot_calories_100g * fl.quantity_g / 100.0
+            ELSE 0
+        END), 0), 2) AS total_calories_in
+    FROM food_calibration fc
+    JOIN users u ON u.email = fc.email
+    JOIN daily_logs dl ON dl.user_id = u.id AND dl.log_date BETWEEN fc.start_date AND fc.end_date
+    LEFT JOIN food_logs fl ON fl.log_id = dl.id
+    LEFT JOIN food_items fi ON fi.id = fl.food_id
+    GROUP BY dl.id
+)
+UPDATE daily_logs dl
+SET total_calories_in = ft.total_calories_in
+FROM food_totals ft
+WHERE dl.id = ft.log_id;
+
 COMMIT;

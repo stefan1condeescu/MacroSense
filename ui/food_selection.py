@@ -18,7 +18,7 @@ def build_food_selection_dataframe(
     food_options: dict,
     search_text: str,
     category_filter: str,
-    max_rows: int = 40
+    max_rows: int | None = None,
 ) -> pd.DataFrame:
     """Builds a filtered food catalog table for food selection workflows."""
     search_terms = [
@@ -47,7 +47,9 @@ def build_food_selection_dataframe(
             "Grăsimi": food["fats_g"],
         })
 
-    return pd.DataFrame(rows[:max_rows])
+    if max_rows is not None:
+        rows = rows[:max_rows]
+    return pd.DataFrame(rows)
 
 
 def get_food_category_filter_options(food_options: dict) -> list[str]:

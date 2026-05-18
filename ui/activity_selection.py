@@ -9,7 +9,7 @@ def build_activity_selection_dataframe(
     activity_options: dict,
     search_text: str,
     category_filter: str,
-    max_rows: int = 40,
+    max_rows: int | None = None,
 ) -> pd.DataFrame:
     """Builds a filtered activity catalog table for activity selection workflows."""
     search_terms = [
@@ -36,7 +36,9 @@ def build_activity_selection_dataframe(
             "MET": activity["met"],
         })
 
-    return pd.DataFrame(rows[:max_rows])
+    if max_rows is not None:
+        rows = rows[:max_rows]
+    return pd.DataFrame(rows)
 
 
 def get_activity_category_filter_options(activity_options: dict) -> list[str]:

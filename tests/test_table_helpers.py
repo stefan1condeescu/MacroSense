@@ -105,6 +105,46 @@ class TableHelperTests(unittest.TestCase):
         self.assertEqual(filtered["Denumire"].tolist(), ["Flotări moderate"])
         self.assertEqual(get_activity_category_filter_options(activity_options), ["Toate", "Forță"])
 
+    def test_activity_selection_does_not_truncate_visible_catalog_by_default(self):
+        activity_options = {
+            index: {
+                "id": index,
+                "name": f"Activitate test {index:02d}",
+                "category": "Cardio",
+                "source_label": "Compendium",
+                "met_method_label": "Oficial Compendium",
+                "met": 4.0,
+            }
+            for index in range(1, 46)
+        }
+
+        filtered = build_activity_selection_dataframe(activity_options, "", "Toate")
+
+        self.assertEqual(len(filtered), 45)
+        self.assertEqual(filtered.iloc[-1]["Denumire"], "Activitate test 45")
+
+    def test_activity_selection_can_still_be_limited_when_requested(self):
+        activity_options = {
+            index: {
+                "id": index,
+                "name": f"Activitate test {index:02d}",
+                "category": "Cardio",
+                "source_label": "Compendium",
+                "met_method_label": "Oficial Compendium",
+                "met": 4.0,
+            }
+            for index in range(1, 46)
+        }
+
+        filtered = build_activity_selection_dataframe(
+            activity_options,
+            "",
+            "Toate",
+            max_rows=40,
+        )
+
+        self.assertEqual(len(filtered), 40)
+
     def test_activity_selection_key_changes_when_visible_context_changes(self):
         self.assertNotEqual(
             build_activity_selection_state_key("flotari", "Toate"),

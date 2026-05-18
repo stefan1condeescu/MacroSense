@@ -69,6 +69,9 @@
 - Testele automate din `tests/` se păstrează în proiect și se extind la fiecare
   funcționalitate importantă; nu se șterg după validare.
 - Comandă standard teste: `.\venv\Scripts\python.exe -m unittest discover -s tests -v`
+- Developerul folosește terminal Bash în VS Code; când îi oferim comenzi de
+  rulat manual, folosim format Bash, de exemplu
+  `./venv/Scripts/python.exe -m unittest discover -s tests -v`, nu PowerShell.
 - Commit-urile sunt făcute MANUAL de developer după fiecare modificare
   aprobată; AI-ul nu face niciodată commit sau push automat.
   Excepție: AI-ul poate face commit doar când developerul cere explicit acest lucru.
@@ -304,8 +307,7 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   care blochează `daily_logs.log_date` și `weight_logs.log_date` din viitor.
 
 ## Ce NU este implementat încă
-- Modul predicție greutate (ML / regresie)
 - Recomandări personalizate de mese
 - Recomandări personalizate de antrenamente
-- Dashboard v2 cu predicții/recomandări ML integrate
+- Dashboard v2 cu recomandări ML integrate
 - Simulator What-if (scenarii calorice)

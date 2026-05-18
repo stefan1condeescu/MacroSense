@@ -65,6 +65,11 @@ div[data-testid="stDataFrame"] div[role="grid"] {
     background: #fff8f8;
 }
 
+.dashboard-card.prediction {
+    border-left-color: #0891b2;
+    background: #f5fdff;
+}
+
 .dashboard-card.quality {
     border-left-color: #475569;
     background: #f8fafc;

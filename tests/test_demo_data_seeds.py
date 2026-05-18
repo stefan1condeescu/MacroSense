@@ -71,6 +71,22 @@ class DemoUserSeedTests(unittest.TestCase):
         self.assertGreaterEqual(self.count_inserts("food_logs"), 500)
         self.assertGreaterEqual(self.count_inserts("activity_logs"), 100)
 
+    def test_demo_seed_extends_tracking_to_current_demo_date(self):
+        date_literals = re.findall(r"DATE '([0-9]{4}-[0-9]{2}-[0-9]{2})'", self.demo_seed)
+
+        self.assertIn("generate_series(DATE '2026-05-08', DATE '2026-05-18'", self.demo_seed)
+        self.assertIn("DATE '2026-05-18'", self.demo_seed)
+        self.assertLessEqual(max(date_literals), "2026-05-18")
+
+    def test_demo_seed_calibrates_recent_food_totals_for_ml_predictions(self):
+        self.assertIn("Demo calibration for recent dashboard and ML predictions", self.demo_seed)
+        self.assertIn("quantity_multiplier", self.demo_seed)
+        self.assertIn("DATE '2026-04-19', DATE '2026-05-18'", self.demo_seed)
+        self.assertIn(
+            "('demo.masa@test.com', DATE '2026-04-19', DATE '2026-05-18', 1.24)",
+            self.demo_seed,
+        )
+
     def test_demo_seed_exercises_custom_meal_snapshots(self):
         self.assertIn("INSERT INTO custom_meals", self.demo_seed)
         self.assertIn("INSERT INTO recipe_ingredients", self.demo_seed)

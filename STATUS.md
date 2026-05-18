@@ -96,15 +96,20 @@
 - [x] Aliniere validări UI/model/DB: obiectivele utilizatorilor sunt standardizate la `Slabire`, `Mentinere`, `Crestere`, numele meselor personalizate trebuie să înceapă cu literă și în `schema.sql`, iar seturile/repetările din Jurnal Activități au aceleași limite în UI, model și DB.
 - [x] Centralizare categorii catalog: categoriile locale MacroSense pentru alimente și activități au fost mutate în `ui/catalog_constants.py`, iar testele verifică faptul că seed-urile nu introduc categorii inexistente în UI.
 - [x] Hardening date jurnal: Jurnal Alimentar, Jurnal Activități și Jurnal Greutate blochează salvările pe date viitoare în UI/model, iar `schema.sql` adaugă trigger-e pentru `daily_logs` și `weight_logs`.
+- [x] ML v1 pentru predicția greutății: adăugare `services/ml` cu generator sintetic, feature engineering leak-safe, antrenare Ridge/Random Forest/Gradient Boosting, salvare artefacte și utilitare CLI pentru smoke check, training și predicție.
+- [x] Evaluare ML v1: adăugare raport de evaluare cu backtesting pe date sintetice separate, comparație cu baseline-uri simple (`no_change`, `trend_projection`, `energy_balance_projection`) și sanity checks pentru deficit, surplus și activitate.
+- [x] Stabilizare training ML: adăugare candidați hibrizi conservatori energy-trend, care combină estimarea energetică cu trendul real al greutății și aplică o corecție ML limitată, pentru predicții mai coerente cu istoricul utilizatorului.
+- [x] Dashboard v2 predicție greutate: pagina `Acasă` afișează vizibil predicții ML pentru 14 și 30 zile imediat sub starea curentă, cu fallback la cea mai recentă zi cu date suficiente.
+- [x] Actualizare seed demo: `seed_demo_users.sql` extinde utilizatorii demo cu date până la 18.05.2026 și calibrează consumul alimentar recent astfel încât predicțiile ML să fie mai consistente cu trendul real al greutății.
+- [x] Stabilizare ML/Dashboard v2: artefactele au fost regenerate pe 50 utilizatori sintetici și 150 zile de istoric, metadata salvează contextul de training, dashboard-ul tratează zilele incomplete cu fallback controlat, iar tabelele selectabile din Jurnal Alimentar, Jurnal Activități și Mese Personalizate nu mai trunchiază catalogul la primele 40 de rânduri.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Testare manuală Dashboard v1.1 pe utilizatorii demo: verificare intervale 7/30/90 zile, grafice, carduri de sumar, consistențe separate, greutate de referință imputată/fallback și diferența dintre calorii arse prin activități și TDEE estimat.
+- [ ] Analiză și implementare Simulator What-if read-only pentru scenarii calorice și activitate fizică, fără salvare în jurnalul real.
 
 ## 🔴 Ce urmează (Backlog):
-- [ ] Feature engineering extins pentru ML, reutilizând `services/analytics`.
-- [ ] Modulul de Machine Learning — predicția greutății.
+- [ ] Recomandări explicabile pe baza indicatorilor existenți: mese, proteine/kg, consistență și activitate fizică.
 - [ ] Recomandări personalizate de mese.
 - [ ] Recomandări personalizate de antrenamente.
-- [ ] Simulator What-if (scenarii calorice).
-- [ ] Dashboard v2 cu predicții/recomandări ML integrate.
+- [ ] Discuție decizie scope ML final: păstrăm doar predicția greutății 14/30 zile + What-if determinist sau adăugăm recomandări simple explicabile.
+- [ ] Extindere Dashboard cu recomandări personalizate, dacă rămâne timp după Simulatorul What-if.
 - [ ] Sincronizare documentație licență/diagrame după finalizarea funcționalităților principale.

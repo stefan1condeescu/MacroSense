@@ -27,6 +27,7 @@ Thumbs.db
 *.pkl
 *.joblib
 *.h5
+artifacts/ml/
 
 # Logs
 *.log
