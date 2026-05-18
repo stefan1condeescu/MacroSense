@@ -5,14 +5,17 @@ import pandas as pd
 
 from ui.pages.dashboard_page import (
     _build_dashboard_card_html,
+    _build_weight_prediction_cards,
     _daily_x_axis,
     _date_order_domain,
+    _format_prediction_source_caption,
     _format_gender,
     _prepare_daily_rows,
     _prepare_daily_weight_rows,
     _prepare_macro_rows,
     _resolve_interval_label,
 )
+from services.ml.prediction import UserWeightPredictions, WeightPrediction
 
 
 class DashboardPageHelperTests(unittest.TestCase):
@@ -152,6 +155,74 @@ class DashboardPageHelperTests(unittest.TestCase):
         self.assertEqual(_resolve_interval_label(None), "30 zile")
         self.assertEqual(_resolve_interval_label("90 zile"), "90 zile")
         self.assertEqual(_resolve_interval_label("invalid"), "30 zile")
+
+    def test_weight_prediction_cards_show_14_and_30_day_outputs(self):
+        result = UserWeightPredictions(
+            user_id=1,
+            analysis_date=date(2026, 5, 18),
+            predictions=[
+                WeightPrediction(
+                    horizon_days=14,
+                    analysis_date=date(2026, 5, 18),
+                    target_date=date(2026, 6, 1),
+                    current_weight_kg=80.0,
+                    predicted_change_kg=-0.8,
+                    predicted_weight_kg=79.2,
+                    model_name="gradient_boosting",
+                    metrics={"mae": 0.23},
+                ),
+                WeightPrediction(
+                    horizon_days=30,
+                    analysis_date=date(2026, 5, 18),
+                    target_date=date(2026, 6, 17),
+                    current_weight_kg=80.0,
+                    predicted_change_kg=-1.5,
+                    predicted_weight_kg=78.5,
+                    model_name="gradient_boosting",
+                    metrics={"mae": 0.31},
+                ),
+            ],
+            unavailable_horizons={},
+        )
+
+        cards = _build_weight_prediction_cards(result)
+
+        self.assertEqual([card["label"] for card in cards], ["Peste 14 zile", "Peste 30 zile"])
+        self.assertEqual(cards[0]["value"], "79.2 kg")
+        self.assertIn("Schimbare estimată: -0.8 kg", cards[0]["caption"])
+        self.assertIn("Data: 01.06.2026", cards[0]["caption"])
+        self.assertIn("MAE: 0.23 kg", cards[0]["caption"])
+        self.assertNotIn("orientativ", cards[0]["help"].lower())
+
+    def test_weight_prediction_cards_show_missing_artifact_as_untrained_model(self):
+        result = UserWeightPredictions(
+            user_id=1,
+            analysis_date=date(2026, 5, 18),
+            predictions=[],
+            unavailable_horizons={
+                14: "Missing model artifact: artifacts/ml/weight_prediction_14d.joblib",
+                30: "Nu există suficiente date recente pentru predicție.",
+            },
+        )
+
+        cards = _build_weight_prediction_cards(result)
+
+        self.assertEqual(cards[0]["value"], "Indisponibil")
+        self.assertEqual(cards[0]["caption"], "Modelele ML nu au fost antrenate încă.")
+        self.assertEqual(cards[1]["caption"], "Nu există suficiente date recente pentru predicție.")
+
+    def test_prediction_caption_mentions_fallback_analysis_date(self):
+        result = UserWeightPredictions(
+            user_id=1,
+            analysis_date=date(2026, 5, 12),
+            predictions=[],
+            unavailable_horizons={},
+        )
+
+        caption = _format_prediction_source_caption(result, date(2026, 5, 18))
+
+        self.assertIn("12.05.2026", caption)
+        self.assertIn("cea mai recentă zi completă cu date suficiente", caption)
 
 
 if __name__ == "__main__":

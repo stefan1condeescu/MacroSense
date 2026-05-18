@@ -81,6 +81,48 @@ class FoodJournalHelperTests(unittest.TestCase):
 
         self.assertEqual(dataframe["Sursă"].tolist(), ["USDA Foundation"])
 
+    def test_food_selection_does_not_truncate_visible_catalog_by_default(self):
+        food_options = {
+            index: {
+                "id": index,
+                "name": f"Aliment test {index:02d}",
+                "category": "Altele",
+                "calories_100g": 100.0,
+                "protein_g": 5.0,
+                "carbs_g": 12.0,
+                "fats_g": 2.0,
+            }
+            for index in range(1, 46)
+        }
+
+        dataframe = build_food_selection_dataframe(food_options, "", "Toate")
+
+        self.assertEqual(len(dataframe), 45)
+        self.assertEqual(dataframe.iloc[-1]["Denumire"], "Aliment test 45")
+
+    def test_food_selection_can_still_be_limited_when_requested(self):
+        food_options = {
+            index: {
+                "id": index,
+                "name": f"Aliment test {index:02d}",
+                "category": "Altele",
+                "calories_100g": 100.0,
+                "protein_g": 5.0,
+                "carbs_g": 12.0,
+                "fats_g": 2.0,
+            }
+            for index in range(1, 46)
+        }
+
+        dataframe = build_food_selection_dataframe(
+            food_options,
+            "",
+            "Toate",
+            max_rows=40,
+        )
+
+        self.assertEqual(len(dataframe), 40)
+
     def test_food_selection_key_changes_when_visible_catalog_context_changes(self):
         initial_key = build_food_selection_state_key("", "Toate")
         filtered_key = build_food_selection_state_key("broccoli", "Toate")

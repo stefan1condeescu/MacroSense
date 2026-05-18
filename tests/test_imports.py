@@ -55,6 +55,17 @@ class ArchitectureImportTests(unittest.TestCase):
             "ui.pages.user_catalog_pages",
             "ui.pages.user_routes",
             "ui.pages.weight_journal_page",
+            "services.ml",
+            "services.ml.artifacts",
+            "services.ml.evaluate_models",
+            "services.ml.evaluation",
+            "services.ml.feature_engineering",
+            "services.ml.prediction",
+            "services.ml.predict_user",
+            "services.ml.smoke_check",
+            "services.ml.synthetic_data",
+            "services.ml.train_models",
+            "services.ml.training",
             "services.usda_food_data",
         ]
 

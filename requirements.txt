@@ -1,0 +1,5 @@
+altair==6.0.0
+pandas==3.0.2
+psycopg2-binary==2.9.11
+scikit-learn==1.8.0
+streamlit==1.56.0
