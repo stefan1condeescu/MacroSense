@@ -55,6 +55,7 @@ class ArchitectureImportTests(unittest.TestCase):
             "ui.pages.user_catalog_pages",
             "ui.pages.user_routes",
             "ui.pages.weight_journal_page",
+            "ui.pages.what_if_page",
             "services.ml",
             "services.ml.artifacts",
             "services.ml.evaluate_models",
@@ -66,6 +67,9 @@ class ArchitectureImportTests(unittest.TestCase):
             "services.ml.synthetic_data",
             "services.ml.train_models",
             "services.ml.training",
+            "services.what_if",
+            "services.what_if.loaders",
+            "services.what_if.simulator",
             "services.usda_food_data",
         ]
 

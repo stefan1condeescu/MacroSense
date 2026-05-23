@@ -673,6 +673,16 @@ class DailyLogCalculationTests(unittest.TestCase):
         self.assertIn("fl.snapshot_calories_100g * fl.quantity_g / 100.0", entries_source)
         self.assertNotIn("COALESCE(fl.snapshot_name, cm.recipe_name)", entries_source)
 
+    def test_food_entries_use_stable_order_for_same_time(self):
+        entries_source = inspect.getsource(DailyLog.get_food_entries)
+
+        self.assertIn('ORDER BY "Ora" ASC NULLS LAST, id ASC', entries_source)
+
+    def test_activity_entries_use_stable_order(self):
+        entries_source = inspect.getsource(DailyLog.get_activity_entries)
+
+        self.assertIn("ORDER BY al.id ASC", entries_source)
+
     def test_daily_log_rejects_future_date(self):
         tomorrow = datetime.date.today() + datetime.timedelta(days=1)
 
@@ -682,7 +692,7 @@ class DailyLogCalculationTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             DailyLog.get_or_create(user_id=1, log_date=tomorrow)
 
-    def test_energy_balance_is_calories_in_minus_burned(self):
+    def test_legacy_activity_only_balance_is_calories_in_minus_burned(self):
         daily_log = DailyLog(
             user_id=1,
             log_date=datetime.date(2026, 4, 28),

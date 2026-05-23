@@ -45,7 +45,7 @@ class DailyLog:
         return log_date
 
     def calculate_energy_balance(self) -> float:
-        """Returns the net caloric balance for the day (calories_in - calories_burned)."""
+        """Returns the legacy activity-only net: calories_in - logged activity calories."""
         return round(self.total_calories_in - self.total_calories_burned, 2)
 
     @classmethod
@@ -364,7 +364,7 @@ class DailyLog:
                       {user_filter}
                       AND fl.custom_meal_id IS NOT NULL
                 ) entries
-                ORDER BY "Ora" ASC NULLS LAST
+                ORDER BY "Ora" ASC NULLS LAST, id ASC
                 """,
                 tuple(params)
             )

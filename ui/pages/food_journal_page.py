@@ -1,8 +1,9 @@
 import datetime
 import streamlit as st
 from models.tracking import CustomMeal, DailyLog, FoodItem, FoodLog
+from services.analytics.dashboard_data import get_daily_energy_estimate
 from ui.food_selection import build_food_selection_dataframe, build_food_selection_state_key, get_food_category_filter_options
-from ui.formatters import format_food_entries_for_display, format_time_for_display
+from ui.formatters import format_food_entries_for_display, format_kcal_for_display, format_time_for_display
 from ui.quantity_validation import quantity_range_help, validate_quantity_g
 from ui.tables import get_table_height, render_food_log_cards
 
@@ -420,9 +421,22 @@ def render_food_journal_page() -> None:
 
     if daily_log:
         st.divider()
-        col1, col2, col3 = st.columns(3)
+        energy_estimate = get_daily_energy_estimate(user_id, selected_date)
+        col1, col2, col3, col4 = st.columns(4)
         col1.metric("🍽️ Calorii consumate", f"{daily_log.total_calories_in:.0f} kcal")
-        col2.metric("🔥 Calorii arse", f"{daily_log.total_calories_burned:.0f} kcal")
-        col3.metric("⚖️ Balanță energetică",
-                    f"{daily_log.calculate_energy_balance():.0f} kcal",
-                    delta=f"{daily_log.calculate_energy_balance():.0f}")
+        col2.metric(
+            "🔥 Calorii activități",
+            f"{daily_log.total_calories_burned:.0f} kcal",
+            help="Doar caloriile arse prin activități logate în această zi.",
+        )
+        col3.metric(
+            "🧮 TDEE estimat",
+            format_kcal_for_display(energy_estimate.get("estimated_tdee")),
+            help="TDEE estimat = BMR × 1.2 + caloriile activităților logate.",
+        )
+        col4.metric(
+            "⚖️ Balanță estimată",
+            format_kcal_for_display(energy_estimate.get("estimated_balance"), signed=True),
+            delta=format_kcal_for_display(energy_estimate.get("estimated_balance"), signed=True),
+            help="Balanță estimată = calorii consumate - TDEE estimat.",
+        )

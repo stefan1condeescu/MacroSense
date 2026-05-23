@@ -1,6 +1,9 @@
 import datetime
+from typing import Any
+
 import streamlit as st
 from models.tracking import Activity, ActivityLog, DailyLog, WeightLog
+from services.analytics.dashboard_data import get_daily_energy_estimate
 from ui.activity_selection import (
     build_activity_selection_dataframe,
     build_activity_selection_state_key,
@@ -12,7 +15,30 @@ from ui.activity_validation import (
     validate_reps,
     validate_sets,
 )
+from ui.formatters import format_kcal_for_display
 from ui.tables import get_table_height, render_activity_log_cards
+
+
+def _float_or_zero(value: Any) -> float:
+    if value is None:
+        return 0.0
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def _sum_activity_breakdown_category(activity_breakdown, category: str) -> float:
+    if activity_breakdown is None or activity_breakdown.empty:
+        return 0.0
+    if "category" not in activity_breakdown or "total_calories_burned" not in activity_breakdown:
+        return 0.0
+
+    category_values = activity_breakdown.loc[
+        activity_breakdown["category"] == category,
+        "total_calories_burned",
+    ]
+    return _float_or_zero(category_values.sum())
 
 
 def render_activity_journal_page() -> None:
@@ -526,10 +552,17 @@ def render_activity_journal_page() -> None:
         render_activity_delete_panel()
     
         st.divider()
+        energy_estimate = get_daily_energy_estimate(user_id, selected_date)
         col1, col2, col3 = st.columns(3)
-        cals_strength = df_entries[df_entries["Categorie"] == "Forță"]["Calorii Arse"].sum()
-        cals_cardio_other = df_entries[df_entries["Categorie"] != "Forță"]["Calorii Arse"].sum()
-        total_burned = cals_strength + cals_cardio_other
+        activity_breakdown = energy_estimate.get("activity_breakdown")
+        if activity_breakdown is not None and not activity_breakdown.empty:
+            cals_strength = _sum_activity_breakdown_category(activity_breakdown, "Forță")
+        else:
+            cals_strength = _float_or_zero(
+                df_entries[df_entries["Categorie"] == "Forță"]["Calorii Arse"].sum()
+            )
+        total_burned = _float_or_zero(daily_log.total_calories_burned)
+        cals_cardio_other = max(0.0, total_burned - cals_strength)
         
         col1.metric(
             "🏋️ Calorii Forță",
@@ -556,9 +589,15 @@ def render_activity_journal_page() -> None:
             help="Total calorii consumate din alimentație în această zi."
         )
         col5.metric(
-            "⚖️ Balanță energetică",
-            f"{daily_log.calculate_energy_balance():.0f} kcal",
-            delta=f"{daily_log.calculate_energy_balance():.0f}"
+            "⚖️ Balanță estimată",
+            format_kcal_for_display(energy_estimate.get("estimated_balance"), signed=True),
+            delta=format_kcal_for_display(energy_estimate.get("estimated_balance"), signed=True),
+            help="Balanță estimată = calorii consumate - TDEE estimat."
+        )
+        st.caption(
+            "TDEE estimat folosit în balanță: "
+            f"{format_kcal_for_display(energy_estimate.get('estimated_tdee'))} "
+            "(BMR × 1.2 + caloriile activităților logate)."
         )
     else:
         st.info("Nu există antrenamente înregistrate pentru această zi.")

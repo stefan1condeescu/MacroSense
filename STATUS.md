@@ -100,11 +100,12 @@
 - [x] Evaluare ML v1: adăugare raport de evaluare cu backtesting pe date sintetice separate, comparație cu baseline-uri simple (`no_change`, `trend_projection`, `energy_balance_projection`) și sanity checks pentru deficit, surplus și activitate.
 - [x] Stabilizare training ML: adăugare candidați hibrizi conservatori energy-trend, care combină estimarea energetică cu trendul real al greutății și aplică o corecție ML limitată, pentru predicții mai coerente cu istoricul utilizatorului.
 - [x] Dashboard v2 predicție greutate: pagina `Acasă` afișează vizibil predicții ML pentru 14 și 30 zile imediat sub starea curentă, cu fallback la cea mai recentă zi cu date suficiente.
-- [x] Actualizare seed demo: `seed_demo_users.sql` extinde utilizatorii demo cu date până la 18.05.2026 și calibrează consumul alimentar recent astfel încât predicțiile ML să fie mai consistente cu trendul real al greutății.
+- [x] Actualizare seed demo: `seed_demo_users.sql` extinde utilizatorii demo cu date până la 23.05.2026 și calibrează consumul alimentar recent astfel încât predicțiile ML să fie mai consistente cu trendul real al greutății.
 - [x] Stabilizare ML/Dashboard v2: artefactele au fost regenerate pe 50 utilizatori sintetici și 150 zile de istoric, metadata salvează contextul de training, dashboard-ul tratează zilele incomplete cu fallback controlat, iar tabelele selectabile din Jurnal Alimentar, Jurnal Activități și Mese Personalizate nu mai trunchiază catalogul la primele 40 de rânduri.
+- [x] Simulator What-if v1: adăugare pagină read-only pentru scenarii alimentare și activități, cu modificare doar în sesiune, comparație valori reale vs scenariu simulat, impact teoretic 14/30 zile și validări în UI + servicii pure + protecție prin lipsa oricărei scrieri în DB.
 
 ## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Analiză și implementare Simulator What-if read-only pentru scenarii calorice și activitate fizică, fără salvare în jurnalul real.
+- [ ] Verificare manuală UI pentru Simulator What-if și decizie scope următor: recomandări explicabile sau polish Dashboard.
 
 ## 🔴 Ce urmează (Backlog):
 - [ ] Recomandări explicabile pe baza indicatorilor existenți: mese, proteine/kg, consistență și activitate fizică.
@@ -112,4 +113,5 @@
 - [ ] Recomandări personalizate de antrenamente.
 - [ ] Discuție decizie scope ML final: păstrăm doar predicția greutății 14/30 zile + What-if determinist sau adăugăm recomandări simple explicabile.
 - [ ] Extindere Dashboard cu recomandări personalizate, dacă rămâne timp după Simulatorul What-if.
+- [ ] Opțional: trigger-e DB pentru sincronizarea automată a totalurilor din `daily_logs` după modificări directe în `food_logs`/`activity_logs`; amânat pentru a evita complexitate inutilă în acest milestone.
 - [ ] Sincronizare documentație licență/diagrame după finalizarea funcționalităților principale.
