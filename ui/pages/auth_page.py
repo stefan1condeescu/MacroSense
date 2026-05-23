@@ -106,33 +106,37 @@ def render_auth_page() -> None:
                     st.error(get_registration_error_message(new_user.last_error_code))
        
     elif choice == "Autentificare":
-        st.subheader("Intră în contul tău")
-        with st.form("login_form"):
-            email = st.text_input("Email")
-            password = st.text_input("Parolă", type="password")
-            submit_login = st.form_submit_button("Login", type="primary")
-            
-            if submit_login:
-                # Frontend Validation for Login
-                cleaned_email = email.strip()
-                if not cleaned_email or not password.strip():
-                    st.warning("Te rog să introduci adresa de email și parola.")
-                else:
-                    # 1. Attempt to authenticate as Admin
-                    admin_account = Admin(cleaned_email)
-                    if admin_account.authenticate(password):
-                        st.session_state['role'] = 'admin'
-                        st.session_state['logged_in_email'] = admin_account.email
-                        st.session_state['admin_access_level'] = admin_account.access_level
-                        st.rerun()
+        login_slot = st.empty()
+        with login_slot.container():
+            st.subheader("Intră în contul tău")
+            with st.form("login_form"):
+                email = st.text_input("Email")
+                password = st.text_input("Parolă", type="password")
+                submit_login = st.form_submit_button("Login", type="primary")
+
+                if submit_login:
+                    # Frontend Validation for Login
+                    cleaned_email = email.strip()
+                    if not cleaned_email or not password.strip():
+                        st.warning("Te rog să introduci adresa de email și parola.")
                     else:
-                        # 2. Attempt to authenticate as standard User
-                        user_account = User(cleaned_email)
-                        if user_account.authenticate(password):
-                            st.session_state['role'] = 'user'
-                            st.session_state['logged_in_email'] = user_account.email
-                            st.session_state['user_full_name'] = user_account.full_name
-                            st.session_state['user_id'] = user_account.id
+                        # 1. Attempt to authenticate as Admin
+                        admin_account = Admin(cleaned_email)
+                        if admin_account.authenticate(password):
+                            st.session_state['role'] = 'admin'
+                            st.session_state['logged_in_email'] = admin_account.email
+                            st.session_state['admin_access_level'] = admin_account.access_level
+                            login_slot.empty()
                             st.rerun()
                         else:
-                            st.error("Email sau parolă incorecte.")
+                            # 2. Attempt to authenticate as standard User
+                            user_account = User(cleaned_email)
+                            if user_account.authenticate(password):
+                                st.session_state['role'] = 'user'
+                                st.session_state['logged_in_email'] = user_account.email
+                                st.session_state['user_full_name'] = user_account.full_name
+                                st.session_state['user_id'] = user_account.id
+                                login_slot.empty()
+                                st.rerun()
+                            else:
+                                st.error("Email sau parolă incorecte.")

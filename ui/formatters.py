@@ -33,3 +33,20 @@ def format_food_entries_for_display(dataframe: pd.DataFrame) -> pd.DataFrame:
     if "Ora" in visible_dataframe.columns:
         visible_dataframe["Ora"] = visible_dataframe["Ora"].apply(format_time_for_display)
     return visible_dataframe
+
+
+def format_kcal_for_display(value, signed: bool = False) -> str:
+    """Formats kcal values consistently across dashboard-adjacent UI sections."""
+    if value is None:
+        return "-"
+
+    try:
+        if pd.isna(value):
+            return "-"
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return "-"
+
+    if signed:
+        return f"{numeric_value:+.0f} kcal"
+    return f"{numeric_value:.0f} kcal"

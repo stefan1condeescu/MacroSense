@@ -176,7 +176,7 @@ def _render_current_state(current: dict[str, Any]) -> None:
                 ),
             },
             {
-                "label": "Calorii arse azi",
+                "label": "Calorii activități azi",
                 "value": _format_kcal_zero(current.get("today_activity_calories")),
                 "accent": "activity",
                 "help": (
@@ -486,7 +486,7 @@ def _render_interval_summary(data: dict[str, Any]) -> None:
     _render_card_grid(
         [
             {
-                "label": "Calorii arse totale",
+                "label": "Calorii activități totale",
                 "value": _format_kcal_zero(summary.get("activity_total_calories")),
                 "accent": "activity",
                 "help": "Totalul caloriilor arse prin antrenamente în intervalul selectat.",
@@ -734,10 +734,10 @@ def _render_activity_section(data: dict[str, Any]) -> None:
         .mark_bar(color=ACTIVITY_COLOR, opacity=0.85)
         .encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("Calorii arse:Q", title="kcal"),
+            y=alt.Y("Calorii activități:Q", title="kcal"),
             tooltip=[
                 alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                alt.Tooltip("Calorii arse:Q", title="Calorii arse", format=".0f"),
+                alt.Tooltip("Calorii activități:Q", title="Calorii activități", format=".0f"),
                 alt.Tooltip("Status:N", title="Status"),
             ],
         )
@@ -763,7 +763,7 @@ def _render_activity_section(data: dict[str, Any]) -> None:
             "calculation_method": "Metodă",
             "entries_count": "Înregistrări",
             "total_duration_min": "Durată totală (min)",
-            "total_calories_burned": "Calorii arse",
+            "total_calories_burned": "Calorii activități",
         }
     )
     st.dataframe(
@@ -772,7 +772,7 @@ def _render_activity_section(data: dict[str, Any]) -> None:
         width="stretch",
         column_config={
             "Durată totală (min)": st.column_config.NumberColumn(format="%.1f"),
-            "Calorii arse": st.column_config.NumberColumn(format="%.1f kcal"),
+            "Calorii activități": st.column_config.NumberColumn(format="%.1f kcal"),
         },
     )
 
@@ -835,7 +835,7 @@ def _prepare_daily_rows(daily_rows: pd.DataFrame) -> pd.DataFrame:
     chart_rows["Balanță kcal"] = pd.to_numeric(
         chart_rows["estimated_balance"], errors="coerce"
     )
-    chart_rows["Calorii arse"] = pd.to_numeric(
+    chart_rows["Calorii activități"] = pd.to_numeric(
         chart_rows["activity_calories_burned"], errors="coerce"
     ).fillna(0.0)
     return chart_rows

@@ -45,7 +45,7 @@ class DashboardPageHelperTests(unittest.TestCase):
         self.assertEqual(
             prepared_rows["DataOrder"].tolist(), ["2026-05-06", "2026-05-07"]
         )
-        self.assertEqual(prepared_rows["Calorii arse"].tolist(), [300, 0])
+        self.assertEqual(prepared_rows["Calorii activități"].tolist(), [300, 0])
 
     def test_macro_chart_rows_keep_date_labels_for_melted_chart(self):
         rows = pd.DataFrame(

@@ -87,6 +87,29 @@ def get_dashboard_data(
             conn.close()
 
 
+def get_daily_energy_estimate(user_id: int, target_date: date) -> dict[str, Any]:
+    """Returns the dashboard-compatible energy estimate for one calendar day."""
+    data = get_dashboard_data(user_id, days=1, end_date=target_date)
+    daily_row = _get_daily_row(data.get("daily_rows", pd.DataFrame()), target_date)
+    if daily_row is None:
+        return {}
+
+    return {
+        "log_date": _to_date(daily_row.get("log_date")),
+        "reference_weight_kg": _optional_float(daily_row.get("reference_weight_kg")),
+        "base_tdee": _optional_float(daily_row.get("base_tdee")),
+        "estimated_tdee": _optional_float(daily_row.get("estimated_tdee")),
+        "estimated_balance": _optional_float(daily_row.get("estimated_balance")),
+        "activity_calories_burned": _optional_float(
+            daily_row.get("activity_calories_burned")
+        ),
+        "food_calories_in": _optional_float(daily_row.get("food_calories_in")),
+        "has_food_logs": bool(daily_row.get("has_food_logs")),
+        "has_activity_logs": bool(daily_row.get("has_activity_logs")),
+        "activity_breakdown": data.get("activity_breakdown", pd.DataFrame()),
+    }
+
+
 def empty_dashboard_data(
     days: int = DEFAULT_DASHBOARD_DAYS,
     start_date: date | None = None,
@@ -754,4 +777,10 @@ def _get_daily_row(daily_rows: pd.DataFrame, target_date: date) -> pd.Series | N
 def _safe_float(value: Any) -> float:
     if value is None or pd.isna(value):
         return 0.0
+    return float(value)
+
+
+def _optional_float(value: Any) -> float | None:
+    if value is None or pd.isna(value):
+        return None
     return float(value)
