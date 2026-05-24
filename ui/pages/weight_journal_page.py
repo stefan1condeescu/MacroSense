@@ -4,6 +4,9 @@ from models.tracking import WeightLog
 from ui.tables import render_weight_log_cards
 
 
+WEIGHT_LOG_ADD_DATE_KEY_PREFIX = "weight_log_add_date_"
+
+
 def render_weight_journal_page() -> None:
     st.header("⚖️ Jurnal Greutate")
 
@@ -139,7 +142,7 @@ def render_weight_journal_page() -> None:
                 "Data măsurării",
                 value=datetime.date.today(),
                 max_value=today,
-                key=f"weight_log_add_date_{weight_widget_version}"
+                key=f"{WEIGHT_LOG_ADD_DATE_KEY_PREFIX}{weight_widget_version}"
             )
         with col_add2:
             weight_kg = st.number_input(

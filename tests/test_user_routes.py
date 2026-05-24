@@ -31,7 +31,17 @@ class UserRoutesTests(unittest.TestCase):
         self.assertIn("USER_LAST_RENDERED_PAGE_KEY", source)
         self.assertIn("last_rendered_page is None", source)
         self.assertIn("elif last_rendered_page != choice", source)
+        self.assertIn("_reset_journal_date_selectors()", source)
         self.assertIn("st.rerun()", source)
+
+    def test_user_routes_reset_journal_date_selectors_on_page_change(self):
+        source = inspect.getsource(user_routes)
+
+        self.assertIn("FOOD_JOURNAL_DATE_KEY", source)
+        self.assertIn("ACTIVITY_JOURNAL_DATE_KEY", source)
+        self.assertIn("WEIGHT_LOG_ADD_DATE_KEY_PREFIX", source)
+        self.assertIn("JOURNAL_DATE_SELECTOR_KEYS", source)
+        self.assertIn("JOURNAL_DATE_SELECTOR_PREFIXES", source)
 
 
 if __name__ == "__main__":

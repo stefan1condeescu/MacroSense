@@ -43,6 +43,7 @@ class ArchitectureImportTests(unittest.TestCase):
             "ui.activity_validation",
             "ui.food_selection",
             "ui.formatters",
+            "ui.journal_energy_summary",
             "ui.quantity_validation",
             "ui.tables",
             "ui.pages.activity_journal_page",

@@ -3,19 +3,26 @@ import streamlit as st
 from models.tracking import CustomMeal, DailyLog, FoodItem, FoodLog
 from services.analytics.dashboard_data import get_daily_energy_estimate
 from ui.food_selection import build_food_selection_dataframe, build_food_selection_state_key, get_food_category_filter_options
-from ui.formatters import format_food_entries_for_display, format_kcal_for_display, format_time_for_display
+from ui.formatters import format_food_entries_for_display, format_time_for_display
+from ui.journal_energy_summary import render_daily_energy_summary
 from ui.quantity_validation import quantity_range_help, validate_quantity_g
 from ui.tables import get_table_height, render_food_log_cards
 
 
 MEAL_TYPES = list(FoodLog.VALID_MEAL_TYPES)
+FOOD_JOURNAL_DATE_KEY = "food_journal_selected_date"
 
 
 def render_food_journal_page() -> None:
     st.header("📔 Jurnal Alimentar")
 
     today = datetime.date.today()
-    selected_date = st.date_input("Selectează ziua:", value=today, max_value=today)
+    selected_date = st.date_input(
+        "Selectează ziua:",
+        value=today,
+        max_value=today,
+        key=FOOD_JOURNAL_DATE_KEY,
+    )
     date_is_future = selected_date > today
     food_log_message = st.session_state.pop("food_log_msg", None)
     if "food_log_widget_version" not in st.session_state:
@@ -52,6 +59,7 @@ def render_food_journal_page() -> None:
         st.error("Nu poți salva înregistrări alimentare pentru o dată viitoare.")
 
     daily_log = None if date_is_future else DailyLog.get_for_date(user_id, selected_date)
+    energy_estimate = {} if date_is_future else get_daily_energy_estimate(user_id, selected_date)
     
     def show_food_log_message(message):
         if not message:
@@ -67,6 +75,8 @@ def render_food_journal_page() -> None:
         return f"{row['Tip']} - {row['Aliment / Masă']} ({row['Cantitate (g)']}g, {row['Masă']}, {meal_time})"
     
     show_food_log_message(food_log_message)
+    if not date_is_future:
+        render_daily_energy_summary(energy_estimate)
     
     @st.fragment
     def render_food_entry_panel():
@@ -418,25 +428,3 @@ def render_food_journal_page() -> None:
         render_food_delete_panel()
     else:
         st.info("Nu există înregistrări alimentare pentru această zi. Adaugă primul aliment folosind formularul de mai sus.")
-
-    if daily_log:
-        st.divider()
-        energy_estimate = get_daily_energy_estimate(user_id, selected_date)
-        col1, col2, col3, col4 = st.columns(4)
-        col1.metric("🍽️ Calorii consumate", f"{daily_log.total_calories_in:.0f} kcal")
-        col2.metric(
-            "🔥 Calorii activități",
-            f"{daily_log.total_calories_burned:.0f} kcal",
-            help="Doar caloriile arse prin activități logate în această zi.",
-        )
-        col3.metric(
-            "🧮 TDEE estimat",
-            format_kcal_for_display(energy_estimate.get("estimated_tdee")),
-            help="TDEE estimat = BMR × 1.2 + caloriile activităților logate.",
-        )
-        col4.metric(
-            "⚖️ Balanță estimată",
-            format_kcal_for_display(energy_estimate.get("estimated_balance"), signed=True),
-            delta=format_kcal_for_display(energy_estimate.get("estimated_balance"), signed=True),
-            help="Balanță estimată = calorii consumate - TDEE estimat.",
-        )

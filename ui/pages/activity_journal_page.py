@@ -15,8 +15,11 @@ from ui.activity_validation import (
     validate_reps,
     validate_sets,
 )
-from ui.formatters import format_kcal_for_display
+from ui.journal_energy_summary import render_daily_energy_summary
 from ui.tables import get_table_height, render_activity_log_cards
+
+
+ACTIVITY_JOURNAL_DATE_KEY = "activity_journal_selected_date"
 
 
 def _float_or_zero(value: Any) -> float:
@@ -45,7 +48,12 @@ def render_activity_journal_page() -> None:
     st.header("🏋️‍♂️ Jurnal Activități Fizice")
 
     today = datetime.date.today()
-    selected_date = st.date_input("Selectează ziua:", value=today, max_value=today)
+    selected_date = st.date_input(
+        "Selectează ziua:",
+        value=today,
+        max_value=today,
+        key=ACTIVITY_JOURNAL_DATE_KEY,
+    )
     date_is_future = selected_date > today
     activity_log_message = st.session_state.pop("activity_log_msg", None)
     if "activity_log_widget_version" not in st.session_state:
@@ -87,6 +95,7 @@ def render_activity_journal_page() -> None:
         st.error("Nu poți salva antrenamente pentru o dată viitoare.")
 
     daily_log = None if date_is_future else DailyLog.get_for_date(user_id, selected_date)
+    energy_estimate = {} if date_is_future else get_daily_energy_estimate(user_id, selected_date)
     
     def show_activity_log_message(message):
         if not message:
@@ -194,6 +203,8 @@ def render_activity_journal_page() -> None:
         return str(value)
     
     show_activity_log_message(activity_log_message)
+    if not date_is_future:
+        render_daily_energy_summary(energy_estimate)
     weight_reference = WeightLog.get_reference_for_user(user_id, selected_date)
     if weight_reference["uses_future_reference"] and weight_reference["source_date"]:
         st.warning(
@@ -550,54 +561,6 @@ def render_activity_journal_page() -> None:
     
         render_activity_edit_panel()
         render_activity_delete_panel()
-    
-        st.divider()
-        energy_estimate = get_daily_energy_estimate(user_id, selected_date)
-        col1, col2, col3 = st.columns(3)
-        activity_breakdown = energy_estimate.get("activity_breakdown")
-        if activity_breakdown is not None and not activity_breakdown.empty:
-            cals_strength = _sum_activity_breakdown_category(activity_breakdown, "Forță")
-        else:
-            cals_strength = _float_or_zero(
-                df_entries[df_entries["Categorie"] == "Forță"]["Calorii Arse"].sum()
-            )
-        total_burned = _float_or_zero(daily_log.total_calories_burned)
-        cals_cardio_other = max(0.0, total_burned - cals_strength)
-        
-        col1.metric(
-            "🏋️ Calorii Forță",
-            f"{cals_strength:.0f} kcal",
-            help="Calculate pe baza modelului Time Under Tension (TUT) sau a valorii manuale, dacă a fost introdusă."
-        )
-        col2.metric(
-            "🏃 Calorii Cardio & Altele",
-            f"{cals_cardio_other:.0f} kcal",
-            help="Calculate pe baza formulei standard MET × Greutate × Durată sau a valorii manuale, dacă a fost introdusă."
-        )
-        col3.metric(
-            "🔥 Total Calorii Arse",
-            f"{total_burned:.0f} kcal",
-            help="Suma tuturor caloriilor arse în această zi (Forță + Cardio & Altele)."
-        )
-    
-        st.markdown("<br>", unsafe_allow_html=True)
-    
-        _, col4, col5, _ = st.columns([0.5, 1, 1, 0.5])
-        col4.metric(
-            "🍽️ Calorii Consumate",
-            f"{daily_log.total_calories_in:.0f} kcal",
-            help="Total calorii consumate din alimentație în această zi."
-        )
-        col5.metric(
-            "⚖️ Balanță estimată",
-            format_kcal_for_display(energy_estimate.get("estimated_balance"), signed=True),
-            delta=format_kcal_for_display(energy_estimate.get("estimated_balance"), signed=True),
-            help="Balanță estimată = calorii consumate - TDEE estimat."
-        )
-        st.caption(
-            "TDEE estimat folosit în balanță: "
-            f"{format_kcal_for_display(energy_estimate.get('estimated_tdee'))} "
-            "(BMR × 1.2 + caloriile activităților logate)."
-        )
+        return
     else:
         st.info("Nu există antrenamente înregistrate pentru această zi.")

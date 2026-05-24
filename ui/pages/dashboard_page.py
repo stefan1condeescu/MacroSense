@@ -14,6 +14,11 @@ from services.ml.prediction import (
     UserWeightPredictions,
     get_latest_available_user_weight_predictions,
 )
+from services.recommendations.simple_recommendations import (
+    RECOMMENDATION_DAYS,
+    RecommendationCard,
+    build_dashboard_recommendation_cards,
+)
 
 
 INTERVAL_OPTIONS = {
@@ -64,7 +69,8 @@ def render_dashboard_page() -> None:
         return
 
     _render_current_state(data.get("current", {}))
-    _render_weight_prediction_section(user_id, data.get("end_date"))
+    prediction_result = _render_weight_prediction_section(user_id, data.get("end_date"))
+    _render_recommendation_section(user_id, days, data, prediction_result)
 
     st.divider()
     st.subheader("Evoluție pe interval")
@@ -200,19 +206,19 @@ def _render_current_state(current: dict[str, Any]) -> None:
     status_messages = []
     if not current.get("today_has_food_logs"):
         status_messages.append(
-            "Astăzi nu ai alimente logate; consumul și balanța de azi rămân "
-            "nelogate, nu 0 kcal."
+            "Adaugă mesele de azi ca să vezi consumul și balanța energetică."
         )
     if not current.get("today_has_activity_logs"):
         status_messages.append(
-            "Astăzi nu ai antrenamente logate; activitatea de azi este tratată "
-            "ca 0 kcal, ca zi de repaus."
+            "Fără antrenamente azi: activitatea logată este 0 kcal, deci ziua este considerată de repaus."
         )
     if status_messages:
         st.info(" ".join(status_messages))
 
 
-def _render_weight_prediction_section(user_id: int, analysis_date: date | None) -> None:
+def _render_weight_prediction_section(
+    user_id: int, analysis_date: date | None
+) -> UserWeightPredictions | None:
     st.subheader("Predicție greutate")
 
     try:
@@ -227,7 +233,7 @@ def _render_weight_prediction_section(user_id: int, analysis_date: date | None) 
             "Predicția ML nu este disponibilă momentan. Verifică modelele "
             "antrenate și conexiunea la baza de date."
         )
-        return
+        return None
 
     cards = _build_weight_prediction_cards(prediction_result)
     _render_card_grid(cards, columns_count=2)
@@ -244,6 +250,52 @@ def _render_weight_prediction_section(user_id: int, analysis_date: date | None) 
             "Predicția apare după ce există suficiente alimente, cântăriri și "
             "modele ML antrenate pentru utilizatorul curent."
         )
+
+    return prediction_result
+
+
+def _render_recommendation_section(
+    user_id: int,
+    selected_days: int,
+    dashboard_data: dict[str, Any],
+    prediction_result: UserWeightPredictions | None,
+) -> None:
+    recommendation_data = dashboard_data
+    if selected_days != RECOMMENDATION_DAYS:
+        try:
+            recommendation_data = get_dashboard_data(
+                user_id=int(user_id),
+                days=RECOMMENDATION_DAYS,
+            )
+        except RuntimeError:
+            recommendation_data = dashboard_data
+
+    st.subheader("Recomandări")
+    st.caption(f"Pe baza ultimelor {RECOMMENDATION_DAYS} zile.")
+    cards = build_dashboard_recommendation_cards(
+        recommendation_data,
+        prediction_result,
+    )
+    _render_recommendation_grid(cards)
+
+
+def _render_recommendation_grid(cards: list[RecommendationCard]) -> None:
+    columns = st.columns(4)
+    for index, card in enumerate(cards):
+        with columns[index % 4]:
+            st.markdown(_build_recommendation_card_html(card), unsafe_allow_html=True)
+
+
+def _build_recommendation_card_html(card: RecommendationCard) -> str:
+    return "".join(
+        [
+            f'<div class="recommendation-card {escape(card.accent)}">',
+            f'<div class="recommendation-card-category">{escape(card.category)}</div>',
+            f'<div class="recommendation-card-status">{escape(card.status)}</div>',
+            f'<div class="recommendation-card-message">{escape(card.message)}</div>',
+            "</div>",
+        ]
+    )
 
 
 def _build_weight_prediction_cards(

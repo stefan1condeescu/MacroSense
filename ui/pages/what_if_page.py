@@ -53,13 +53,36 @@ WHAT_IF_FOOD_ROWS_KEY = "what_if_food_rows"
 WHAT_IF_ACTIVITY_ROWS_KEY = "what_if_activity_rows"
 WHAT_IF_COUNTER_KEY = "what_if_counter"
 WHAT_IF_FORCE_RESET_KEY = "what_if_force_reset"
+WHAT_IF_LAST_VALID_CONTEXT_KEY = "what_if_last_valid_context"
+WHAT_IF_LAST_VALID_COMPARISON_KEY = "what_if_last_valid_comparison"
+WHAT_IF_WIDGET_VERSION_KEY = "what_if_widget_version"
+WHAT_IF_WIDGET_RESET_KEYS = (
+    "what_if_food_search",
+    "what_if_food_category_filter",
+    "what_if_add_food_quantity",
+    "what_if_custom_meal_select",
+    "what_if_add_custom_meal_quantity",
+    "what_if_activity_search",
+    "what_if_activity_category_filter",
+    "what_if_add_activity_duration",
+)
 WHAT_IF_WIDGET_RESET_PREFIXES = (
     "what_if_food_quantity_",
+    "what_if_food_search_",
+    "what_if_food_category_filter_",
+    "what_if_food_selection_table_",
+    "what_if_add_food_quantity_",
+    "what_if_custom_meal_select_",
+    "what_if_add_custom_meal_quantity_",
     "what_if_activity_duration_",
     "what_if_activity_sets_",
     "what_if_activity_reps_",
     "what_if_activity_manual_toggle_",
     "what_if_activity_manual_",
+    "what_if_activity_search_",
+    "what_if_activity_category_filter_",
+    "what_if_activity_selection_table_",
+    "what_if_add_activity_duration_",
 )
 REFERENCE_CONTEXT_COLUMN_WEIGHTS = [2, 0.01, 1, 1]
 
@@ -130,10 +153,7 @@ def render_what_if_page() -> None:
 
     errors = real_errors + simulated_errors
     if errors:
-        st.error(errors[0])
-        if len(errors) > 1:
-            st.caption(_format_remaining_error_count(len(errors) - 1))
-        st.info("Corectează valorile invalide pentru a vedea rezultatul What-if.")
+        _render_invalid_scenario_result(errors)
         return
 
     st.divider()
@@ -141,6 +161,7 @@ def render_what_if_page() -> None:
         calculate_totals(real_food_entries, real_activity_entries, base_tdee),
         calculate_totals(simulated_food_entries, simulated_activity_entries, base_tdee),
     )
+    _remember_valid_comparison(comparison)
     _render_comparison(comparison)
 
 
@@ -156,7 +177,8 @@ def _sync_scenario_state(
     )
     force_reset = bool(st.session_state.pop(WHAT_IF_FORCE_RESET_KEY, False))
     if force_reset or st.session_state.get(WHAT_IF_CONTEXT_KEY) != context_key:
-        _clear_scenario_widget_state()
+        _reset_scenario_widget_state()
+        _clear_last_valid_comparison()
         st.session_state[WHAT_IF_CONTEXT_KEY] = context_key
         food_rows = copy.deepcopy(real_food_rows)
         activity_rows = _prepare_activity_rows(copy.deepcopy(real_activity_rows))
@@ -199,8 +221,41 @@ def _scenario_source_fingerprint(
 
 def _clear_scenario_widget_state() -> None:
     for key in list(st.session_state.keys()):
-        if any(str(key).startswith(prefix) for prefix in WHAT_IF_WIDGET_RESET_PREFIXES):
+        if key in WHAT_IF_WIDGET_RESET_KEYS or any(
+            str(key).startswith(prefix) for prefix in WHAT_IF_WIDGET_RESET_PREFIXES
+        ):
             st.session_state.pop(key, None)
+
+
+def _reset_scenario_widget_state() -> None:
+    _clear_scenario_widget_state()
+    current_version = int(st.session_state.get(WHAT_IF_WIDGET_VERSION_KEY, 0))
+    st.session_state[WHAT_IF_WIDGET_VERSION_KEY] = current_version + 1
+
+
+def _versioned_widget_key(base_key: str) -> str:
+    version = int(st.session_state.get(WHAT_IF_WIDGET_VERSION_KEY, 0))
+    return f"{base_key}_{version}"
+
+
+def _clear_last_valid_comparison() -> None:
+    st.session_state.pop(WHAT_IF_LAST_VALID_CONTEXT_KEY, None)
+    st.session_state.pop(WHAT_IF_LAST_VALID_COMPARISON_KEY, None)
+
+
+def _remember_valid_comparison(comparison) -> None:
+    st.session_state[WHAT_IF_LAST_VALID_CONTEXT_KEY] = st.session_state.get(
+        WHAT_IF_CONTEXT_KEY
+    )
+    st.session_state[WHAT_IF_LAST_VALID_COMPARISON_KEY] = comparison
+
+
+def _get_last_valid_comparison():
+    if st.session_state.get(WHAT_IF_LAST_VALID_CONTEXT_KEY) != st.session_state.get(
+        WHAT_IF_CONTEXT_KEY
+    ):
+        return None
+    return st.session_state.get(WHAT_IF_LAST_VALID_COMPARISON_KEY)
 
 
 def _number_input_kwargs(key: str, default_value: Any, **kwargs) -> dict:
@@ -230,6 +285,24 @@ def _format_remaining_error_count(count: int) -> str:
     if count == 1:
         return "Încă o valoare invalidă în scenariu."
     return f"Încă {count} valori invalide în scenariu."
+
+
+def _render_invalid_scenario_result(errors: list[str]) -> None:
+    st.error(errors[0])
+    if len(errors) > 1:
+        st.caption(_format_remaining_error_count(len(errors) - 1))
+
+    last_valid_comparison = _get_last_valid_comparison()
+    if last_valid_comparison is None:
+        st.info("Corectează valorile invalide pentru a vedea rezultatul What-if.")
+        return
+
+    st.info(
+        "Rezultatul de mai jos rămâne ultimul calcul valid; "
+        "valorile invalide nu sunt incluse."
+    )
+    st.divider()
+    _render_comparison(last_valid_comparison)
 
 
 def _prepare_activity_rows(activity_rows: list[dict]) -> list[dict]:
@@ -341,13 +414,13 @@ def _render_add_catalog_food() -> None:
         search_text = st.text_input(
             "Caută aliment",
             placeholder="Ex: banane, broccoli, pui",
-            key="what_if_food_search",
+            key=_versioned_widget_key("what_if_food_search"),
         ).strip()
     with category_col:
         category_filter = st.selectbox(
             "Categorie",
             get_food_category_filter_options(food_options),
-            key="what_if_food_category_filter",
+            key=_versioned_widget_key("what_if_food_category_filter"),
         )
 
     selection_df = build_food_selection_dataframe(food_options, search_text, category_filter)
@@ -373,7 +446,7 @@ def _render_add_catalog_food() -> None:
         key=build_food_selection_state_key(
             search_text,
             category_filter,
-            key_prefix="what_if_food_selection_table",
+            key_prefix=_versioned_widget_key("what_if_food_selection_table"),
         ),
         on_select="rerun",
         selection_mode="single-row",
@@ -389,7 +462,7 @@ def _render_add_catalog_food() -> None:
         value=100.0,
         step=10.0,
         help=quantity_range_help(),
-        key="what_if_add_food_quantity",
+        key=_versioned_widget_key("what_if_add_food_quantity"),
     )
     quantity_error = validate_quantity_g(quantity, "Cantitatea adăugată")
     if quantity_error:
@@ -434,14 +507,14 @@ def _render_add_custom_meal() -> None:
         "Masă personalizată",
         meal_ids,
         format_func=lambda meal_id: meal_options[meal_id]["recipe_name"],
-        key="what_if_custom_meal_select",
+        key=_versioned_widget_key("what_if_custom_meal_select"),
     )
     quantity = st.number_input(
         "Cantitate adăugată (g)",
         value=100.0,
         step=10.0,
         help=quantity_range_help(),
-        key="what_if_add_custom_meal_quantity",
+        key=_versioned_widget_key("what_if_add_custom_meal_quantity"),
     )
     quantity_error = validate_quantity_g(quantity, "Cantitatea adăugată")
     if quantity_error:
@@ -587,13 +660,13 @@ def _render_add_activity_section(reference_weight: float) -> None:
             search_text = st.text_input(
                 "Caută activitate",
                 placeholder="Ex: alergare, flotări, bicicletă",
-                key="what_if_activity_search",
+                key=_versioned_widget_key("what_if_activity_search"),
             ).strip()
         with category_col:
             category_filter = st.selectbox(
                 "Categorie",
                 get_activity_category_filter_options(activity_options),
-                key="what_if_activity_category_filter",
+                key=_versioned_widget_key("what_if_activity_category_filter"),
             )
 
         selection_df = build_activity_selection_dataframe(
@@ -621,7 +694,7 @@ def _render_add_activity_section(reference_weight: float) -> None:
             key=build_activity_selection_state_key(
                 search_text,
                 category_filter,
-                key_prefix="what_if_activity_selection_table",
+                key_prefix=_versioned_widget_key("what_if_activity_selection_table"),
             ),
             on_select="rerun",
             selection_mode="single-row",
@@ -637,7 +710,7 @@ def _render_add_activity_section(reference_weight: float) -> None:
             value=30.0,
             step=5.0,
             help=duration_range_help(),
-            key="what_if_add_activity_duration",
+            key=_versioned_widget_key("what_if_add_activity_duration"),
         )
         duration_error = validate_duration_minutes(duration, "Durata adăugată")
         if duration_error:
