@@ -1,12 +1,26 @@
 import inspect
 import unittest
+from datetime import date
+from types import SimpleNamespace
+from unittest.mock import patch
 
 from ui.pages import what_if_page
 from ui.pages.what_if_page import (
     REFERENCE_CONTEXT_COLUMN_WEIGHTS,
+    WHAT_IF_CONTEXT_KEY,
+    WHAT_IF_FORCE_RESET_KEY,
+    WHAT_IF_LAST_VALID_COMPARISON_KEY,
+    WHAT_IF_LAST_VALID_CONTEXT_KEY,
+    WHAT_IF_WIDGET_VERSION_KEY,
+    _clear_scenario_widget_state,
+    _get_last_valid_comparison,
     _format_remaining_error_count,
     _format_signed_value,
     _format_value,
+    _remember_valid_comparison,
+    _reset_scenario_widget_state,
+    _sync_scenario_state,
+    _versioned_widget_key,
 )
 
 
@@ -45,6 +59,87 @@ class WhatIfPageHelperTests(unittest.TestCase):
     def test_result_table_keeps_macro_grams_at_one_decimal(self):
         self.assertEqual(_format_value(193.04, "g"), "193.0 g")
         self.assertEqual(_format_signed_value(-0.04, "g"), "-0.0 g")
+
+    def test_full_reset_clears_visible_scenario_widget_state(self):
+        fake_state = {
+            "what_if_food_quantity_real_food_1": 150.0,
+            "what_if_food_search": "orez",
+            "what_if_food_search_3": "paine",
+            "what_if_food_category_filter": "Cereale",
+            "what_if_food_category_filter_3": "Cereale",
+            "what_if_food_selection_table_abcd": {"selection": [0]},
+            "what_if_add_food_quantity": 75.0,
+            "what_if_add_food_quantity_3": 250.0,
+            "what_if_custom_meal_select": 1,
+            "what_if_custom_meal_select_3": 1,
+            "what_if_add_custom_meal_quantity": 125.0,
+            "what_if_add_custom_meal_quantity_3": 300.0,
+            "what_if_activity_duration_real_activity_1": 45.0,
+            "what_if_activity_sets_real_activity_1": 4,
+            "what_if_activity_reps_real_activity_1": 12,
+            "what_if_activity_manual_toggle_real_activity_1": True,
+            "what_if_activity_manual_real_activity_1": 300.0,
+            "what_if_activity_search": "alergare",
+            "what_if_activity_search_3": "alergare",
+            "what_if_activity_category_filter": "Cardio",
+            "what_if_activity_category_filter_3": "Cardio",
+            "what_if_activity_selection_table_abcd": {"selection": [0]},
+            "what_if_add_activity_duration": 20.0,
+            "what_if_add_activity_duration_3": 45.0,
+            "what_if_selected_date": "kept",
+            WHAT_IF_WIDGET_VERSION_KEY: 3,
+        }
+
+        with patch.object(what_if_page, "st", SimpleNamespace(session_state=fake_state)):
+            _clear_scenario_widget_state()
+
+        self.assertEqual(
+            fake_state,
+            {"what_if_selected_date": "kept", WHAT_IF_WIDGET_VERSION_KEY: 3},
+        )
+
+    def test_force_reset_bumps_widget_version_for_fresh_add_inputs(self):
+        fake_state = {
+            WHAT_IF_FORCE_RESET_KEY: True,
+            WHAT_IF_WIDGET_VERSION_KEY: 3,
+            "what_if_food_search_3": "paine",
+            "what_if_add_food_quantity_3": 250.0,
+            "what_if_activity_search_3": "alergare",
+            "what_if_add_activity_duration_3": 45.0,
+        }
+
+        with patch.object(what_if_page, "st", SimpleNamespace(session_state=fake_state)):
+            _sync_scenario_state(
+                user_id=1,
+                selected_date=date(2026, 5, 24),
+                real_food_rows=[],
+                real_activity_rows=[],
+            )
+            self.assertEqual(fake_state[WHAT_IF_WIDGET_VERSION_KEY], 4)
+            self.assertEqual(_versioned_widget_key("what_if_food_search"), "what_if_food_search_4")
+            self.assertNotIn("what_if_food_search_3", fake_state)
+            self.assertNotIn("what_if_add_activity_duration_3", fake_state)
+
+    def test_reset_scenario_widget_state_increments_widget_version(self):
+        fake_state = {WHAT_IF_WIDGET_VERSION_KEY: 7, "what_if_food_search_7": "paine"}
+
+        with patch.object(what_if_page, "st", SimpleNamespace(session_state=fake_state)):
+            _reset_scenario_widget_state()
+
+        self.assertEqual(fake_state, {WHAT_IF_WIDGET_VERSION_KEY: 8})
+
+    def test_last_valid_comparison_is_scoped_to_current_context(self):
+        fake_state = {WHAT_IF_CONTEXT_KEY: "user:date:a"}
+        comparison = object()
+
+        with patch.object(what_if_page, "st", SimpleNamespace(session_state=fake_state)):
+            _remember_valid_comparison(comparison)
+            self.assertIs(_get_last_valid_comparison(), comparison)
+            fake_state[WHAT_IF_CONTEXT_KEY] = "user:date:b"
+            self.assertIsNone(_get_last_valid_comparison())
+
+        self.assertEqual(fake_state[WHAT_IF_LAST_VALID_CONTEXT_KEY], "user:date:a")
+        self.assertIs(fake_state[WHAT_IF_LAST_VALID_COMPARISON_KEY], comparison)
 
 
 if __name__ == "__main__":
