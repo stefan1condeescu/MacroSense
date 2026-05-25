@@ -241,6 +241,14 @@ def build_log_entry_card_html(
     )
 
 
+def get_food_log_card_style(entry_type) -> tuple[str, str]:
+    """Returns card and badge classes for food journal entry types."""
+    normalized_type = str(entry_type or "").strip()
+    if normalized_type == "Masă personalizată":
+        return "custom-meal", "custom-meal"
+    return "food", "food"
+
+
 def render_log_entry_card(
     title,
     badge,
@@ -259,12 +267,13 @@ def render_food_log_cards(dataframe: pd.DataFrame) -> None:
     """Renders food journal entries as compact readable cards."""
     cards_html = []
     for _, row in dataframe.iterrows():
+        card_type, badge_type = get_food_log_card_style(row.get("Tip"))
         cards_html.append(
             build_log_entry_card_html(
                 title=row.get("Aliment / Masă", "-"),
                 badge=row.get("Tip", "-"),
-                card_type="food",
-                badge_type="food",
+                card_type=card_type,
+                badge_type=badge_type,
                 metrics=[
                 ("Cantitate", format_card_number(row.get("Cantitate (g)"), "g")),
                 ("Calorii", format_card_number(row.get("Calorii"), "kcal")),
@@ -301,8 +310,11 @@ def render_activity_log_cards(dataframe: pd.DataFrame) -> None:
     st.markdown(f'<div class="log-entry-list">{"".join(cards_html)}</div>', unsafe_allow_html=True)
 
 
-def render_weight_log_cards(dataframe: pd.DataFrame) -> None:
-    """Renders weight history as compact readable cards."""
+def build_weight_log_cards_html(
+    dataframe: pd.DataFrame,
+    scroll_threshold: int = 6,
+) -> tuple[str, bool]:
+    """Builds weight history cards and marks long lists as scrollable."""
     cards_html = []
     for _, row in dataframe.iterrows():
         cards_html.append(
@@ -316,7 +328,19 @@ def render_weight_log_cards(dataframe: pd.DataFrame) -> None:
                 ],
             )
         )
-    st.markdown(f'<div class="log-entry-list">{"".join(cards_html)}</div>', unsafe_allow_html=True)
+    is_scrollable = len(dataframe) > scroll_threshold
+    list_classes = "log-entry-list weight-history-list"
+    if is_scrollable:
+        list_classes += " is-scrollable"
+    return f'<div class="{list_classes}">{"".join(cards_html)}</div>', is_scrollable
+
+
+def render_weight_log_cards(dataframe: pd.DataFrame) -> None:
+    """Renders weight history as compact readable cards."""
+    cards_html, is_scrollable = build_weight_log_cards_html(dataframe)
+    st.markdown(cards_html, unsafe_allow_html=True)
+    if is_scrollable:
+        st.caption("Istoricul complet este derulabil pentru a păstra pagina compactă.")
 
 
 food_catalog_table_config = {

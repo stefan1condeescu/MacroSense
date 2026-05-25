@@ -13,6 +13,8 @@ from ui.pages.what_if_page import (
     WHAT_IF_LAST_VALID_COMPARISON_KEY,
     WHAT_IF_LAST_VALID_CONTEXT_KEY,
     WHAT_IF_WIDGET_VERSION_KEY,
+    _calculate_activity_row_calories,
+    _calculate_food_row_calories,
     _clear_scenario_widget_state,
     _get_last_valid_comparison,
     _comparison_row,
@@ -91,6 +93,96 @@ class WhatIfPageHelperTests(unittest.TestCase):
         self.assertEqual(row["Scenariu simulat"], "\u2014")
         self.assertEqual(row["Diferență"], "\u2014")
 
+    def test_food_scenario_rows_use_compact_card_controls(self):
+        source = inspect.getsource(what_if_page._render_food_scenario_editor)
+
+        self.assertIn("st.container(border=True)", source)
+        self.assertIn('label_visibility="collapsed"', source)
+        self.assertIn('type="tertiary"', source)
+
+    def test_add_activity_section_matches_activity_journal_inputs(self):
+        source = inspect.getsource(what_if_page._render_add_activity_section)
+
+        self.assertIn("what_if_add_activity_sets", source)
+        self.assertIn("what_if_add_activity_reps", source)
+        self.assertIn("what_if_add_activity_manual_toggle", source)
+        self.assertIn("what_if_add_activity_manual", source)
+        self.assertIn("📌 Seturile și repetările se aplică doar la exerciții de Forță.", source)
+        self.assertIn("🔥 Calorii estimate consumate", source)
+        self.assertIn("_validate_manual_calories_ui(manual_calories)", source)
+        self.assertIn(
+            "manual_calories_burned=manual_calories if use_manual_calories else None",
+            source,
+        )
+
+    def test_add_food_buttons_use_primary_what_if_style(self):
+        catalog_source = inspect.getsource(what_if_page._render_add_catalog_food)
+        custom_meal_source = inspect.getsource(what_if_page._render_add_custom_meal)
+
+        self.assertIn('type="primary"', catalog_source)
+        self.assertIn('type="primary"', custom_meal_source)
+
+    def test_food_row_calories_update_from_current_quantity(self):
+        calories = _calculate_food_row_calories(
+            {
+                "scenario_id": "food_1",
+                "entry_type": "Aliment",
+                "label": "Orez",
+                "quantity_g": 250.0,
+                "calories_100g": 130.0,
+                "protein_100g": 2.7,
+                "carbs_100g": 28.0,
+                "fats_100g": 0.3,
+            }
+        )
+
+        self.assertEqual(calories, 325.0)
+
+    def test_food_row_calories_are_unavailable_for_invalid_quantity(self):
+        calories = _calculate_food_row_calories(
+            {
+                "scenario_id": "food_1",
+                "entry_type": "Aliment",
+                "label": "Orez",
+                "quantity_g": -1.0,
+                "calories_100g": 130.0,
+                "protein_100g": 2.7,
+                "carbs_100g": 28.0,
+                "fats_100g": 0.3,
+            }
+        )
+
+        self.assertIsNone(calories)
+
+    def test_activity_row_calories_update_from_manual_override(self):
+        calories = _calculate_activity_row_calories(
+            {
+                "scenario_id": "activity_1",
+                "label": "Alergare",
+                "category": "Cardio",
+                "duration_min": 35.0,
+                "met": 7.0,
+                "manual_calories_burned": 420.0,
+            },
+            reference_weight=75.0,
+        )
+
+        self.assertEqual(calories, 420.0)
+
+    def test_activity_row_calories_are_unavailable_for_invalid_duration(self):
+        calories = _calculate_activity_row_calories(
+            {
+                "scenario_id": "activity_1",
+                "label": "Alergare",
+                "category": "Cardio",
+                "duration_min": -1.0,
+                "met": 7.0,
+            },
+            reference_weight=75.0,
+        )
+
+        self.assertIsNone(calories)
+
     def test_full_reset_clears_visible_scenario_widget_state(self):
         fake_state = {
             "what_if_food_quantity_real_food_1": 150.0,
@@ -117,6 +209,14 @@ class WhatIfPageHelperTests(unittest.TestCase):
             "what_if_activity_selection_table_abcd": {"selection": [0]},
             "what_if_add_activity_duration": 20.0,
             "what_if_add_activity_duration_3": 45.0,
+            "what_if_add_activity_sets": 3,
+            "what_if_add_activity_sets_3": 4,
+            "what_if_add_activity_reps": 12,
+            "what_if_add_activity_reps_3": 15,
+            "what_if_add_activity_manual_toggle": True,
+            "what_if_add_activity_manual_toggle_3": True,
+            "what_if_add_activity_manual": 240.0,
+            "what_if_add_activity_manual_3": 300.0,
             "what_if_selected_date": "kept",
             WHAT_IF_WIDGET_VERSION_KEY: 3,
         }
@@ -137,6 +237,9 @@ class WhatIfPageHelperTests(unittest.TestCase):
             "what_if_add_food_quantity_3": 250.0,
             "what_if_activity_search_3": "alergare",
             "what_if_add_activity_duration_3": 45.0,
+            "what_if_add_activity_sets_3": 5,
+            "what_if_add_activity_manual_toggle_3": True,
+            "what_if_add_activity_manual_3": 400.0,
         }
 
         with patch.object(what_if_page, "st", SimpleNamespace(session_state=fake_state)):
@@ -150,6 +253,8 @@ class WhatIfPageHelperTests(unittest.TestCase):
             self.assertEqual(_versioned_widget_key("what_if_food_search"), "what_if_food_search_4")
             self.assertNotIn("what_if_food_search_3", fake_state)
             self.assertNotIn("what_if_add_activity_duration_3", fake_state)
+            self.assertNotIn("what_if_add_activity_sets_3", fake_state)
+            self.assertNotIn("what_if_add_activity_manual_3", fake_state)
 
     def test_real_food_metadata_refresh_preserves_simulated_quantity(self):
         real_rows_before = [

@@ -8,7 +8,14 @@ from ui.activity_selection import (
     get_activity_category_filter_options,
 )
 from ui.activity_validation import validate_duration_minutes, validate_reps, validate_sets
-from ui.tables import escape_display_text, filter_activity_catalog_dataframe, filter_food_catalog_dataframe
+from ui.tables import (
+    build_log_entry_card_html,
+    build_weight_log_cards_html,
+    escape_display_text,
+    filter_activity_catalog_dataframe,
+    filter_food_catalog_dataframe,
+    get_food_log_card_style,
+)
 
 
 class TableHelperTests(unittest.TestCase):
@@ -56,6 +63,36 @@ class TableHelperTests(unittest.TestCase):
 
     def test_custom_card_text_is_html_escaped(self):
         self.assertEqual(escape_display_text("<b>Test</b>"), "&lt;b&gt;Test&lt;/b&gt;")
+
+    def test_custom_meal_food_log_cards_use_meal_color_class(self):
+        self.assertEqual(
+            get_food_log_card_style("Masă personalizată"),
+            ("custom-meal", "custom-meal"),
+        )
+
+        card_html = build_log_entry_card_html(
+            title="Bol proteic",
+            badge="Masă personalizată",
+            card_type="custom-meal",
+            badge_type="custom-meal",
+            metrics=[("Calorii", "450 kcal")],
+        )
+
+        self.assertIn("log-entry-card custom-meal", card_html)
+        self.assertIn("log-entry-badge custom-meal", card_html)
+
+    def test_weight_log_cards_become_scrollable_for_long_history(self):
+        weight_rows = pd.DataFrame(
+            [
+                {"Data": f"2026-05-{day:02d}", "Greutate (kg)": 70.0 + day}
+                for day in range(1, 9)
+            ]
+        )
+
+        cards_html, is_scrollable = build_weight_log_cards_html(weight_rows)
+
+        self.assertTrue(is_scrollable)
+        self.assertIn("weight-history-list is-scrollable", cards_html)
 
     def test_food_catalog_search_does_not_crash_on_invalid_regex_text(self):
         filtered = filter_food_catalog_dataframe(self.foods, "[", "Toate", "Toate")

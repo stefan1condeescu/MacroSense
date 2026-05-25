@@ -24,6 +24,7 @@ class UserRoutesTests(unittest.TestCase):
 
         self.assertIn("st.empty()", source)
         self.assertIn("page_slot.container()", source)
+        self.assertIn("apply_page_theme(get_user_page_theme(choice))", source)
 
     def test_user_routes_force_clean_rerun_when_page_changes(self):
         source = inspect.getsource(user_routes.render_user_routes)

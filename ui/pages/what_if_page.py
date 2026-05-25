@@ -65,6 +65,10 @@ WHAT_IF_WIDGET_RESET_KEYS = (
     "what_if_activity_search",
     "what_if_activity_category_filter",
     "what_if_add_activity_duration",
+    "what_if_add_activity_sets",
+    "what_if_add_activity_reps",
+    "what_if_add_activity_manual_toggle",
+    "what_if_add_activity_manual",
 )
 WHAT_IF_WIDGET_RESET_PREFIXES = (
     "what_if_food_quantity_",
@@ -83,6 +87,10 @@ WHAT_IF_WIDGET_RESET_PREFIXES = (
     "what_if_activity_category_filter_",
     "what_if_activity_selection_table_",
     "what_if_add_activity_duration_",
+    "what_if_add_activity_sets_",
+    "what_if_add_activity_reps_",
+    "what_if_add_activity_manual_toggle_",
+    "what_if_add_activity_manual_",
 )
 REFERENCE_CONTEXT_COLUMN_WEIGHTS = [2, 0.01, 1, 1]
 UNAVAILABLE_RESULT_VALUE = "—"
@@ -152,7 +160,7 @@ def render_what_if_page() -> None:
     _render_food_scenario_editor()
     _render_add_food_section()
     st.divider()
-    _render_activity_scenario_editor()
+    _render_activity_scenario_editor(reference_weight)
     _render_add_activity_section(reference_weight)
 
     real_food_entries, real_activity_entries, real_errors = _build_entries(
@@ -337,6 +345,10 @@ def _checkbox_kwargs(key: str, default_value: bool, **kwargs) -> dict:
     return widget_kwargs
 
 
+def _is_strength_category(category: Any) -> bool:
+    return str(category or "").strip() == "Forță"
+
+
 def _render_inline_validation_message(message: str | None) -> None:
     if not message:
         return
@@ -350,6 +362,57 @@ def _format_remaining_error_count(count: int) -> str:
     if count == 1:
         return "Încă o valoare invalidă în scenariu."
     return f"Încă {count} valori invalide în scenariu."
+
+
+def _get_first_error(*errors: str | None) -> str | None:
+    return next((error for error in errors if error), None)
+
+
+def _calculate_food_row_calories(row: dict) -> float | None:
+    try:
+        entry = build_food_entry(
+            entry_id=row.get("scenario_id", "preview"),
+            label=row.get("label"),
+            entry_type=row.get("entry_type"),
+            quantity_g=row.get("quantity_g"),
+            calories_100g=row.get("calories_100g"),
+            protein_100g=row.get("protein_100g"),
+            carbs_100g=row.get("carbs_100g"),
+            fats_100g=row.get("fats_100g"),
+            source_label=row.get("source_label") or "MacroSense",
+            is_existing=row.get("is_existing", False),
+        )
+    except ValueError:
+        return None
+    return entry.calories
+
+
+def _calculate_activity_row_calories(row: dict, reference_weight: float) -> float | None:
+    try:
+        entry = build_activity_entry(
+            entry_id=row.get("scenario_id", "preview"),
+            label=row.get("label"),
+            category=row.get("category"),
+            duration_min=row.get("duration_min"),
+            met=row.get("met"),
+            weight_kg=reference_weight,
+            sets=row.get("sets"),
+            reps=row.get("reps"),
+            manual_calories_burned=row.get("manual_calories_burned"),
+            source_label=row.get("source_label") or "MacroSense",
+            is_existing=row.get("is_existing", False),
+        )
+    except ValueError:
+        return None
+    return entry.calories_burned
+
+
+def _render_scenario_row_calories(calories: float | None) -> None:
+    st.caption("Calorii")
+    if calories is None:
+        st.markdown(f"**{UNAVAILABLE_RESULT_VALUE}**")
+    else:
+        st.markdown(f"**{format_kcal_for_display(calories)}**")
 
 
 def _render_invalid_scenario_result(errors: list[str]) -> None:
@@ -386,7 +449,7 @@ def _prime_scenario_widget_state(food_rows: list[dict], activity_rows: list[dict
         scenario_id = row["scenario_id"]
         manual_calories = row.get("manual_calories_burned")
         st.session_state[f"what_if_activity_duration_{scenario_id}"] = float(row.get("duration_min") or 30.0)
-        if row.get("category") == "Forță":
+        if _is_strength_category(row.get("category")):
             st.session_state[f"what_if_activity_sets_{scenario_id}"] = int(row.get("sets") or 3)
             st.session_state[f"what_if_activity_reps_{scenario_id}"] = int(row.get("reps") or 10)
         st.session_state[f"what_if_activity_manual_toggle_{scenario_id}"] = manual_calories is not None
@@ -410,7 +473,13 @@ def _render_reference_context(
     with weight_col:
         st.metric("Greutate folosită", f"{reference_weight:.1f} kg")
     with reset_col:
-        if st.button("Resetează scenariul", key="what_if_reset_button", width="stretch"):
+        if st.button(
+            "Resetează scenariul",
+            key="what_if_reset_button",
+            width="stretch",
+            type="tertiary",
+            help="Revine la valorile reale ale zilei selectate și golește câmpurile de adăugare.",
+        ):
             st.session_state[WHAT_IF_FORCE_RESET_KEY] = True
             st.rerun()
 
@@ -434,29 +503,40 @@ def _render_food_scenario_editor() -> None:
     for index, row in enumerate(list(rows)):
         scenario_id = row["scenario_id"]
         source_text = _format_source_context(row)
-        name_col, quantity_col, action_col = st.columns([3, 1, 1])
-        with name_col:
-            st.write(f"**{row.get('label', '-')}**")
-            st.caption(source_text)
-        with quantity_col:
-            quantity_key = f"what_if_food_quantity_{scenario_id}"
-            quantity = st.number_input(
-                "Cantitate (g)",
-                **_number_input_kwargs(
-                    quantity_key,
-                    float(row.get("quantity_g") or 100.0),
-                    step=10.0,
-                    help=quantity_range_help(),
-                ),
+        with st.container(border=True):
+            name_col, calories_col, quantity_col, action_col = st.columns(
+                [2.1, 0.85, 1, 0.75],
+                vertical_alignment="center",
             )
-            quantity_error = validate_quantity_g(quantity)
-            _render_inline_validation_message(quantity_error)
-            row["quantity_g"] = float(quantity)
-        with action_col:
-            st.write("")
-            if st.button("Elimină", key=f"what_if_remove_food_{scenario_id}", width="stretch"):
-                st.session_state[WHAT_IF_FOOD_ROWS_KEY].pop(index)
-                st.rerun()
+            with name_col:
+                st.markdown(f"**{row.get('label', '-')}**")
+                st.caption(source_text)
+            with quantity_col:
+                quantity_key = f"what_if_food_quantity_{scenario_id}"
+                quantity = st.number_input(
+                    "Cantitate (g)",
+                    **_number_input_kwargs(
+                        quantity_key,
+                        float(row.get("quantity_g") or 100.0),
+                        step=1.0,
+                        label_visibility="collapsed",
+                        help=quantity_range_help(),
+                    ),
+                )
+                quantity_error = validate_quantity_g(quantity)
+                _render_inline_validation_message(quantity_error)
+                row["quantity_g"] = float(quantity)
+            with calories_col:
+                _render_scenario_row_calories(_calculate_food_row_calories(row))
+            with action_col:
+                if st.button(
+                    "Elimină",
+                    key=f"what_if_remove_food_{scenario_id}",
+                    type="tertiary",
+                    width="stretch",
+                ):
+                    st.session_state[WHAT_IF_FOOD_ROWS_KEY].pop(index)
+                    st.rerun()
 
 
 def _render_add_food_section() -> None:
@@ -533,7 +613,12 @@ def _render_add_catalog_food() -> None:
     if quantity_error:
         _render_inline_validation_message(quantity_error)
 
-    if st.button("Adaugă aliment în scenariu", key="what_if_add_food_button", width="stretch"):
+    if st.button(
+        "Adaugă aliment în scenariu",
+        key="what_if_add_food_button",
+        width="stretch",
+        type="primary",
+    ):
         if selected_food_id is None:
             st.warning("Selectează un aliment din tabel.")
             return
@@ -585,7 +670,12 @@ def _render_add_custom_meal() -> None:
     if quantity_error:
         _render_inline_validation_message(quantity_error)
 
-    if st.button("Adaugă masa în scenariu", key="what_if_add_custom_meal_button", width="stretch"):
+    if st.button(
+        "Adaugă masa în scenariu",
+        key="what_if_add_custom_meal_button",
+        width="stretch",
+        type="primary",
+    ):
         if quantity_error:
             st.error(quantity_error)
             return
@@ -620,7 +710,7 @@ def _render_add_custom_meal() -> None:
         st.rerun()
 
 
-def _render_activity_scenario_editor() -> None:
+def _render_activity_scenario_editor(reference_weight: float) -> None:
     st.markdown("**Activități în scenariu**")
     rows = st.session_state.get(WHAT_IF_ACTIVITY_ROWS_KEY, [])
     if not rows:
@@ -629,88 +719,100 @@ def _render_activity_scenario_editor() -> None:
 
     for index, row in enumerate(list(rows)):
         scenario_id = row["scenario_id"]
-        name_col, duration_col, details_col, action_col = st.columns([3, 1, 2, 1])
-        with name_col:
-            st.write(f"**{row.get('label', '-')}**")
-            st.caption(f"{row.get('category', '-')} | {row.get('source_label', 'MacroSense')}")
-        with duration_col:
-            duration_key = f"what_if_activity_duration_{scenario_id}"
-            duration = st.number_input(
-                "Durată (min)",
-                **_number_input_kwargs(
-                    duration_key,
-                    float(row.get("duration_min") or 30.0),
-                    step=5.0,
-                    help=duration_range_help(),
-                ),
+        with st.container(border=True):
+            name_col, calories_col, duration_col, details_col, action_col = st.columns(
+                [1.9, 0.85, 0.9, 1.5, 0.75],
+                vertical_alignment="center",
             )
-            duration_error = validate_duration_minutes(duration)
-            _render_inline_validation_message(duration_error)
-            row["duration_min"] = float(duration)
-        with details_col:
-            if row.get("category") == "Forță":
-                sets_col, reps_col = st.columns(2)
-                with sets_col:
-                    sets_key = f"what_if_activity_sets_{scenario_id}"
-                    row["sets"] = st.number_input(
-                        "Seturi",
-                        **_number_input_kwargs(
-                            sets_key,
-                            int(row.get("sets") or 3),
-                            step=1,
-                        ),
-                    )
-                    sets_error = validate_sets(row["sets"])
-                    _render_inline_validation_message(sets_error)
-                with reps_col:
-                    reps_key = f"what_if_activity_reps_{scenario_id}"
-                    row["reps"] = st.number_input(
-                        "Repetări",
-                        **_number_input_kwargs(
-                            reps_key,
-                            int(row.get("reps") or 10),
-                            step=1,
-                        ),
-                    )
-                    reps_error = validate_reps(row["reps"])
-                    _render_inline_validation_message(reps_error)
-            manual_toggle_key = f"what_if_activity_manual_toggle_{scenario_id}"
-            use_manual = st.checkbox(
-                "Calorii manuale",
-                **_checkbox_kwargs(
-                    manual_toggle_key,
-                    row.get("manual_calories_burned") is not None,
-                ),
-            )
-            if use_manual:
-                manual_value = (
-                    row.get("manual_calories_burned")
-                    or row.get("last_manual_calories_burned")
-                    or row.get("default_manual_calories_burned")
-                    or 100.0
-                )
-                manual_key = f"what_if_activity_manual_{scenario_id}"
-                row["manual_calories_burned"] = st.number_input(
-                    "Calorii arse",
+            with name_col:
+                st.markdown(f"**{row.get('label', '-')}**")
+                st.caption(f"{row.get('category', '-')} | {row.get('source_label', 'MacroSense')}")
+            with duration_col:
+                duration_key = f"what_if_activity_duration_{scenario_id}"
+                duration = st.number_input(
+                    "Durată (min)",
                     **_number_input_kwargs(
-                        manual_key,
-                        float(manual_value),
-                        step=10.0,
+                        duration_key,
+                        float(row.get("duration_min") or 30.0),
+                        step=5.0,
+                        help=duration_range_help(),
                     ),
                 )
-                row["last_manual_calories_burned"] = row["manual_calories_burned"]
-                manual_error = _validate_manual_calories_ui(row["manual_calories_burned"])
-                _render_inline_validation_message(manual_error)
-            else:
-                if row.get("manual_calories_burned") is not None:
+                duration_error = validate_duration_minutes(duration)
+                _render_inline_validation_message(duration_error)
+                row["duration_min"] = float(duration)
+            with details_col:
+                if _is_strength_category(row.get("category")):
+                    sets_col, reps_col = st.columns(2)
+                    with sets_col:
+                        sets_key = f"what_if_activity_sets_{scenario_id}"
+                        row["sets"] = st.number_input(
+                            "Seturi",
+                            **_number_input_kwargs(
+                                sets_key,
+                                int(row.get("sets") or 3),
+                                step=1,
+                            ),
+                        )
+                        sets_error = validate_sets(row["sets"])
+                        _render_inline_validation_message(sets_error)
+                    with reps_col:
+                        reps_key = f"what_if_activity_reps_{scenario_id}"
+                        row["reps"] = st.number_input(
+                            "Repetări",
+                            **_number_input_kwargs(
+                                reps_key,
+                                int(row.get("reps") or 10),
+                                step=1,
+                            ),
+                        )
+                        reps_error = validate_reps(row["reps"])
+                        _render_inline_validation_message(reps_error)
+                manual_toggle_key = f"what_if_activity_manual_toggle_{scenario_id}"
+                use_manual = st.checkbox(
+                    "Calorii manuale",
+                    **_checkbox_kwargs(
+                        manual_toggle_key,
+                        row.get("manual_calories_burned") is not None,
+                    ),
+                )
+                if use_manual:
+                    manual_value = (
+                        row.get("manual_calories_burned")
+                        or row.get("last_manual_calories_burned")
+                        or row.get("default_manual_calories_burned")
+                        or 100.0
+                    )
+                    manual_key = f"what_if_activity_manual_{scenario_id}"
+                    row["manual_calories_burned"] = st.number_input(
+                        "Calorii arse",
+                        **_number_input_kwargs(
+                            manual_key,
+                            float(manual_value),
+                            step=10.0,
+                        ),
+                    )
                     row["last_manual_calories_burned"] = row["manual_calories_burned"]
-                row["manual_calories_burned"] = None
-                st.session_state.pop(f"what_if_activity_manual_{scenario_id}", None)
-        with action_col:
-            st.write("")
-            if st.button("Elimină", key=f"what_if_remove_activity_{scenario_id}", width="stretch"):
-                st.session_state[WHAT_IF_ACTIVITY_ROWS_KEY].pop(index)
-                st.rerun()
+                    manual_error = _validate_manual_calories_ui(row["manual_calories_burned"])
+                    _render_inline_validation_message(manual_error)
+                else:
+                    if row.get("manual_calories_burned") is not None:
+                        row["last_manual_calories_burned"] = row["manual_calories_burned"]
+                    row["manual_calories_burned"] = None
+                    st.session_state.pop(f"what_if_activity_manual_{scenario_id}", None)
+            with calories_col:
+                _render_scenario_row_calories(
+                    _calculate_activity_row_calories(row, reference_weight)
+                )
+            with action_col:
+                if st.button(
+                    "Elimină",
+                    key=f"what_if_remove_activity_{scenario_id}",
+                    type="tertiary",
+                    width="stretch",
+                ):
+                    st.session_state[WHAT_IF_ACTIVITY_ROWS_KEY].pop(index)
+                    st.rerun()
 
 
 def _render_add_activity_section(reference_weight: float) -> None:
@@ -770,37 +872,127 @@ def _render_add_activity_section(reference_weight: float) -> None:
         if selected_rows and selected_rows[0] < len(selection_df):
             selected_activity_id = int(selection_df.iloc[selected_rows[0]]["_activity_id"])
 
-        duration = st.number_input(
-            "Durată adăugată (min)",
-            value=30.0,
-            step=5.0,
-            help=duration_range_help(),
-            key=_versioned_widget_key("what_if_add_activity_duration"),
-        )
-        duration_error = validate_duration_minutes(duration, "Durata adăugată")
-        if duration_error:
-            _render_inline_validation_message(duration_error)
-
-        if st.button("Adaugă activitatea în scenariu", key="what_if_add_activity_button", width="stretch"):
-            if selected_activity_id is None:
-                st.warning("Selectează o activitate din tabel.")
-                return
-            if duration_error:
-                st.error(duration_error)
-                return
-            activity = activity_options[selected_activity_id]
-            entry = build_activity_entry(
-                entry_id=_next_scenario_id("activity"),
-                label=activity["name"],
-                category=activity.get("category") or "Altele",
-                duration_min=duration,
-                met=activity["met"],
-                weight_kg=reference_weight,
-                sets=3 if activity.get("category") == "Forță" else None,
-                reps=10 if activity.get("category") == "Forță" else None,
-                source_label=activity.get("source_label") or "MacroSense",
-                is_existing=False,
+        selected_activity = activity_options.get(selected_activity_id) if selected_activity_id else None
+        if selected_activity:
+            st.caption(
+                f"Sursă MET: {selected_activity.get('source_label', 'MacroSense')} · "
+                f"{selected_activity.get('met_method_label', 'Manual Admin')}"
             )
+        else:
+            st.caption("Selectează o activitate pentru a calcula estimarea calorică.")
+
+        is_strength = _is_strength_category(selected_activity.get("category")) if selected_activity else False
+        input_col, detail_col = st.columns(2)
+        with input_col:
+            duration = st.number_input(
+                "Durată TOTALĂ sesiune (minute)",
+                value=30.0,
+                step=0.1,
+                help=(
+                    "Timpul total petrecut la acest exercițiu, inclusiv pauzele dintre seturi. "
+                    f"{duration_range_help()}"
+                ),
+                key=_versioned_widget_key("what_if_add_activity_duration"),
+            )
+        with detail_col:
+            if is_strength:
+                sets = st.number_input(
+                    "Seturi",
+                    value=3,
+                    step=1,
+                    key=_versioned_widget_key("what_if_add_activity_sets"),
+                )
+                reps = st.number_input(
+                    "Repetări pe set",
+                    value=12,
+                    step=1,
+                    key=_versioned_widget_key("what_if_add_activity_reps"),
+                )
+            else:
+                st.info("📌 Seturile și repetările se aplică doar la exerciții de Forță.")
+                sets = None
+                reps = None
+
+        calc_sets = sets if is_strength else None
+        calc_reps = reps if is_strength else None
+        duration_error = validate_duration_minutes(duration, "Durata adăugată")
+        sets_error = validate_sets(calc_sets) if is_strength else None
+        reps_error = validate_reps(calc_reps) if is_strength else None
+        estimated_burned = None
+        preview_error = None
+        if selected_activity and not _get_first_error(duration_error, sets_error, reps_error):
+            try:
+                preview_entry = build_activity_entry(
+                    entry_id="preview",
+                    label=selected_activity["name"],
+                    category=selected_activity.get("category") or "Altele",
+                    duration_min=duration,
+                    met=selected_activity["met"],
+                    weight_kg=reference_weight,
+                    sets=calc_sets,
+                    reps=calc_reps,
+                    source_label=selected_activity.get("source_label") or "MacroSense",
+                    is_existing=False,
+                )
+                estimated_burned = preview_entry.calories_burned
+                st.caption(f"🔥 Calorii estimate consumate: **{estimated_burned:.1f} kcal**")
+            except ValueError:
+                preview_error = "Activitatea selectată nu poate fi simulată cu valorile introduse."
+
+        use_manual_calories = st.checkbox(
+            "Folosesc caloriile raportate de ceas/aparat cardio",
+            key=_versioned_widget_key("what_if_add_activity_manual_toggle"),
+            help="Valoarea manuală va înlocui estimarea MET/TUT doar în scenariul simulat.",
+        )
+        manual_calories = None
+        manual_calories_error = None
+        if use_manual_calories:
+            manual_calories = st.number_input(
+                "Calorii arse raportate",
+                value=float(max(1, round(estimated_burned or 1, 1))),
+                step=1.0,
+                key=_versioned_widget_key("what_if_add_activity_manual"),
+            )
+            manual_calories_error = _validate_manual_calories_ui(manual_calories)
+            if not manual_calories_error:
+                st.caption(f"Se va folosi valoarea manuală: **{manual_calories:.1f} kcal**")
+
+        validation_error = _get_first_error(
+            duration_error,
+            sets_error,
+            reps_error,
+            preview_error,
+            manual_calories_error,
+        )
+        if validation_error:
+            st.error(validation_error)
+
+        if st.button(
+            "Adaugă activitatea în scenariu",
+            key="what_if_add_activity_button",
+            width="stretch",
+            type="primary",
+            disabled=selected_activity is None,
+        ):
+            if validation_error:
+                return
+            try:
+                entry = build_activity_entry(
+                    entry_id=_next_scenario_id("activity"),
+                    label=selected_activity["name"],
+                    category=selected_activity.get("category") or "Altele",
+                    duration_min=duration,
+                    met=selected_activity["met"],
+                    weight_kg=reference_weight,
+                    sets=calc_sets,
+                    reps=calc_reps,
+                    manual_calories_burned=manual_calories if use_manual_calories else None,
+                    source_label=selected_activity.get("source_label") or "MacroSense",
+                    is_existing=False,
+                )
+            except ValueError:
+                st.error("Activitatea selectată nu poate fi simulată cu valorile introduse.")
+                return
             st.session_state[WHAT_IF_ACTIVITY_ROWS_KEY].append(
                 {
                     "scenario_id": entry.entry_id,

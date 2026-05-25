@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from ui.pages.admin_catalog_pages import (
+    build_usda_preview_metric_html,
     show_first_validation_error,
     suggest_food_category,
     validate_activity_input,
@@ -74,6 +75,13 @@ class AdminFoodCatalogHelperTests(unittest.TestCase):
         for description, expected_category in examples.items():
             with self.subTest(description=description):
                 self.assertEqual(suggest_food_category(description), expected_category)
+
+    def test_usda_preview_metric_uses_compact_escaped_html(self):
+        html = build_usda_preview_metric_html("Calorii", '519.0 <kcal>')
+
+        self.assertIn('class="usda-preview-metric"', html)
+        self.assertIn("Calorii", html)
+        self.assertIn("519.0 &lt;kcal&gt;", html)
 
     def test_manual_activity_requires_name(self):
         errors = validate_activity_input("", 5.0, "Cardio")

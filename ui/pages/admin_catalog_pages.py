@@ -1,3 +1,4 @@
+import html
 import os
 import re
 import streamlit as st
@@ -44,6 +45,16 @@ def format_usda_result(food: dict) -> str:
     return (
         f"{food['description']} "
         f"({food['data_type']}, {food['calories']:.1f} kcal/100g, FDC {food['fdc_id']})"
+    )
+
+
+def build_usda_preview_metric_html(label: str, value: str) -> str:
+    """Builds a compact metric block for the USDA import preview."""
+    return (
+        '<div class="usda-preview-metric">'
+        f'<span>{html.escape(str(label), quote=True)}</span>'
+        f'<strong>{html.escape(str(value), quote=True)}</strong>'
+        "</div>"
     )
 
 
@@ -124,7 +135,10 @@ def show_admin_activity_catalog_toasts() -> None:
 def render_usda_food_import_panel() -> None:
     with st.expander("Importă aliment din USDA", expanded=False):
         st.caption("Caută alimente nebranduite în FoodData Central și salvează local valorile per 100g.")
-        st.caption("Căutarea USDA funcționează cel mai bine cu termeni în engleză, de exemplu `ice cream`, `salmon`, `orange juice`.")
+        st.caption(
+            "Căutarea USDA funcționează cel mai bine cu termeni în engleză, "
+            'de exemplu "ice cream", "salmon", "orange juice".'
+        )
 
         api_key = get_usda_api_key()
         if not api_key:
@@ -193,10 +207,22 @@ def render_usda_food_import_panel() -> None:
         with st.container(border=True):
             st.markdown("#### Verifică alimentul înainte de import")
             col_cal, col_protein, col_carbs, col_fats = st.columns(4)
-            col_cal.metric("Calorii", f"{selected_food['calories']:.1f} kcal")
-            col_protein.metric("Proteine", f"{selected_food['protein_g']:.1f} g")
-            col_carbs.metric("Carbohidrați", f"{selected_food['carbs_g']:.1f} g")
-            col_fats.metric("Grăsimi", f"{selected_food['fats_g']:.1f} g")
+            col_cal.markdown(
+                build_usda_preview_metric_html("Calorii", f"{selected_food['calories']:.1f} kcal"),
+                unsafe_allow_html=True,
+            )
+            col_protein.markdown(
+                build_usda_preview_metric_html("Proteine", f"{selected_food['protein_g']:.1f} g"),
+                unsafe_allow_html=True,
+            )
+            col_carbs.markdown(
+                build_usda_preview_metric_html("Carbohidrați", f"{selected_food['carbs_g']:.1f} g"),
+                unsafe_allow_html=True,
+            )
+            col_fats.markdown(
+                build_usda_preview_metric_html("Grăsimi", f"{selected_food['fats_g']:.1f} g"),
+                unsafe_allow_html=True,
+            )
             st.link_button(
                 "Deschide sursa în FoodData Central",
                 selected_food["source_url"],
