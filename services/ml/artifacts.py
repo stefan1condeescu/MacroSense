@@ -119,10 +119,30 @@ def predict_weight_change(
 ) -> float:
     """Predict future weight change for one prepared feature row."""
 
-    feature_columns = list(artifact.metadata["feature_columns"])
+    feature_columns = _get_valid_feature_columns(artifact.metadata)
+    missing_columns = [column for column in feature_columns if column not in feature_row]
+    if missing_columns:
+        raise ValueError(
+            "ML feature row is missing columns: "
+            + ", ".join(sorted(missing_columns))
+            + "."
+        )
+
     feature_frame = pd.DataFrame([{column: feature_row[column] for column in feature_columns}])
-    prediction = artifact.model.predict(feature_frame)[0]
-    return round(float(prediction), 3)
+    try:
+        prediction = artifact.model.predict(feature_frame)[0]
+        return round(float(prediction), 3)
+    except Exception as exc:
+        raise RuntimeError(f"ML model prediction failed: {exc}") from exc
+
+
+def _get_valid_feature_columns(metadata: dict[str, Any]) -> list[str]:
+    feature_columns = metadata.get("feature_columns")
+    if not isinstance(feature_columns, list) or not feature_columns:
+        raise ValueError("ML artifact metadata has no feature columns.")
+    if not all(isinstance(column, str) and column.strip() for column in feature_columns):
+        raise ValueError("ML artifact metadata has invalid feature columns.")
+    return list(feature_columns)
 
 
 def _build_metadata(
@@ -153,5 +173,4 @@ def _validate_metadata(metadata: dict[str, Any], expected_horizon_days: int) -> 
         raise ValueError("Unsupported ML artifact problem type.")
     if int(metadata.get("horizon_days", -1)) != int(expected_horizon_days):
         raise ValueError("ML artifact horizon does not match the requested horizon.")
-    if not metadata.get("feature_columns"):
-        raise ValueError("ML artifact metadata has no feature columns.")
+    _get_valid_feature_columns(metadata)

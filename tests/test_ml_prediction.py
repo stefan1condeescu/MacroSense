@@ -1,5 +1,6 @@
 from datetime import date
 from tempfile import TemporaryDirectory
+from types import SimpleNamespace
 import unittest
 
 import pandas as pd
@@ -186,6 +187,97 @@ class MLPredictionTests(unittest.TestCase):
 
         self.assertEqual(result.predictions, [])
         self.assertIn(14, result.unavailable_horizons)
+
+    def test_prediction_reports_bad_artifact_metrics_for_one_horizon_only(self):
+        import services.ml.prediction as prediction_module
+
+        original_load = prediction_module.load_weight_model_artifact
+        original_predict = prediction_module.predict_weight_change
+
+        def fake_load(horizon_days, artifact_dir):
+            if int(horizon_days) == 14:
+                return SimpleNamespace(
+                    horizon_days=14,
+                    metadata={
+                        "best_model_name": "missing_model",
+                        "metrics_by_model": {"other_model": {"mae": 0.3}},
+                    },
+                )
+            return SimpleNamespace(
+                horizon_days=30,
+                metadata={
+                    "best_model_name": "valid_model",
+                    "metrics_by_model": {"valid_model": {"mae": 0.4, "rmse": 0.5}},
+                },
+            )
+
+        def fake_predict(artifact, feature_row):
+            return -0.2
+
+        try:
+            prediction_module.load_weight_model_artifact = fake_load
+            prediction_module.predict_weight_change = fake_predict
+
+            result = predict_weight_changes_from_frames(
+                self.profile,
+                self.food_rows,
+                self.activity_rows,
+                self.weight_rows,
+                date(2026, 5, 14),
+                "unused-artifact-dir",
+                horizons=(14, 30),
+            )
+        finally:
+            prediction_module.load_weight_model_artifact = original_load
+            prediction_module.predict_weight_change = original_predict
+
+        self.assertEqual([prediction.horizon_days for prediction in result.predictions], [30])
+        self.assertIn(14, result.unavailable_horizons)
+        self.assertNotIn(30, result.unavailable_horizons)
+        self.assertIn("missing_model", result.unavailable_horizons[14])
+
+    def test_prediction_reports_predict_error_for_one_horizon_only(self):
+        import services.ml.prediction as prediction_module
+
+        original_load = prediction_module.load_weight_model_artifact
+        original_predict = prediction_module.predict_weight_change
+
+        def fake_load(horizon_days, artifact_dir):
+            model_name = f"model_{int(horizon_days)}"
+            return SimpleNamespace(
+                horizon_days=int(horizon_days),
+                metadata={
+                    "best_model_name": model_name,
+                    "metrics_by_model": {model_name: {"mae": 0.4, "rmse": 0.5}},
+                },
+            )
+
+        def fake_predict(artifact, feature_row):
+            if artifact.horizon_days == 14:
+                raise RuntimeError("ML model prediction failed: shape mismatch")
+            return 0.15
+
+        try:
+            prediction_module.load_weight_model_artifact = fake_load
+            prediction_module.predict_weight_change = fake_predict
+
+            result = predict_weight_changes_from_frames(
+                self.profile,
+                self.food_rows,
+                self.activity_rows,
+                self.weight_rows,
+                date(2026, 5, 14),
+                "unused-artifact-dir",
+                horizons=(14, 30),
+            )
+        finally:
+            prediction_module.load_weight_model_artifact = original_load
+            prediction_module.predict_weight_change = original_predict
+
+        self.assertEqual([prediction.horizon_days for prediction in result.predictions], [30])
+        self.assertIn(14, result.unavailable_horizons)
+        self.assertNotIn(30, result.unavailable_horizons)
+        self.assertIn("shape mismatch", result.unavailable_horizons[14])
 
     def test_latest_available_prediction_looks_back_from_sparse_current_day(self):
         with TemporaryDirectory() as temp_dir:

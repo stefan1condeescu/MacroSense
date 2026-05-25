@@ -51,7 +51,8 @@ class WhatIfTotals:
     fats_g: float = 0.0
     activity_calories: float = 0.0
     estimated_tdee: float = 0.0
-    estimated_balance: float = 0.0
+    estimated_balance: float | None = None
+    has_food_entries: bool = False
 
 
 @dataclass(frozen=True)
@@ -176,6 +177,7 @@ def calculate_totals(
     """Calculates deterministic daily totals for a real or simulated scenario."""
     food_entries = list(food_entries)
     activity_entries = list(activity_entries)
+    has_food_entries = bool(food_entries)
     calories_in = _sum_entry_values(food_entries, "calories")
     activity_calories = _sum_entry_values(activity_entries, "calories_burned")
     estimated_tdee = calculate_estimated_tdee(base_tdee, activity_calories)
@@ -186,7 +188,12 @@ def calculate_totals(
         fats_g=_sum_entry_values(food_entries, "fats_g"),
         activity_calories=activity_calories,
         estimated_tdee=estimated_tdee,
-        estimated_balance=calculate_estimated_balance(calories_in, estimated_tdee),
+        estimated_balance=(
+            calculate_estimated_balance(calories_in, estimated_tdee)
+            if has_food_entries
+            else None
+        ),
+        has_food_entries=has_food_entries,
     )
 
 
@@ -202,9 +209,11 @@ def compare_totals(real: WhatIfTotals, simulated: WhatIfTotals) -> WhatIfCompari
             fats_g=round(simulated.fats_g - real.fats_g, 2),
             activity_calories=round(simulated.activity_calories - real.activity_calories, 2),
             estimated_tdee=round(simulated.estimated_tdee - real.estimated_tdee, 2),
-            estimated_balance=round(
-                simulated.estimated_balance - real.estimated_balance, 2
+            estimated_balance=_calculate_optional_difference(
+                real.estimated_balance,
+                simulated.estimated_balance,
             ),
+            has_food_entries=real.has_food_entries and simulated.has_food_entries,
         ),
     )
 
@@ -215,18 +224,17 @@ def scenario_matches_real_day(
 ) -> bool:
     """Returns True when the simulated scenario is effectively unchanged."""
     differences = comparison.difference
-    return all(
-        abs(value) <= tolerance
-        for value in [
-            differences.calories_in,
-            differences.protein_g,
-            differences.carbs_g,
-            differences.fats_g,
-            differences.activity_calories,
-            differences.estimated_tdee,
-            differences.estimated_balance,
-        ]
-    )
+    values = [
+        differences.calories_in,
+        differences.protein_g,
+        differences.carbs_g,
+        differences.fats_g,
+        differences.activity_calories,
+        differences.estimated_tdee,
+    ]
+    if differences.estimated_balance is not None:
+        values.append(differences.estimated_balance)
+    return all(abs(value) <= tolerance for value in values)
 
 
 def calculate_repeated_daily_weight_impact(
@@ -242,6 +250,11 @@ def calculate_repeated_daily_weight_impact(
 
 def describe_balance_delta(daily_balance_delta_kcal: Any) -> str:
     """Builds a short Romanian interpretation for the simulated balance change."""
+    if daily_balance_delta_kcal is None:
+        return (
+            "Balanța estimată nu poate fi comparată deoarece lipsește alimentația "
+            "din ziua reală sau din scenariu."
+        )
     balance_delta = _as_float(daily_balance_delta_kcal, "daily_balance_delta_kcal")
     if abs(balance_delta) <= 0.05:
         return "Balanța estimată rămâne neschimbată față de valorile reale."
@@ -306,6 +319,15 @@ def _sum_entry_values(entries: Iterable[Any], field_name: str) -> float:
     for entry in entries:
         total += _as_float(getattr(entry, field_name), field_name)
     return round(total, 2)
+
+
+def _calculate_optional_difference(
+    real_value: float | None,
+    simulated_value: float | None,
+) -> float | None:
+    if real_value is None or simulated_value is None:
+        return None
+    return round(simulated_value - real_value, 2)
 
 
 def _as_positive_float(value: Any, field_name: str) -> float:
