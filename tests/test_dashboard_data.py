@@ -8,6 +8,7 @@ from services.analytics.dashboard_data import (
     find_past_reference_weight_info,
     find_reference_weight_info,
     prepare_daily_analytics,
+    summarize_current_state,
     summarize_dashboard,
 )
 
@@ -258,6 +259,59 @@ class DashboardDataTests(unittest.TestCase):
 
         self.assertEqual(summary["avg_protein_per_kg"], 1.2)
         self.assertEqual(summary["weight_logging_consistency"], 100.0)
+
+    def test_current_state_ignores_future_weight_for_historical_analysis_date(self):
+        weight_rows = pd.DataFrame(
+            [
+                {"log_date": date(2026, 5, 10), "weight_kg": 80.0},
+                {"log_date": date(2026, 5, 20), "weight_kg": 75.0},
+            ]
+        )
+        daily_rows = prepare_daily_analytics(
+            self.profile,
+            pd.DataFrame(),
+            weight_rows,
+            date(2026, 5, 15),
+            date(2026, 5, 15),
+        )
+
+        current = summarize_current_state(
+            self.profile,
+            daily_rows,
+            weight_rows,
+            date(2026, 5, 15),
+        )
+
+        self.assertEqual(current["current_weight_kg"], 80.0)
+        self.assertEqual(current["current_weight_date"], date(2026, 5, 10))
+
+    def test_dashboard_summary_ignores_future_weight_for_historical_interval(self):
+        weight_rows = pd.DataFrame(
+            [
+                {"log_date": date(2026, 5, 10), "weight_kg": 80.0},
+                {"log_date": date(2026, 5, 20), "weight_kg": 75.0},
+            ]
+        )
+        daily_rows = prepare_daily_analytics(
+            self.profile,
+            pd.DataFrame(),
+            weight_rows,
+            date(2026, 5, 15),
+            date(2026, 5, 15),
+        )
+
+        summary = summarize_dashboard(
+            self.profile,
+            daily_rows,
+            weight_rows,
+            pd.DataFrame(),
+            pd.DataFrame(),
+            1,
+            end_date=date(2026, 5, 15),
+        )
+
+        self.assertEqual(summary["latest_weight_kg"], 80.0)
+        self.assertEqual(summary["latest_weight_date"], date(2026, 5, 10))
 
 
 if __name__ == "__main__":

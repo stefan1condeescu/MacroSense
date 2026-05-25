@@ -8,7 +8,10 @@ import altair as alt
 import pandas as pd
 import streamlit as st
 
-from services.analytics.dashboard_data import get_dashboard_data
+from services.analytics.dashboard_data import (
+    get_dashboard_data,
+    get_latest_user_data_date,
+)
 from services.ml.prediction import (
     DEFAULT_PREDICTION_HORIZONS,
     UserWeightPredictions,
@@ -28,6 +31,7 @@ INTERVAL_OPTIONS = {
 }
 DEFAULT_INTERVAL_LABEL = "30 zile"
 DASHBOARD_INTERVAL_KEY = "dashboard_interval_selection"
+DASHBOARD_ANALYSIS_DATE_KEY = "dashboard_analysis_date"
 
 GOAL_HELP = (
     "Obiective posibile: Slabire = deficit caloric orientativ; Mentinere = "
@@ -62,15 +66,41 @@ def render_dashboard_page() -> None:
         st.warning("Autentifică-te pentru a vedea dashboard-ul.")
         return
 
+    today = date.today()
     try:
-        data = get_dashboard_data(user_id=user_id, days=days)
+        latest_data_date = get_latest_user_data_date(int(user_id), today)
+    except RuntimeError as exc:
+        st.error(f"Eroare la încărcarea datei de analiză: {exc}")
+        return
+
+    selected_analysis_date = _render_analysis_date_selector(
+        latest_data_date=latest_data_date,
+        today=today,
+    )
+
+    try:
+        data = get_dashboard_data(
+            user_id=user_id,
+            days=days,
+            end_date=selected_analysis_date,
+        )
     except RuntimeError as exc:
         st.error(f"Eroare la încărcarea dashboard-ului: {exc}")
         return
 
-    _render_current_state(data.get("current", {}))
-    prediction_result = _render_weight_prediction_section(user_id, data.get("end_date"))
-    _render_recommendation_section(user_id, days, data, prediction_result)
+    _render_current_state(data.get("current", {}), data.get("end_date"), today=today)
+    prediction_result = _render_weight_prediction_section(
+        user_id,
+        data.get("end_date"),
+        today=today,
+    )
+    _render_recommendation_section(
+        user_id,
+        days,
+        data,
+        prediction_result,
+        data.get("end_date"),
+    )
 
     st.divider()
     st.subheader("Evoluție pe interval")
@@ -91,8 +121,80 @@ def render_dashboard_page() -> None:
     _render_activity_section(data)
 
 
-def _render_current_state(current: dict[str, Any]) -> None:
-    st.subheader("Starea curentă")
+def _render_analysis_date_selector(
+    latest_data_date: date | None,
+    today: date,
+) -> date:
+    default_date = latest_data_date or today
+    current_value = st.session_state.get(DASHBOARD_ANALYSIS_DATE_KEY)
+    initial_date = _resolve_dashboard_analysis_date(
+        current_value,
+        default_date=default_date,
+        today=today,
+    )
+    if current_value is not None and current_value != initial_date:
+        st.session_state[DASHBOARD_ANALYSIS_DATE_KEY] = initial_date
+
+    selected_date = st.date_input(
+        "Data analiză",
+        value=initial_date,
+        max_value=today,
+        key=DASHBOARD_ANALYSIS_DATE_KEY,
+        help=(
+            "Dashboard-ul, recomandările și predicția ML sunt calculate până "
+            "la această dată."
+        ),
+    )
+    selected_date = _resolve_dashboard_analysis_date(
+        selected_date,
+        default_date=default_date,
+        today=today,
+    )
+    if latest_data_date and selected_date == latest_data_date and selected_date != today:
+        st.caption("Data analiză este ultima zi cu date înregistrate.")
+    elif selected_date != today:
+        st.caption("Dashboard recalculat până la data selectată.")
+    return selected_date
+
+
+def _resolve_dashboard_analysis_date(
+    value: Any,
+    default_date: date,
+    today: date,
+) -> date:
+    try:
+        resolved_date = _to_date(value) if value else _to_date(default_date)
+    except (TypeError, ValueError):
+        resolved_date = _to_date(default_date)
+    if resolved_date > today:
+        return today
+    return resolved_date
+
+
+def _analysis_date_context(
+    analysis_date: date | None,
+    today: date | None = None,
+) -> dict[str, str | bool]:
+    resolved_today = today or date.today()
+    is_today = _to_date(analysis_date or resolved_today) == resolved_today
+    return {
+        "is_today": is_today,
+        "state_title": "Starea curentă" if is_today else "Starea la data analizată",
+        "day_phrase": "azi" if is_today else "la data analizată",
+        "day_sentence": "Astăzi" if is_today else "La data analizată",
+    }
+
+
+def _render_current_state(
+    current: dict[str, Any],
+    analysis_date: date | None,
+    today: date | None = None,
+) -> None:
+    day_context = _analysis_date_context(analysis_date, today=today)
+    day_phrase = str(day_context["day_phrase"])
+    is_today = bool(day_context["is_today"])
+
+    st.subheader(str(day_context["state_title"]))
 
     _render_card_grid(
         [
@@ -127,21 +229,23 @@ def _render_current_state(current: dict[str, Any]) -> None:
     _render_card_grid(
         [
             {
-                "label": "Greutate curentă",
+                "label": "Greutate curentă"
+                if is_today
+                else "Greutate la data analizată",
                 "value": _format_kg(current.get("current_weight_kg")),
                 "delta": _format_kg_delta(current.get("weight_delta_kg")),
                 "accent": "weight",
                 "help": (
-                    "Ultima greutate salvată în Jurnal Greutate. Delta arată "
-                    "diferența față de penultima cântărire."
+                    "Ultima greutate salvată până la data analizată. Delta arată "
+                    "diferența față de cântărirea anterioară disponibilă."
                 ),
             },
             {
-                "label": "BMI curent",
+                "label": "BMI curent" if is_today else "BMI la data analizată",
                 "value": _format_number(current.get("current_bmi"), ""),
                 "accent": "health",
                 "help": (
-                    "BMI = greutate curentă / înălțime². Este un indicator "
+                    "BMI = greutatea de referință / înălțime². Este un indicator "
                     "orientativ, nu un diagnostic medical."
                 ),
             },
@@ -155,12 +259,13 @@ def _render_current_state(current: dict[str, Any]) -> None:
                 ),
             },
             {
-                "label": "TDEE estimat azi",
+                "label": f"TDEE estimat {day_phrase}",
                 "value": _format_kcal(current.get("today_estimated_tdee")),
                 "accent": "energy",
                 "help": (
-                    "TDEE estimat azi = BMR * 1.2 + caloriile arse prin "
-                    "antrenamentele logate azi. Factorul 1.2 reprezintă baza sedentară."
+                    f"TDEE estimat {day_phrase} = BMR * 1.2 + caloriile arse prin "
+                    f"antrenamentele logate {day_phrase}. Factorul 1.2 reprezintă "
+                    "baza sedentară."
                 ),
             },
         ],
@@ -170,30 +275,31 @@ def _render_current_state(current: dict[str, Any]) -> None:
     _render_card_grid(
         [
             {
-                "label": "Calorii consumate azi",
+                "label": f"Calorii consumate {day_phrase}",
                 "value": _format_kcal_or_missing(current.get("today_calories_in")),
                 "accent": "food",
                 "help": (
-                    "Totalul caloriilor din alimentele logate azi. Dacă nu ai "
-                    "alimente logate, valoarea este Nelogat, nu 0 kcal."
+                    f"Totalul caloriilor din alimentele logate {day_phrase}. Dacă "
+                    "nu există alimente logate, valoarea este Nelogat, nu 0 kcal."
                 ),
             },
             {
-                "label": "Calorii activități azi",
+                "label": f"Calorii activități {day_phrase}",
                 "value": _format_kcal_zero(current.get("today_activity_calories")),
                 "accent": "activity",
                 "help": (
-                    "Caloriile arse prin activitățile logate azi. Dacă nu există "
-                    "antrenamente, se afișează 0 kcal ca zi de repaus."
+                    f"Caloriile arse prin activitățile logate {day_phrase}. Dacă "
+                    "nu există antrenamente, se afișează 0 kcal ca zi de repaus."
                 ),
             },
             {
-                "label": "Balanță estimată azi",
+                "label": f"Balanță estimată {day_phrase}",
                 "value": _format_signed_kcal(current.get("today_estimated_balance")),
                 "accent": "balance",
                 "help": (
-                    "Balanță estimată azi = calorii consumate azi - TDEE estimat "
-                    "azi. Se calculează doar dacă există alimente logate azi."
+                    f"Balanță estimată {day_phrase} = calorii consumate "
+                    f"{day_phrase} - TDEE estimat {day_phrase}. Se calculează "
+                    f"doar dacă există alimente logate {day_phrase}."
                 ),
             },
         ],
@@ -202,19 +308,34 @@ def _render_current_state(current: dict[str, Any]) -> None:
 
     status_messages = []
     if not current.get("today_has_food_logs"):
-        status_messages.append(
-            "Adaugă mesele de azi ca să vezi consumul și balanța energetică."
-        )
+        if is_today:
+            status_messages.append(
+                "Adaugă mesele de azi ca să vezi consumul și balanța energetică."
+            )
+        else:
+            status_messages.append(
+                "La data analizată nu există mese logate; consumul și balanța "
+                "rămân nelogate."
+            )
     if not current.get("today_has_activity_logs"):
-        status_messages.append(
-            "Fără antrenamente azi: activitatea logată este 0 kcal, deci ziua este considerată de repaus."
-        )
+        if is_today:
+            status_messages.append(
+                "Fără antrenamente azi: activitatea logată este 0 kcal, deci ziua "
+                "este considerată de repaus."
+            )
+        else:
+            status_messages.append(
+                "La data analizată nu există antrenamente logate; activitatea este "
+                "0 kcal, ca zi de repaus."
+            )
     if status_messages:
         st.info(" ".join(status_messages))
 
 
 def _render_weight_prediction_section(
-    user_id: int, analysis_date: date | None
+    user_id: int,
+    analysis_date: date | None,
+    today: date | None = None,
 ) -> UserWeightPredictions | None:
     st.subheader("Predicție greutate")
 
@@ -224,6 +345,7 @@ def _render_weight_prediction_section(
             analysis_date=analysis_date,
             max_lookback_days=14,
             prefer_complete_days=True,
+            today=today,
         )
     except RuntimeError:
         st.info(
@@ -232,7 +354,10 @@ def _render_weight_prediction_section(
         )
         return None
 
-    cards = _build_weight_prediction_cards(prediction_result)
+    cards = _build_weight_prediction_cards(
+        prediction_result,
+        requested_analysis_date=analysis_date,
+    )
     _render_card_grid(cards, columns_count=2)
 
     if prediction_result.predictions:
@@ -240,6 +365,7 @@ def _render_weight_prediction_section(
             _format_prediction_source_caption(
                 prediction_result,
                 requested_analysis_date=analysis_date,
+                today=today,
             )
         )
     else:
@@ -256,6 +382,7 @@ def _render_recommendation_section(
     selected_days: int,
     dashboard_data: dict[str, Any],
     prediction_result: UserWeightPredictions | None,
+    analysis_date: date | None,
 ) -> None:
     recommendation_data = dashboard_data
     if selected_days != RECOMMENDATION_DAYS:
@@ -263,12 +390,19 @@ def _render_recommendation_section(
             recommendation_data = get_dashboard_data(
                 user_id=int(user_id),
                 days=RECOMMENDATION_DAYS,
+                end_date=analysis_date,
             )
         except RuntimeError:
             recommendation_data = dashboard_data
 
     st.subheader("Recomandări")
-    st.caption(f"Pe baza ultimelor {RECOMMENDATION_DAYS} zile.")
+    day_context = _analysis_date_context(analysis_date)
+    if bool(day_context["is_today"]):
+        st.caption(f"Pe baza ultimelor {RECOMMENDATION_DAYS} zile.")
+    else:
+        st.caption(
+            f"Pe baza ultimelor {RECOMMENDATION_DAYS} zile până la data analizată."
+        )
     cards = build_dashboard_recommendation_cards(
         recommendation_data,
         prediction_result,
@@ -297,18 +431,30 @@ def _build_recommendation_card_html(card: RecommendationCard) -> str:
 
 def _build_weight_prediction_cards(
     prediction_result: UserWeightPredictions,
+    requested_analysis_date: date | None = None,
 ) -> list[dict[str, Any]]:
     predictions_by_horizon = {
         prediction.horizon_days: prediction
         for prediction in prediction_result.predictions
     }
+    requested_date = _to_date(requested_analysis_date) if requested_analysis_date else None
+    uses_fallback_date = (
+        requested_date is not None
+        and prediction_result.analysis_date != requested_date
+    )
     cards: list[dict[str, Any]] = []
     for horizon_days in DEFAULT_PREDICTION_HORIZONS:
         prediction = predictions_by_horizon.get(horizon_days)
         if prediction:
+            label = f"Peste {horizon_days} zile"
+            if uses_fallback_date:
+                label = (
+                    f"Peste {horizon_days} zile de la "
+                    f"{_format_date(prediction.analysis_date)}"
+                )
             cards.append(
                 {
-                    "label": f"Peste {horizon_days} zile",
+                    "label": label,
                     "value": _format_kg(prediction.predicted_weight_kg),
                     "caption": (
                         "Schimbare estimată: "
@@ -344,17 +490,30 @@ def _build_weight_prediction_cards(
 def _format_prediction_source_caption(
     prediction_result: UserWeightPredictions,
     requested_analysis_date: date | None,
+    today: date | None = None,
 ) -> str:
-    caption = (
-        "Predicție calculată pe baza datelor disponibile până la "
-        f"{_format_date(prediction_result.analysis_date)}."
+    actual_date = _to_date(prediction_result.analysis_date)
+    requested_date = (
+        _to_date(requested_analysis_date)
+        if requested_analysis_date
+        else actual_date
     )
-    if requested_analysis_date and prediction_result.analysis_date != requested_analysis_date:
-        caption += (
-            " S-a folosit cea mai recentă zi completă cu date suficiente, ca "
-            "ziua curentă parțială să nu distorsioneze predicția."
+    current_date = today or date.today()
+    if actual_date == requested_date:
+        return (
+            "Predicție calculată din datele disponibile până la "
+            f"{_format_date(actual_date)}."
         )
-    return caption
+    if requested_date == current_date:
+        return (
+            f"Predicția pornește de la {_format_date(actual_date)}, ultima zi "
+            "cu date suficiente. Ziua curentă este evitată pentru că poate fi "
+            "incompletă."
+        )
+    return (
+        f"Predicția pornește de la {_format_date(actual_date)}, deoarece pentru "
+        f"{_format_date(requested_date)} nu există suficiente date recente."
+    )
 
 
 def _format_prediction_error(value: Any) -> str:
@@ -1104,6 +1263,16 @@ def _format_date(value: Any) -> str:
     except (TypeError, ValueError):
         return "—"
     return date_value.strftime("%d.%m.%Y")
+
+
+def _to_date(value: Any) -> date:
+    if isinstance(value, pd.Timestamp):
+        return value.date()
+    if isinstance(value, datetime):
+        return value.date()
+    if isinstance(value, date):
+        return value
+    return pd.to_datetime(value).date()
 
 
 def _as_float(value: Any) -> float | None:
