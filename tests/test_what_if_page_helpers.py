@@ -1,6 +1,6 @@
 import inspect
 import unittest
-from datetime import date
+from datetime import date, time
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -8,12 +8,14 @@ from ui.pages import what_if_page
 from ui.pages.what_if_page import (
     REFERENCE_CONTEXT_COLUMN_WEIGHTS,
     WHAT_IF_CONTEXT_KEY,
+    WHAT_IF_FOOD_ROWS_KEY,
     WHAT_IF_FORCE_RESET_KEY,
     WHAT_IF_LAST_VALID_COMPARISON_KEY,
     WHAT_IF_LAST_VALID_CONTEXT_KEY,
     WHAT_IF_WIDGET_VERSION_KEY,
     _clear_scenario_widget_state,
     _get_last_valid_comparison,
+    _comparison_row,
     _format_remaining_error_count,
     _format_signed_value,
     _format_value,
@@ -59,6 +61,35 @@ class WhatIfPageHelperTests(unittest.TestCase):
     def test_result_table_keeps_macro_grams_at_one_decimal(self):
         self.assertEqual(_format_value(193.04, "g"), "193.0 g")
         self.assertEqual(_format_signed_value(-0.04, "g"), "-0.0 g")
+
+    def test_result_table_marks_missing_balance_as_unavailable(self):
+        row = _comparison_row(
+            "Balanță estimată",
+            None,
+            None,
+            None,
+            "kcal",
+        )
+
+        self.assertEqual(row["Valori reale"], "\u2014")
+        self.assertEqual(row["Scenariu simulat"], "\u2014")
+        self.assertEqual(row["Diferență"], "\u2014")
+
+    def test_result_table_marks_foodless_calories_as_unavailable(self):
+        row = _comparison_row(
+            "Calorii consumate",
+            0.0,
+            0.0,
+            0.0,
+            "kcal",
+            real_unavailable=True,
+            simulated_unavailable=True,
+            difference_unavailable=True,
+        )
+
+        self.assertEqual(row["Valori reale"], "\u2014")
+        self.assertEqual(row["Scenariu simulat"], "\u2014")
+        self.assertEqual(row["Diferență"], "\u2014")
 
     def test_full_reset_clears_visible_scenario_widget_state(self):
         fake_state = {
@@ -119,6 +150,47 @@ class WhatIfPageHelperTests(unittest.TestCase):
             self.assertEqual(_versioned_widget_key("what_if_food_search"), "what_if_food_search_4")
             self.assertNotIn("what_if_food_search_3", fake_state)
             self.assertNotIn("what_if_add_activity_duration_3", fake_state)
+
+    def test_real_food_metadata_refresh_preserves_simulated_quantity(self):
+        real_rows_before = [
+            {
+                "scenario_id": "real_food_1",
+                "entry_type": "Aliment",
+                "label": "Orez",
+                "quantity_g": 500.0,
+                "calories_100g": 130.0,
+                "protein_100g": 2.7,
+                "carbs_100g": 28.0,
+                "fats_100g": 0.3,
+                "meal_type": "Mic dejun",
+                "meal_time": time(9, 0),
+                "source_label": "MacroSense",
+                "is_existing": True,
+            }
+        ]
+        real_rows_after = [{**real_rows_before[0], "meal_time": time(10, 0)}]
+        fake_state = {}
+
+        with patch.object(what_if_page, "st", SimpleNamespace(session_state=fake_state)):
+            _sync_scenario_state(
+                user_id=1,
+                selected_date=date(2026, 5, 24),
+                real_food_rows=real_rows_before,
+                real_activity_rows=[],
+            )
+            fake_state[WHAT_IF_FOOD_ROWS_KEY][0]["quantity_g"] = 100.0
+            fake_state["what_if_food_quantity_real_food_1"] = 100.0
+
+            _sync_scenario_state(
+                user_id=1,
+                selected_date=date(2026, 5, 24),
+                real_food_rows=real_rows_after,
+                real_activity_rows=[],
+            )
+
+        self.assertEqual(fake_state[WHAT_IF_FOOD_ROWS_KEY][0]["quantity_g"], 100.0)
+        self.assertEqual(fake_state["what_if_food_quantity_real_food_1"], 100.0)
+        self.assertEqual(fake_state[WHAT_IF_FOOD_ROWS_KEY][0]["meal_time"], time(10, 0))
 
     def test_reset_scenario_widget_state_increments_widget_version(self):
         fake_state = {WHAT_IF_WIDGET_VERSION_KEY: 7, "what_if_food_search_7": "paine"}

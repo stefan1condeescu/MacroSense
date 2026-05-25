@@ -138,6 +138,50 @@ class WhatIfSimulatorTests(unittest.TestCase):
         self.assertEqual(totals.estimated_tdee, 2516.0)
         self.assertEqual(totals.estimated_balance, -416.0)
 
+    def test_totals_leave_balance_missing_without_food_entries(self):
+        activity_entries = [
+            build_activity_entry(
+                entry_id="activity-1",
+                label="Alergare",
+                category="Cardio",
+                duration_min=30,
+                met=10,
+                weight_kg=70,
+            )
+        ]
+
+        totals = calculate_totals([], activity_entries, base_tdee=2166)
+
+        self.assertFalse(totals.has_food_entries)
+        self.assertEqual(totals.calories_in, 0.0)
+        self.assertEqual(totals.activity_calories, 350.0)
+        self.assertEqual(totals.estimated_tdee, 2516.0)
+        self.assertIsNone(totals.estimated_balance)
+
+    def test_balance_difference_is_missing_when_one_side_has_no_food(self):
+        simulated_food = [
+            build_food_entry(
+                entry_id="food-1",
+                label="Meniu",
+                entry_type="Aliment",
+                quantity_g=100,
+                calories_100g=2100,
+                protein_100g=100,
+                carbs_100g=200,
+                fats_100g=50,
+            )
+        ]
+
+        comparison = compare_totals(
+            calculate_totals([], [], base_tdee=1800),
+            calculate_totals(simulated_food, [], base_tdee=1800),
+        )
+
+        self.assertIsNone(comparison.real.estimated_balance)
+        self.assertEqual(comparison.simulated.estimated_balance, 300.0)
+        self.assertIsNone(comparison.difference.estimated_balance)
+        self.assertIn("nu poate fi comparată", describe_balance_delta(None))
+
     def test_totals_round_after_summing_raw_food_values(self):
         food_entries = [
             build_food_entry(
@@ -190,7 +234,7 @@ class WhatIfSimulatorTests(unittest.TestCase):
 
         self.assertEqual(totals.activity_calories, 20.01)
         self.assertEqual(totals.estimated_tdee, 1620.01)
-        self.assertEqual(totals.estimated_balance, -1620.01)
+        self.assertIsNone(totals.estimated_balance)
 
     def test_identical_scenario_is_detected_explicitly(self):
         food = [

@@ -85,6 +85,21 @@ WHAT_IF_WIDGET_RESET_PREFIXES = (
     "what_if_add_activity_duration_",
 )
 REFERENCE_CONTEXT_COLUMN_WEIGHTS = [2, 0.01, 1, 1]
+UNAVAILABLE_RESULT_VALUE = "—"
+FOOD_SCENARIO_METADATA_FIELDS = (
+    "entry_type",
+    "label",
+    "meal_type",
+    "meal_time",
+    "source_label",
+    "is_existing",
+)
+ACTIVITY_SCENARIO_METADATA_FIELDS = (
+    "label",
+    "category",
+    "source_label",
+    "is_existing",
+)
 
 
 def render_what_if_page() -> None:
@@ -186,6 +201,8 @@ def _sync_scenario_state(
         st.session_state[WHAT_IF_ACTIVITY_ROWS_KEY] = activity_rows
         st.session_state[WHAT_IF_COUNTER_KEY] = 0
         _prime_scenario_widget_state(food_rows, activity_rows)
+    else:
+        _refresh_existing_scenario_metadata(real_food_rows, real_activity_rows)
 
 
 def _scenario_source_fingerprint(
@@ -217,6 +234,54 @@ def _scenario_source_fingerprint(
         ]
     )
     return hashlib.sha1(source_payload.encode("utf-8")).hexdigest()[:12]
+
+
+def _refresh_existing_scenario_metadata(
+    real_food_rows: list[dict],
+    real_activity_rows: list[dict],
+) -> None:
+    _refresh_existing_rows(
+        WHAT_IF_FOOD_ROWS_KEY,
+        real_food_rows,
+        FOOD_SCENARIO_METADATA_FIELDS,
+    )
+    _refresh_existing_rows(
+        WHAT_IF_ACTIVITY_ROWS_KEY,
+        real_activity_rows,
+        ACTIVITY_SCENARIO_METADATA_FIELDS,
+    )
+
+
+def _refresh_existing_rows(
+    session_key: str,
+    real_rows: list[dict],
+    metadata_fields: tuple[str, ...],
+) -> None:
+    current_rows = st.session_state.get(session_key, [])
+    if not current_rows:
+        return
+
+    real_rows_by_id = {row.get("scenario_id"): row for row in real_rows}
+    current_rows_by_id = {
+        row.get("scenario_id"): row
+        for row in current_rows
+        if row.get("scenario_id") in real_rows_by_id
+    }
+    simulated_rows = [
+        row for row in current_rows if row.get("scenario_id") not in real_rows_by_id
+    ]
+
+    refreshed_rows = []
+    for real_row in real_rows:
+        current_row = current_rows_by_id.get(real_row.get("scenario_id"))
+        if current_row is None:
+            continue
+        for field in metadata_fields:
+            if field in real_row:
+                current_row[field] = copy.deepcopy(real_row[field])
+        refreshed_rows.append(current_row)
+
+    st.session_state[session_key] = refreshed_rows + simulated_rows
 
 
 def _clear_scenario_widget_state() -> None:
@@ -826,7 +891,18 @@ def _format_activity_row_error(row: dict) -> str:
 def _render_comparison(comparison) -> None:
     st.subheader("Rezultat What-if")
     rows = [
-        _comparison_row("Calorii consumate", comparison.real.calories_in, comparison.simulated.calories_in, comparison.difference.calories_in, "kcal"),
+        _comparison_row(
+            "Calorii consumate",
+            comparison.real.calories_in,
+            comparison.simulated.calories_in,
+            comparison.difference.calories_in,
+            "kcal",
+            real_unavailable=not comparison.real.has_food_entries,
+            simulated_unavailable=not comparison.simulated.has_food_entries,
+            difference_unavailable=not (
+                comparison.real.has_food_entries and comparison.simulated.has_food_entries
+            ),
+        ),
         _comparison_row("Proteine", comparison.real.protein_g, comparison.simulated.protein_g, comparison.difference.protein_g, "g"),
         _comparison_row("Carbohidrați", comparison.real.carbs_g, comparison.simulated.carbs_g, comparison.difference.carbs_g, "g"),
         _comparison_row("Grăsimi", comparison.real.fats_g, comparison.simulated.fats_g, comparison.difference.fats_g, "g"),
@@ -850,31 +926,54 @@ def _render_comparison(comparison) -> None:
         st.success("Scenariul este identic cu ziua reală. Nu există modificări simulate.")
     else:
         st.info(describe_balance_delta(comparison.difference.estimated_balance))
-    impact_14 = calculate_repeated_daily_weight_impact(comparison.difference.estimated_balance, 14)
-    impact_30 = calculate_repeated_daily_weight_impact(comparison.difference.estimated_balance, 30)
-    st.caption(
-        "Impact teoretic dacă aceeași diferență față de ziua reală s-ar repeta zilnic: "
-        f"{impact_14:+.2f} kg în 14 zile și {impact_30:+.2f} kg în 30 zile. "
-        "Aceasta este o formulă deterministă, separată de predicția ML."
-    )
+    if comparison.difference.estimated_balance is not None:
+        impact_14 = calculate_repeated_daily_weight_impact(comparison.difference.estimated_balance, 14)
+        impact_30 = calculate_repeated_daily_weight_impact(comparison.difference.estimated_balance, 30)
+        st.caption(
+            "Impact teoretic dacă aceeași diferență față de ziua reală s-ar repeta zilnic: "
+            f"{impact_14:+.2f} kg în 14 zile și {impact_30:+.2f} kg în 30 zile. "
+            "Aceasta este o formulă deterministă, separată de predicția ML."
+        )
 
 
-def _comparison_row(label: str, real: float, simulated: float, difference: float, suffix: str) -> dict:
+def _comparison_row(
+    label: str,
+    real: float | None,
+    simulated: float | None,
+    difference: float | None,
+    suffix: str,
+    *,
+    real_unavailable: bool = False,
+    simulated_unavailable: bool = False,
+    difference_unavailable: bool = False,
+) -> dict:
     return {
         "Metrică": label,
-        "Valori reale": _format_value(real, suffix),
-        "Scenariu simulat": _format_value(simulated, suffix),
-        "Diferență": _format_signed_value(difference, suffix),
+        "Valori reale": _format_value(real, suffix, unavailable=real_unavailable),
+        "Scenariu simulat": _format_value(
+            simulated,
+            suffix,
+            unavailable=simulated_unavailable,
+        ),
+        "Diferență": _format_signed_value(
+            difference,
+            suffix,
+            unavailable=difference_unavailable,
+        ),
     }
 
 
-def _format_value(value: Any, suffix: str) -> str:
+def _format_value(value: Any, suffix: str, *, unavailable: bool = False) -> str:
+    if unavailable or value is None:
+        return UNAVAILABLE_RESULT_VALUE
     if suffix == "kcal":
         return format_kcal_for_display(value)
     return f"{float(value):.1f} {suffix}"
 
 
-def _format_signed_value(value: Any, suffix: str) -> str:
+def _format_signed_value(value: Any, suffix: str, *, unavailable: bool = False) -> str:
+    if unavailable or value is None:
+        return UNAVAILABLE_RESULT_VALUE
     if suffix == "kcal":
         return format_kcal_for_display(value, signed=True)
     return f"{float(value):+.1f} {suffix}"

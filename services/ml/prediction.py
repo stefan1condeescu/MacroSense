@@ -191,14 +191,13 @@ def predict_weight_changes_from_frames(
 
         try:
             artifact = load_weight_model_artifact(horizon_days, artifact_dir)
-        except (FileNotFoundError, ValueError, RuntimeError) as exc:
+            predicted_change = predict_weight_change(artifact, feature_row)
+            current_weight = float(feature_row["current_weight_kg"])
+            model_name, metrics = _get_artifact_model_metrics(artifact.metadata)
+        except (FileNotFoundError, KeyError, TypeError, ValueError, RuntimeError) as exc:
             unavailable_horizons[horizon_days] = str(exc)
             continue
 
-        predicted_change = predict_weight_change(artifact, feature_row)
-        current_weight = float(feature_row["current_weight_kg"])
-        metadata = artifact.metadata
-        model_name = metadata["best_model_name"]
         predictions.append(
             WeightPrediction(
                 horizon_days=horizon_days,
@@ -208,7 +207,7 @@ def predict_weight_changes_from_frames(
                 predicted_change_kg=predicted_change,
                 predicted_weight_kg=round(current_weight + predicted_change, 2),
                 model_name=model_name,
-                metrics=metadata["metrics_by_model"][model_name],
+                metrics=metrics,
             )
         )
 
@@ -218,6 +217,23 @@ def predict_weight_changes_from_frames(
         predictions=predictions,
         unavailable_horizons=unavailable_horizons,
     )
+
+
+def _get_artifact_model_metrics(metadata: dict[str, Any]) -> tuple[str, dict[str, float]]:
+    model_name = metadata.get("best_model_name")
+    if not model_name:
+        raise ValueError("ML artifact metadata has no best model name.")
+
+    metrics_by_model = metadata.get("metrics_by_model")
+    if not isinstance(metrics_by_model, dict):
+        raise ValueError("ML artifact metadata has no model metrics.")
+    if model_name not in metrics_by_model:
+        raise ValueError(f"ML artifact metrics are missing for model: {model_name}.")
+
+    metrics = metrics_by_model[model_name]
+    if not isinstance(metrics, dict):
+        raise ValueError(f"ML artifact metrics are invalid for model: {model_name}.")
+    return str(model_name), metrics
 
 
 def fetch_user_prediction_frames(
