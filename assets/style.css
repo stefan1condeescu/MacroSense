@@ -124,6 +124,58 @@ section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
     color: #172033;
 }
 
+section[data-testid="stSidebar"] [data-testid="stExpander"] details {
+    border: 1px solid rgba(37, 99, 235, 0.28);
+    border-radius: 8px;
+    background: rgba(239, 246, 255, 0.72);
+    overflow: hidden;
+}
+
+section[data-testid="stSidebar"] [data-testid="stExpander"] summary {
+    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+}
+
+.user-profile-card {
+    border: 1px solid rgba(148, 163, 184, 0.45);
+    border-left: 4px solid var(--ms-accent);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.72);
+    padding: 10px 12px;
+    margin-top: 4px;
+}
+
+.user-profile-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+}
+
+.user-profile-row:last-child {
+    border-bottom: 0;
+}
+
+.user-profile-row span {
+    color: #64748b !important;
+    font-size: 0.78rem;
+}
+
+.user-profile-row strong {
+    color: #0f172a;
+    font-size: 0.84rem;
+    text-align: right;
+    line-height: 1.25;
+    word-break: break-word;
+}
+
 .admin-auth-card {
     background: #dceff6;
     border-radius: 8px;
