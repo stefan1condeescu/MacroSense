@@ -1,8 +1,10 @@
 from datetime import date
+import inspect
 import unittest
 
 import pandas as pd
 
+from ui.pages import dashboard_page
 from ui.pages.dashboard_page import (
     _build_dashboard_card_html,
     _build_weight_prediction_cards,
@@ -10,6 +12,7 @@ from ui.pages.dashboard_page import (
     _date_order_domain,
     _format_prediction_source_caption,
     _format_gender,
+    _goal_description,
     _prepare_daily_rows,
     _prepare_daily_weight_rows,
     _prepare_macro_rows,
@@ -103,6 +106,24 @@ class DashboardPageHelperTests(unittest.TestCase):
     def test_gender_is_compact_for_dashboard_cards(self):
         self.assertEqual(_format_gender("M"), "M")
         self.assertEqual(_format_gender("F"), "F")
+
+    def test_current_state_uses_goal_description_in_objective_tooltip(self):
+        source = inspect.getsource(dashboard_page._render_current_state)
+
+        self.assertIn('"help": _goal_description(current.get("goal")) or GOAL_HELP', source)
+        self.assertNotIn("st.caption(goal_description)", source)
+        self.assertEqual(
+            _goal_description("Crestere"),
+            "Accent pe surplus controlat, proteine și antrenamente de forță.",
+        )
+
+    def test_macro_chart_has_short_description(self):
+        source = inspect.getsource(dashboard_page._render_macro_chart)
+
+        self.assertIn(
+            "Distribuția macronutrienților pe proteine, carbohidrați și grăsimi.",
+            source,
+        )
 
     def test_dashboard_card_html_renders_caption_without_markdown_code_block(self):
         html = _build_dashboard_card_html(

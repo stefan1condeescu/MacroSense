@@ -1,4 +1,5 @@
 import html
+from decimal import Decimal, ROUND_HALF_UP
 import pandas as pd
 import streamlit as st
 from models.tracking import CustomMeal, FoodItem
@@ -7,9 +8,84 @@ from ui.quantity_validation import quantity_range_help, validate_quantity_g
 from ui.tables import get_table_height
 
 
+DISPLAY_DECIMAL_PLACES = 1
+
+
 def escape_html_text(value) -> str:
     """Escapes user-controlled text before inserting it into custom HTML blocks."""
     return html.escape(str(value))
+
+
+def format_display_number(value: float, decimal_places: int) -> str:
+    quantum = Decimal("1") if decimal_places == 0 else Decimal("1").scaleb(-decimal_places)
+    rounded_value = Decimal(str(value)).quantize(quantum, rounding=ROUND_HALF_UP)
+    return format(rounded_value, f".{decimal_places}f")
+
+
+def round_display_number(value: float, decimal_places: int = DISPLAY_DECIMAL_PLACES) -> float:
+    return float(format_display_number(value, decimal_places))
+
+
+def build_custom_meal_display_rows_and_totals(ingredients: list[dict]) -> tuple[list[list], dict[str, float]]:
+    rows = []
+    totals = {
+        "quantity_g": 0.0,
+        "calories": 0.0,
+        "protein_g": 0.0,
+        "carbs_g": 0.0,
+        "fats_g": 0.0,
+    }
+
+    for ingredient in ingredients:
+        quantity_g = round_display_number(ingredient["quantity_g"])
+        calories = round_display_number(ingredient["calories_100g"] * ingredient["quantity_g"] / 100.0)
+        protein = round_display_number(ingredient["protein_g"] * ingredient["quantity_g"] / 100.0)
+        carbs = round_display_number(ingredient["carbs_g"] * ingredient["quantity_g"] / 100.0)
+        fats = round_display_number(ingredient["fats_g"] * ingredient["quantity_g"] / 100.0)
+
+        totals["quantity_g"] += quantity_g
+        totals["calories"] += calories
+        totals["protein_g"] += protein
+        totals["carbs_g"] += carbs
+        totals["fats_g"] += fats
+
+        rows.append([
+            ingredient["name"],
+            ingredient.get("source_label", "MacroSense"),
+            quantity_g,
+            calories,
+            protein,
+            carbs,
+            fats,
+        ])
+
+    return rows, totals
+
+
+def build_custom_meal_summary_cards_html(
+    total_quantity: float,
+    total_calories: float,
+    total_protein: float,
+    total_carbs: float,
+    total_fats: float,
+) -> str:
+    cards = [
+        ("Cantitate totală", f"{format_display_number(total_quantity, 0)} g"),
+        ("Calorii totale", f"{format_display_number(total_calories, 0)} kcal"),
+        ("Proteine", f"{format_display_number(total_protein, 1)} g"),
+        ("Carbohidrați", f"{format_display_number(total_carbs, 1)} g"),
+        ("Grăsimi", f"{format_display_number(total_fats, 1)} g"),
+    ]
+    cards_html = "".join(
+        (
+            '<div class="custom-meal-summary-card">'
+            f"<span>{escape_html_text(label)}</span>"
+            f"<strong>{escape_html_text(value)}</strong>"
+            "</div>"
+        )
+        for label, value in cards
+    )
+    return f'<div class="custom-meal-summary-grid">{cards_html}</div>'
 
 
 def get_edit_quantity_widget_keys_to_reset(session_keys, meal_id) -> list[str]:
@@ -177,6 +253,17 @@ def render_custom_meals_page() -> None:
             status_class = "status-badge archived" if is_archived else "status-badge active"
             safe_recipe_name = escape_html_text(meal["recipe_name"])
             safe_status = escape_html_text(meal["status"])
+            display_ingredients = CustomMeal.get_ingredients(meal["id"], user_id)
+            if display_ingredients:
+                _, display_totals = build_custom_meal_display_rows_and_totals(display_ingredients)
+            else:
+                display_totals = {
+                    "quantity_g": meal["quantity_g"],
+                    "calories": meal["calories"],
+                    "protein_g": meal["protein_g"],
+                    "carbs_g": meal["carbs_g"],
+                    "fats_g": meal["fats_g"],
+                }
             st.markdown(
                 f"""
                 <div class="{card_class}">
@@ -185,11 +272,11 @@ def render_custom_meals_page() -> None:
                         <span class="{status_class}">{safe_status}</span>
                     </div>
                     <div class="custom-meal-card-grid">
-                        <div><span>Cantitate</span><strong>{meal['quantity_g']:.0f} g</strong></div>
-                        <div><span>Calorii</span><strong>{meal['calories']:.0f} kcal</strong></div>
-                        <div><span>Proteine</span><strong>{meal['protein_g']:.1f} g</strong></div>
-                        <div><span>Carbohidrați</span><strong>{meal['carbs_g']:.1f} g</strong></div>
-                        <div><span>Grăsimi</span><strong>{meal['fats_g']:.1f} g</strong></div>
+                        <div><span>Cantitate</span><strong>{format_display_number(display_totals['quantity_g'], 0)} g</strong></div>
+                        <div><span>Calorii</span><strong>{format_display_number(display_totals['calories'], 0)} kcal</strong></div>
+                        <div><span>Proteine</span><strong>{format_display_number(display_totals['protein_g'], 1)} g</strong></div>
+                        <div><span>Carbohidrați</span><strong>{format_display_number(display_totals['carbs_g'], 1)} g</strong></div>
+                        <div><span>Grăsimi</span><strong>{format_display_number(display_totals['fats_g'], 1)} g</strong></div>
                     </div>
                 </div>
                 """,
@@ -259,55 +346,23 @@ def render_custom_meals_page() -> None:
     
     pending_ingredients = st.session_state["custom_meal_ingredients"]
     if pending_ingredients:
-        rows = []
-        total_quantity = 0.0
-        total_calories = 0.0
-        total_protein = 0.0
-        total_carbs = 0.0
-        total_fats = 0.0
-    
-        for ingredient in pending_ingredients:
-            quantity_g = ingredient["quantity_g"]
-            calories = ingredient["calories_100g"] * quantity_g / 100.0
-            protein = ingredient["protein_g"] * quantity_g / 100.0
-            carbs = ingredient["carbs_g"] * quantity_g / 100.0
-            fats = ingredient["fats_g"] * quantity_g / 100.0
-    
-            total_quantity += quantity_g
-            total_calories += calories
-            total_protein += protein
-            total_carbs += carbs
-            total_fats += fats
-    
-            rows.append([
-                ingredient["name"],
-                ingredient.get("source_label", "MacroSense"),
-                round(quantity_g, 2),
-                round(calories, 2),
-                round(protein, 2),
-                round(carbs, 2),
-                round(fats, 2),
-            ])
+        rows, display_totals = build_custom_meal_display_rows_and_totals(pending_ingredients)
     
         df_pending = pd.DataFrame(
             rows,
             columns=["Ingredient", "Sursă", "Cantitate (g)", "Calorii", "Proteine (g)", "Carbohidrați (g)", "Grăsimi (g)"]
         )
         render_ingredient_table(df_pending)
-    
-        _, col_quantity, col_calories, _ = st.columns([0.85, 1, 1, 0.15])
-        col_quantity.metric("Cantitate totală", f"{total_quantity:.0f} g")
-        col_calories.metric("Calorii totale", f"{total_calories:.0f} kcal")
-    
-        st.markdown("<br>", unsafe_allow_html=True)
-    
-        _, col_protein, col_carbs, col_fats, _ = st.columns([0.75, 1, 1, 1, 0.05])
-        col_protein.caption("Proteine")
-        col_protein.metric(" ", f"{total_protein:.1f} g", label_visibility="collapsed")
-        col_carbs.caption("Carbohidrați")
-        col_carbs.metric(" ", f"{total_carbs:.1f} g", label_visibility="collapsed")
-        col_fats.caption("Grăsimi")
-        col_fats.metric(" ", f"{total_fats:.1f} g", label_visibility="collapsed")
+        st.markdown(
+            build_custom_meal_summary_cards_html(
+                display_totals["quantity_g"],
+                display_totals["calories"],
+                display_totals["protein_g"],
+                display_totals["carbs_g"],
+                display_totals["fats_g"],
+            ),
+            unsafe_allow_html=True,
+        )
     
         if st.button("Salvează masa personalizată", width="stretch", key="btn_save_custom_meal", type="primary"):
             if not recipe_name.strip():
@@ -532,58 +587,26 @@ def render_custom_meals_page() -> None:
                 else:
                     edit_ingredients[ingredient_index]["quantity_g"] = float(updated_quantity)
 
-            edit_rows = []
-            edit_total_quantity = 0.0
-            edit_total_calories = 0.0
-            edit_total_protein = 0.0
-            edit_total_carbs = 0.0
-            edit_total_fats = 0.0
-
             if edit_quantity_errors:
                 st.error(edit_quantity_errors[0])
             else:
-                for ingredient in edit_ingredients:
-                    quantity_g = ingredient["quantity_g"]
-                    calories = ingredient["calories_100g"] * quantity_g / 100.0
-                    protein = ingredient["protein_g"] * quantity_g / 100.0
-                    carbs = ingredient["carbs_g"] * quantity_g / 100.0
-                    fats = ingredient["fats_g"] * quantity_g / 100.0
-
-                    edit_total_quantity += quantity_g
-                    edit_total_calories += calories
-                    edit_total_protein += protein
-                    edit_total_carbs += carbs
-                    edit_total_fats += fats
-
-                    edit_rows.append([
-                        ingredient["name"],
-                        ingredient.get("source_label", "MacroSense"),
-                        round(quantity_g, 2),
-                        round(calories, 2),
-                        round(protein, 2),
-                        round(carbs, 2),
-                        round(fats, 2),
-                    ])
+                edit_rows, edit_display_totals = build_custom_meal_display_rows_and_totals(edit_ingredients)
 
                 df_edit = pd.DataFrame(
                     edit_rows,
                     columns=["Ingredient", "Sursă", "Cantitate (g)", "Calorii", "Proteine (g)", "Carbohidrați (g)", "Grăsimi (g)"]
                 )
                 render_ingredient_table(df_edit)
-
-                _, col_edit_quantity, col_edit_calories, _ = st.columns([0.85, 1, 1, 0.15])
-                col_edit_quantity.metric("Cantitate totală", f"{edit_total_quantity:.0f} g")
-                col_edit_calories.metric("Calorii totale", f"{edit_total_calories:.0f} kcal")
-
-                st.markdown("<br>", unsafe_allow_html=True)
-
-                _, col_edit_protein, col_edit_carbs, col_edit_fats, _ = st.columns([0.75, 1, 1, 1, 0.05])
-                col_edit_protein.caption("Proteine")
-                col_edit_protein.metric(" ", f"{edit_total_protein:.1f} g", label_visibility="collapsed")
-                col_edit_carbs.caption("Carbohidrați")
-                col_edit_carbs.metric(" ", f"{edit_total_carbs:.1f} g", label_visibility="collapsed")
-                col_edit_fats.caption("Grăsimi")
-                col_edit_fats.metric(" ", f"{edit_total_fats:.1f} g", label_visibility="collapsed")
+                st.markdown(
+                    build_custom_meal_summary_cards_html(
+                        edit_display_totals["quantity_g"],
+                        edit_display_totals["calories"],
+                        edit_display_totals["protein_g"],
+                        edit_display_totals["carbs_g"],
+                        edit_display_totals["fats_g"],
+                    ),
+                    unsafe_allow_html=True,
+                )
         else:
             edit_quantity_errors = []
     

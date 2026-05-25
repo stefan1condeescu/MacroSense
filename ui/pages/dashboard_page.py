@@ -118,14 +118,11 @@ def _render_current_state(current: dict[str, Any]) -> None:
                 "label": "Obiectiv",
                 "value": _format_goal(current.get("goal")),
                 "accent": "goal",
-                "help": GOAL_HELP,
+                "help": _goal_description(current.get("goal")) or GOAL_HELP,
             },
         ],
         columns_count=4,
     )
-    goal_description = _goal_description(current.get("goal"))
-    if goal_description:
-        st.caption(goal_description)
 
     _render_card_grid(
         [
@@ -729,6 +726,9 @@ def _render_balance_chart(data: dict[str, Any]) -> None:
 
 def _render_macro_chart(data: dict[str, Any]) -> None:
     st.subheader("Macronutrienți")
+    st.caption(
+        "Distribuția macronutrienților pe proteine, carbohidrați și grăsimi."
+    )
     daily_rows = _prepare_daily_rows(data.get("daily_rows", pd.DataFrame()))
     date_domain = _date_order_domain(daily_rows)
     macro_rows = _prepare_macro_rows(data.get("macro_rows", pd.DataFrame()))
@@ -1043,15 +1043,13 @@ def _format_goal(value: Any) -> str:
 def _goal_description(value: Any) -> str | None:
     goal_key = _normalize_goal(value)
     descriptions = {
-        "slabire": "Obiectiv selectat: Slabire - accent pe deficit caloric controlat.",
-        "mentinere": "Obiectiv selectat: Mentinere - accent pe stabilitatea greutății.",
+        "slabire": "Accent pe deficit caloric controlat.",
+        "mentinere": "Accent pe stabilitatea greutății.",
         "masa_musculara": (
-            "Obiectiv selectat: Crestere - accent pe surplus controlat, "
-            "proteine și antrenamente de forță."
+            "Accent pe surplus controlat, proteine și antrenamente de forță."
         ),
         "crestere": (
-            "Obiectiv selectat: Crestere - accent pe surplus controlat, "
-            "proteine și antrenamente de forță."
+            "Accent pe surplus controlat, proteine și antrenamente de forță."
         ),
     }
     return descriptions.get(goal_key)

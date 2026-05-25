@@ -1,4 +1,5 @@
 import streamlit as st
+from ui.page_theme import apply_page_theme, get_user_page_theme
 from ui.pages.activity_journal_page import (
     ACTIVITY_JOURNAL_DATE_KEY,
     render_activity_journal_page,
@@ -48,6 +49,7 @@ def render_user_routes() -> None:
 
     page_slot = st.empty()
     with page_slot.container():
+        apply_page_theme(get_user_page_theme(choice))
         _render_selected_user_page(choice)
 
     st.sidebar.divider()

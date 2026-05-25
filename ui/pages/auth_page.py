@@ -2,6 +2,12 @@ import streamlit as st
 from models.authentication import Admin, User
 from models.text_validation import has_obvious_html_chars, is_valid_person_name
 from models.tracking import WeightLog
+from ui.page_theme import apply_page_theme
+
+
+AUTH_NAVIGATION_KEY = "auth_navigation"
+AUTH_REDIRECT_TO_LOGIN_KEY = "auth_redirect_to_login"
+AUTH_REGISTER_SUCCESS_KEY = "auth_register_success_message"
 
 
 def get_registration_error_message(error_code: str) -> str:
@@ -35,7 +41,12 @@ def get_registration_error_message(error_code: str) -> str:
 def render_auth_page() -> None:
     st.sidebar.title("MacroSense")
     menu = ["Autentificare", "Creare Cont"]
-    choice = st.sidebar.selectbox("Navigație", menu)
+    if st.session_state.pop(AUTH_REDIRECT_TO_LOGIN_KEY, False):
+        st.session_state[AUTH_NAVIGATION_KEY] = "Autentificare"
+    if AUTH_NAVIGATION_KEY not in st.session_state:
+        st.session_state[AUTH_NAVIGATION_KEY] = "Autentificare"
+    choice = st.sidebar.selectbox("Navigație", menu, key=AUTH_NAVIGATION_KEY)
+    apply_page_theme("auth")
     
     if choice == "Creare Cont":
         st.subheader("Creează un profil nou")
@@ -101,42 +112,66 @@ def render_auth_page() -> None:
             else:
                 new_user = User(cleaned_email, cleaned_full_name, height, age, gender, goal)
                 if new_user.register(password, weight):
-                    st.success("Cont creat cu succes! Te poți autentifica acum.")
+                    st.session_state[AUTH_REGISTER_SUCCESS_KEY] = "Cont creat cu succes! Te poți autentifica acum."
+                    st.session_state[AUTH_REDIRECT_TO_LOGIN_KEY] = True
+                    st.rerun()
                 else:
                     st.error(get_registration_error_message(new_user.last_error_code))
        
     elif choice == "Autentificare":
+        registration_success_message = st.session_state.pop(AUTH_REGISTER_SUCCESS_KEY, None)
+        if registration_success_message:
+            st.success(registration_success_message)
         login_slot = st.empty()
         with login_slot.container():
-            st.subheader("Intră în contul tău")
-            with st.form("login_form"):
-                email = st.text_input("Email")
-                password = st.text_input("Parolă", type="password")
-                submit_login = st.form_submit_button("Login", type="primary")
+            st.markdown('<div class="auth-login-panel"></div>', unsafe_allow_html=True)
+            _, login_col, _ = st.columns([0.2, 1, 0.2])
+            with login_col:
+                st.markdown(
+                    """
+                    <div class="auth-login-copy">
+                        <h2>Bine ai revenit</h2>
+                        <p>Intră în MacroSense pentru a continua monitorizarea.</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                with st.form("login_form"):
+                    email = st.text_input("Email")
+                    password = st.text_input("Parolă", type="password")
+                    submit_login = st.form_submit_button(
+                        "Intră în cont",
+                        width="stretch",
+                        type="primary",
+                    )
 
-                if submit_login:
-                    # Frontend Validation for Login
-                    cleaned_email = email.strip()
-                    if not cleaned_email or not password.strip():
-                        st.warning("Te rog să introduci adresa de email și parola.")
-                    else:
-                        # 1. Attempt to authenticate as Admin
-                        admin_account = Admin(cleaned_email)
-                        if admin_account.authenticate(password):
-                            st.session_state['role'] = 'admin'
-                            st.session_state['logged_in_email'] = admin_account.email
-                            st.session_state['admin_access_level'] = admin_account.access_level
-                            login_slot.empty()
-                            st.rerun()
+                    if submit_login:
+                        # Frontend Validation for Login
+                        cleaned_email = email.strip()
+                        if not cleaned_email or not password.strip():
+                            st.warning("Te rog să introduci adresa de email și parola.")
                         else:
-                            # 2. Attempt to authenticate as standard User
-                            user_account = User(cleaned_email)
-                            if user_account.authenticate(password):
-                                st.session_state['role'] = 'user'
-                                st.session_state['logged_in_email'] = user_account.email
-                                st.session_state['user_full_name'] = user_account.full_name
-                                st.session_state['user_id'] = user_account.id
+                            # 1. Attempt to authenticate as Admin
+                            admin_account = Admin(cleaned_email)
+                            if admin_account.authenticate(password):
+                                st.session_state['role'] = 'admin'
+                                st.session_state['logged_in_email'] = admin_account.email
+                                st.session_state['admin_access_level'] = admin_account.access_level
                                 login_slot.empty()
                                 st.rerun()
                             else:
-                                st.error("Email sau parolă incorecte.")
+                                # 2. Attempt to authenticate as standard User
+                                user_account = User(cleaned_email)
+                                if user_account.authenticate(password):
+                                    st.session_state['role'] = 'user'
+                                    st.session_state['logged_in_email'] = user_account.email
+                                    st.session_state['user_full_name'] = user_account.full_name
+                                    st.session_state['user_id'] = user_account.id
+                                    login_slot.empty()
+                                    st.rerun()
+                                else:
+                                    st.error("Email sau parolă incorecte.")
+                st.markdown(
+                    '<p class="auth-login-note">Nu ai cont? Alege Creare Cont din meniul din stânga.</p>',
+                    unsafe_allow_html=True,
+                )
