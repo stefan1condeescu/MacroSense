@@ -9,6 +9,7 @@ from services.ml.artifacts import save_weight_model_artifact
 from services.ml.prediction import (
     UserWeightPredictions,
     WeightPrediction,
+    _real_data_dates_before,
     _resolve_analysis_date,
     get_latest_available_user_weight_predictions,
     predict_weight_changes_from_frames,
@@ -313,12 +314,12 @@ class MLPredictionTests(unittest.TestCase):
                     analysis_date=date(2026, 5, 18),
                     artifact_dir=temp_dir,
                     horizons=(14,),
-                    max_lookback_days=8,
+                    max_lookback_days=14,
                 )
             finally:
                 prediction_module.fetch_user_prediction_frames = original_fetch
 
-        self.assertEqual(result.analysis_date, date(2026, 5, 14))
+        self.assertEqual(result.analysis_date, date(2026, 5, 8))
         self.assertEqual(len(result.predictions), 1)
 
     def test_prefer_complete_days_uses_yesterday_for_current_day(self):
@@ -339,11 +340,12 @@ class MLPredictionTests(unittest.TestCase):
             date(2026, 5, 17),
         )
 
-    def test_latest_available_prediction_falls_back_to_current_day(self):
+    def test_latest_available_prediction_does_not_retry_current_incomplete_day(self):
         import services.ml.prediction as prediction_module
 
         original_fetch = prediction_module.fetch_user_prediction_frames
         original_predict = prediction_module.predict_weight_changes_from_frames
+        called_dates = []
 
         def fake_fetch(user_id, analysis_date):
             return self.profile, self.food_rows, self.activity_rows, self.weight_rows
@@ -357,6 +359,7 @@ class MLPredictionTests(unittest.TestCase):
             artifact_dir,
             horizons,
         ):
+            called_dates.append(analysis_date)
             if analysis_date != date(2026, 5, 18):
                 return UserWeightPredictions(
                     user_id=profile["user_id"],
@@ -401,8 +404,108 @@ class MLPredictionTests(unittest.TestCase):
             prediction_module.fetch_user_prediction_frames = original_fetch
             prediction_module.predict_weight_changes_from_frames = original_predict
 
-        self.assertEqual(result.analysis_date, date(2026, 5, 18))
+        self.assertNotIn(date(2026, 5, 18), called_dates)
+        self.assertEqual(result.predictions, [])
+
+    def test_latest_available_prediction_starts_from_latest_real_data_date(self):
+        import services.ml.prediction as prediction_module
+
+        original_fetch = prediction_module.fetch_user_prediction_frames
+        original_predict = prediction_module.predict_weight_changes_from_frames
+
+        food_rows = pd.DataFrame(
+            [
+                {
+                    "user_id": 1,
+                    "log_date": date(2026, 5, 23),
+                    "meal_type": "Pranz",
+                    "food_name": "Meal",
+                    "source_type": "catalog_food",
+                    "calories": 1900,
+                    "protein_g": 105,
+                    "carbs_g": 210,
+                    "fats_g": 55,
+                }
+            ]
+        )
+        weight_rows = pd.DataFrame(
+            [
+                {"user_id": 1, "log_date": date(2026, 5, 23), "weight_kg": 79.0}
+            ]
+        )
+        activity_rows = pd.DataFrame()
+
+        def fake_fetch(user_id, analysis_date):
+            return self.profile, food_rows, activity_rows, weight_rows
+
+        def fake_predict(
+            profile,
+            food_rows,
+            activity_rows,
+            weight_rows,
+            analysis_date,
+            artifact_dir,
+            horizons,
+        ):
+            return UserWeightPredictions(
+                user_id=profile["user_id"],
+                analysis_date=analysis_date,
+                predictions=[
+                    WeightPrediction(
+                        horizon_days=14,
+                        analysis_date=analysis_date,
+                        target_date=date(2026, 6, 6),
+                        current_weight_kg=79.0,
+                        predicted_change_kg=-0.2,
+                        predicted_weight_kg=78.8,
+                        model_name="energy_trend_reference",
+                        metrics={"mae": 0.4},
+                    )
+                ],
+                unavailable_horizons={},
+            )
+
+        try:
+            prediction_module.fetch_user_prediction_frames = fake_fetch
+            prediction_module.predict_weight_changes_from_frames = fake_predict
+
+            result = get_latest_available_user_weight_predictions(
+                user_id=1,
+                analysis_date=date(2026, 5, 25),
+                horizons=(14,),
+                max_lookback_days=14,
+                prefer_complete_days=True,
+                today=date(2026, 5, 25),
+            )
+        finally:
+            prediction_module.fetch_user_prediction_frames = original_fetch
+            prediction_module.predict_weight_changes_from_frames = original_predict
+
+        self.assertEqual(result.analysis_date, date(2026, 5, 23))
         self.assertEqual(len(result.predictions), 1)
+
+    def test_real_data_dates_are_unique_sorted_and_not_future(self):
+        food_rows = pd.DataFrame(
+            [
+                {"log_date": date(2026, 5, 20)},
+                {"log_date": date(2026, 5, 22)},
+                {"log_date": date(2026, 5, 26)},
+            ]
+        )
+        activity_rows = pd.DataFrame([{"log_date": date(2026, 5, 22)}])
+        weight_rows = pd.DataFrame([{"log_date": date(2026, 5, 21)}])
+
+        result = _real_data_dates_before(
+            food_rows,
+            activity_rows,
+            weight_rows,
+            target_date=date(2026, 5, 25),
+        )
+
+        self.assertEqual(
+            result,
+            [date(2026, 5, 20), date(2026, 5, 21), date(2026, 5, 22)],
+        )
 
 
 if __name__ == "__main__":

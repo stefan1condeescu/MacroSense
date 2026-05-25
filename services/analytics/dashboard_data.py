@@ -19,6 +19,47 @@ from services.analytics.energy import (
 DEFAULT_DASHBOARD_DAYS = 30
 
 
+def get_latest_user_data_date(user_id: int, max_date: date | None = None) -> date | None:
+    """Return the latest real user data date without creating or modifying logs."""
+    interval_end = max_date or date.today()
+    conn = None
+    try:
+        conn = get_connection()
+        if not conn:
+            return None
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT MAX(data_date)
+            FROM (
+                SELECT wl.log_date AS data_date
+                FROM weight_logs wl
+                WHERE wl.user_id = %s
+                  AND wl.log_date <= %s
+
+                UNION ALL
+
+                SELECT dl.log_date AS data_date
+                FROM daily_logs dl
+                WHERE dl.user_id = %s
+                  AND dl.log_date <= %s
+                  AND (
+                      EXISTS (SELECT 1 FROM food_logs fl WHERE fl.log_id = dl.id)
+                      OR EXISTS (SELECT 1 FROM activity_logs al WHERE al.log_id = dl.id)
+                  )
+            ) user_data_dates
+            """,
+            (user_id, interval_end, user_id, interval_end),
+        )
+        row = cur.fetchone()
+        return _to_date(row[0]) if row and row[0] else None
+    except Exception as exc:
+        raise RuntimeError(f"Could not load latest user data date: {exc}") from exc
+    finally:
+        if conn:
+            conn.close()
+
+
 def get_interval_bounds(
     days: int = DEFAULT_DASHBOARD_DAYS, end_date: date | None = None
 ) -> tuple[date, date]:
@@ -64,6 +105,7 @@ def get_dashboard_data(
             macro_rows,
             activity_breakdown,
             days,
+            interval_end,
         )
         current = summarize_current_state(profile, daily_rows, weight_rows, interval_end)
 
@@ -286,8 +328,15 @@ def summarize_dashboard(
     macro_rows: pd.DataFrame,
     activity_breakdown: pd.DataFrame,
     days: int,
+    end_date: date | None = None,
 ) -> dict[str, Any]:
-    latest_weight = _latest_weight_summary(weight_rows)
+    summary_end_date = _to_date(end_date) if end_date else _max_date(daily_rows, "log_date")
+    scoped_weight_rows = (
+        _filter_until(weight_rows, "log_date", summary_end_date)
+        if summary_end_date
+        else weight_rows
+    )
+    latest_weight = _latest_weight_summary(scoped_weight_rows)
     food_rows = daily_rows[daily_rows["has_food_logs"]] if not daily_rows.empty else pd.DataFrame()
     activity_rows = (
         daily_rows[daily_rows["has_activity_logs"]] if not daily_rows.empty else pd.DataFrame()
@@ -351,7 +400,8 @@ def summarize_current_state(
     weight_rows: pd.DataFrame,
     current_date: date,
 ) -> dict[str, Any]:
-    latest_weight = _latest_weight_summary(weight_rows)
+    scoped_weight_rows = _filter_until(weight_rows, "log_date", current_date)
+    latest_weight = _latest_weight_summary(scoped_weight_rows)
     current_weight = latest_weight["latest_weight_kg"]
     today_row = _get_daily_row(daily_rows, current_date)
 
@@ -662,6 +712,25 @@ def _filter_by_interval(
     return filtered[
         (filtered[date_column] >= start_date) & (filtered[date_column] <= end_date)
     ].reset_index(drop=True)
+
+
+def _filter_until(
+    dataframe: pd.DataFrame, date_column: str, end_date: date
+) -> pd.DataFrame:
+    if dataframe.empty or date_column not in dataframe.columns:
+        return dataframe.copy()
+    filtered = dataframe.copy()
+    filtered[date_column] = filtered[date_column].apply(_to_date)
+    return filtered[filtered[date_column] <= _to_date(end_date)].reset_index(drop=True)
+
+
+def _max_date(dataframe: pd.DataFrame, date_column: str) -> date | None:
+    if dataframe.empty or date_column not in dataframe.columns:
+        return None
+    normalized = dataframe[date_column].dropna().apply(_to_date)
+    if normalized.empty:
+        return None
+    return max(normalized)
 
 
 def _to_date(value: Any) -> date:

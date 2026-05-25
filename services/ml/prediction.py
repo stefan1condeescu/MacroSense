@@ -117,9 +117,31 @@ def get_latest_available_user_weight_predictions(
             unavailable_horizons={horizon: "Utilizatorul nu există." for horizon in horizons},
         )
 
+    real_data_dates = _real_data_dates_before(
+        food_rows,
+        activity_rows,
+        weight_rows,
+        target_date,
+    )
+    lookback_start_date = target_date - timedelta(days=max_lookback_days)
+    candidate_dates = [
+        candidate_date
+        for candidate_date in reversed(real_data_dates)
+        if lookback_start_date <= candidate_date <= target_date
+    ]
+    if not candidate_dates:
+        return UserWeightPredictions(
+            user_id=int(profile["user_id"]),
+            analysis_date=target_date,
+            predictions=[],
+            unavailable_horizons={
+                horizon: "Nu există suficiente date recente pentru predicție."
+                for horizon in horizons
+            },
+        )
+
     last_result: UserWeightPredictions | None = None
-    for offset_days in range(max_lookback_days + 1):
-        candidate_date = target_date - timedelta(days=offset_days)
+    for candidate_date in candidate_dates:
         result = predict_weight_changes_from_frames(
             profile,
             food_rows,
@@ -132,20 +154,6 @@ def get_latest_available_user_weight_predictions(
         if result.predictions:
             return result
         last_result = result
-
-    if prefer_complete_days and requested_date != target_date:
-        current_day_result = predict_weight_changes_from_frames(
-            profile,
-            food_rows,
-            activity_rows,
-            weight_rows,
-            requested_date,
-            artifact_dir,
-            horizons,
-        )
-        if current_day_result.predictions:
-            return current_day_result
-        last_result = current_day_result
 
     return last_result or UserWeightPredictions(
         user_id=int(profile["user_id"]),
@@ -475,6 +483,24 @@ def _find_past_weight(weight_rows: pd.DataFrame, target_date: date) -> float | N
     if past_weights.empty:
         return None
     return round(float(past_weights.sort_values("log_date").iloc[-1]["weight_kg"]), 3)
+
+
+def _real_data_dates_before(
+    food_rows: pd.DataFrame,
+    activity_rows: pd.DataFrame,
+    weight_rows: pd.DataFrame,
+    target_date: date,
+) -> list[date]:
+    data_dates: set[date] = set()
+    max_date = _to_date(target_date)
+    for dataframe in (food_rows, activity_rows, weight_rows):
+        if dataframe.empty or "log_date" not in dataframe.columns:
+            continue
+        for value in dataframe["log_date"].dropna():
+            log_date = _to_date(value)
+            if log_date <= max_date:
+                data_dates.add(log_date)
+    return sorted(data_dates)
 
 
 def _resolve_analysis_date(

@@ -6,6 +6,7 @@ import pandas as pd
 
 from ui.pages import dashboard_page
 from ui.pages.dashboard_page import (
+    _analysis_date_context,
     _build_dashboard_card_html,
     _build_weight_prediction_cards,
     _daily_x_axis,
@@ -16,6 +17,7 @@ from ui.pages.dashboard_page import (
     _prepare_daily_rows,
     _prepare_daily_weight_rows,
     _prepare_macro_rows,
+    _resolve_dashboard_analysis_date,
     _resolve_interval_label,
 )
 from services.ml.prediction import UserWeightPredictions, WeightPrediction
@@ -177,6 +179,41 @@ class DashboardPageHelperTests(unittest.TestCase):
         self.assertEqual(_resolve_interval_label("90 zile"), "90 zile")
         self.assertEqual(_resolve_interval_label("invalid"), "30 zile")
 
+    def test_dashboard_analysis_date_defaults_and_blocks_future_dates(self):
+        today = date(2026, 5, 25)
+
+        self.assertEqual(
+            _resolve_dashboard_analysis_date(
+                None,
+                default_date=date(2026, 5, 23),
+                today=today,
+            ),
+            date(2026, 5, 23),
+        )
+        self.assertEqual(
+            _resolve_dashboard_analysis_date(
+                date(2026, 5, 26),
+                default_date=date(2026, 5, 23),
+                today=today,
+            ),
+            today,
+        )
+
+    def test_analysis_date_context_keeps_today_labels_only_for_current_day(self):
+        today_context = _analysis_date_context(
+            date(2026, 5, 25),
+            today=date(2026, 5, 25),
+        )
+        historical_context = _analysis_date_context(
+            date(2026, 5, 23),
+            today=date(2026, 5, 25),
+        )
+
+        self.assertTrue(today_context["is_today"])
+        self.assertEqual(today_context["day_phrase"], "azi")
+        self.assertFalse(historical_context["is_today"])
+        self.assertEqual(historical_context["day_phrase"], "la data analizată")
+
     def test_weight_prediction_cards_show_14_and_30_day_outputs(self):
         result = UserWeightPredictions(
             user_id=1,
@@ -232,18 +269,85 @@ class DashboardPageHelperTests(unittest.TestCase):
         self.assertEqual(cards[0]["caption"], "Modelele ML nu au fost antrenate încă.")
         self.assertEqual(cards[1]["caption"], "Nu există suficiente date recente pentru predicție.")
 
-    def test_prediction_caption_mentions_fallback_analysis_date(self):
+    def test_weight_prediction_cards_explain_fallback_start_date(self):
         result = UserWeightPredictions(
             user_id=1,
-            analysis_date=date(2026, 5, 12),
+            analysis_date=date(2026, 5, 23),
+            predictions=[
+                WeightPrediction(
+                    horizon_days=14,
+                    analysis_date=date(2026, 5, 23),
+                    target_date=date(2026, 6, 6),
+                    current_weight_kg=80.0,
+                    predicted_change_kg=-0.5,
+                    predicted_weight_kg=79.5,
+                    model_name="gradient_boosting",
+                    metrics={"mae": 0.23},
+                )
+            ],
+            unavailable_horizons={},
+        )
+
+        cards = _build_weight_prediction_cards(
+            result,
+            requested_analysis_date=date(2026, 5, 25),
+        )
+
+        self.assertEqual(cards[0]["label"], "Peste 14 zile de la 23.05.2026")
+        self.assertEqual(cards[0]["value"], "79.5 kg")
+
+    def test_prediction_caption_mentions_today_is_avoided_for_current_day(self):
+        result = UserWeightPredictions(
+            user_id=1,
+            analysis_date=date(2026, 5, 23),
             predictions=[],
             unavailable_horizons={},
         )
 
-        caption = _format_prediction_source_caption(result, date(2026, 5, 18))
+        caption = _format_prediction_source_caption(
+            result,
+            date(2026, 5, 25),
+            today=date(2026, 5, 25),
+        )
 
-        self.assertIn("12.05.2026", caption)
-        self.assertIn("cea mai recentă zi completă cu date suficiente", caption)
+        self.assertIn("23.05.2026", caption)
+        self.assertIn("Ziua curentă este evitată", caption)
+
+    def test_prediction_caption_mentions_selected_date_without_recent_data(self):
+        result = UserWeightPredictions(
+            user_id=1,
+            analysis_date=date(2026, 5, 20),
+            predictions=[],
+            unavailable_horizons={},
+        )
+
+        caption = _format_prediction_source_caption(
+            result,
+            date(2026, 5, 23),
+            today=date(2026, 5, 25),
+        )
+
+        self.assertIn("20.05.2026", caption)
+        self.assertIn("pentru 23.05.2026 nu există suficiente date recente", caption)
+
+    def test_prediction_caption_for_exact_analysis_date_is_short(self):
+        result = UserWeightPredictions(
+            user_id=1,
+            analysis_date=date(2026, 5, 23),
+            predictions=[],
+            unavailable_horizons={},
+        )
+
+        caption = _format_prediction_source_caption(
+            result,
+            date(2026, 5, 23),
+            today=date(2026, 5, 25),
+        )
+
+        self.assertEqual(
+            caption,
+            "Predicție calculată din datele disponibile până la 23.05.2026.",
+        )
 
 
 if __name__ == "__main__":
