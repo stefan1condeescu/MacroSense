@@ -184,7 +184,7 @@ CREATE TABLE food_logs (
     log_id INT NOT NULL REFERENCES daily_logs(id) ON DELETE CASCADE,
     food_id INT REFERENCES food_items(id) ON DELETE CASCADE,
     custom_meal_id INT REFERENCES custom_meals(id) ON DELETE CASCADE,
-    quantity_g DECIMAL(6,2) NOT NULL, -- Integration of the previously discussed fix
+    quantity_g DECIMAL(6,2) NOT NULL,
     meal_type VARCHAR(50) NOT NULL,
     meal_time TIME NOT NULL,
     snapshot_name VARCHAR(100),

@@ -124,7 +124,6 @@ class FoodLog:
                     snapshot["fats_100g"] if snapshot else None,
                 )
             )
-            # Retrieve the auto-generated primary key
             self.id = cursor.fetchone()[0]
             conn.commit()
             return True
