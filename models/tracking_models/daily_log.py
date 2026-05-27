@@ -19,10 +19,7 @@ def format_optional_activity_count(value) -> str:
 
 
 class DailyLog:
-    """
-    Represents the daily nutritional and fitness summary for a user.
-    Maps to the DailyLog class in the UML Class Diagram and the daily_logs table.
-    """
+    """Represents the daily nutrition and activity summary for a user."""
     def __init__(self, user_id: int, log_date: datetime.date, 
                  total_calories_in: float = 0.0, 
                  total_calories_burned: float = 0.0, 

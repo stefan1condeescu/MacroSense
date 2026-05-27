@@ -219,7 +219,6 @@ class CustomMeal:
         return self.calculate_total_macros_by_id(self.id)
 
     def calculateTotalMacros(self) -> dict:
-        """Compatibility method matching the UML class diagram naming."""
         return self.calculate_total_macros()
 
     @staticmethod
