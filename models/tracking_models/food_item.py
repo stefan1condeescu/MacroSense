@@ -4,10 +4,7 @@ from models.text_validation import contains_letter, has_obvious_html_chars
 
 
 class FoodItem:
-    """
-    Represents a food item in the system's nutritional database.
-    Maps exactly to the FoodItem class in the UML Class Diagram.
-    """
+    """Represents a food item in the nutrition catalog."""
     def __init__(
         self,
         name: str,

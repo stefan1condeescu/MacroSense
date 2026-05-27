@@ -2,10 +2,7 @@ import datetime
 from database import get_connection
 
 class FoodLog:
-    """
-    Represents a specific food consumption event in a user's daily log.
-    Maps to the FoodLog class in the UML Class Diagram.
-    """
+    """Represents a food consumption entry in a daily log."""
     MIN_QUANTITY_G = 1.0
     MAX_QUANTITY_G = 5000.0
     VALID_MEAL_TYPES = ("Mic dejun", "Prânz", "Cină", "Gustare")

@@ -1,10 +1,7 @@
 from database import get_connection
 
 class ActivityLog:
-    """
-    Represents a physical activity event logged by the user in a given day.
-    Maps to the ActivityLog class in the UML Class Diagram.
-    """
+    """Represents a physical activity event logged for a day."""
     MIN_MANUAL_CALORIES_BURNED = 1.0
     MAX_MANUAL_CALORIES_BURNED = 5000.0
     MIN_DURATION_MINUTES = 0.1

@@ -6,10 +6,7 @@ from database import get_connection
 from models.text_validation import contains_letter, has_obvious_html_chars
 
 class Activity:
-    """
-    Represents a physical activity in the system's catalog.
-    Maps exactly to the Activity class in the UML Class Diagram.
-    """
+    """Represents a physical activity in the catalog."""
     MIN_MET_MULTIPLIER = 0.9
     ESTIMATION_METHODS = {
         "official_compendium": "Oficial Compendium",
