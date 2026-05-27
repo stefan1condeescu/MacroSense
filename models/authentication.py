@@ -5,10 +5,7 @@ from models.text_validation import has_obvious_html_chars, is_valid_person_name
 from models.tracking_models.weight_log import WeightLog
 
 class UserAccount:
-    """
-    Base abstract class representing a generic system account.
-    Corresponds to UserAccount in the UML Class Diagram.
-    """
+    """Common account data shared by users and administrators."""
     def __init__(self, email: str, password_hash: str = None, registration_date=None):
         self.email = email.strip() if email else email
         self.password_hash = password_hash
@@ -16,39 +13,26 @@ class UserAccount:
 
     @staticmethod
     def _hash_password(password: str) -> str:
-        """Hashes the password using SHA-256 for secure storage."""
+        """Hash a plain-text password for database comparison."""
         return hashlib.sha256(password.encode()).hexdigest()
 
     def authenticate(self, plain_password: str) -> bool:
-        """
-        Base authentication logic. Overridden by child classes.
-        Maps to +authenticate(): boolean from the UML diagram.
-        """
-        return False  # Base class does not implement authentication
+        """Return whether the provided password is valid for this account."""
+        return False
 
     def logout(self):
-        """
-        Handles user logout logic. 
-        Maps to +logout(): void from the UML diagram.
-        (Implementation hooked to Streamlit session state in app.py)
-        """
+        """Placeholder for account-level logout behavior."""
         pass
 
 
 class Admin(UserAccount):
-    """
-    Concrete class representing a system administrator.
-    Inherits from UserAccount. Maps to Admin in the UML Class Diagram.
-    """
+    """Administrator account backed by the admins table."""
     def __init__(self, email: str, access_level: int = 1, password_hash: str = None):
         super().__init__(email, password_hash)
         self.access_level = access_level
 
     def authenticate(self, plain_password: str) -> bool:
-        """
-        Overrides the base authenticate method to check the admins table.
-        Populates access_level on success.
-        """
+        """Authenticate an administrator and load the access level."""
         conn = get_connection()
         if not conn:
             return False
@@ -74,10 +58,7 @@ class Admin(UserAccount):
 
 
 class User(UserAccount):
-    """
-    Concrete class representing a standard application user.
-    Inherits from UserAccount. Maps to User in the UML Class Diagram.
-    """
+    """Standard application user backed by the users table."""
     MIN_HEIGHT_CM = 100.0
     MAX_HEIGHT_CM = 250.0
     MIN_AGE = 10
@@ -87,7 +68,7 @@ class User(UserAccount):
 
     def __init__(self, email: str, full_name: str = None, height_cm: float = None, age: int = None, gender: str = None, goal: str = None, password_hash: str = None):
         super().__init__(email, password_hash)
-        self.id = None  # populated on successful authenticate()
+        self.id = None
         self.full_name = full_name.strip() if full_name else full_name
         self.height_cm = height_cm
         self.age = age
@@ -96,10 +77,7 @@ class User(UserAccount):
         self.last_error_code = None
 
     def authenticate(self, plain_password: str) -> bool:
-        """
-        Overrides the base authenticate method.
-        Validates password and populates profile attributes (including ID) in a single DB query.
-        """
+        """Authenticate a user and load the profile fields used by the UI."""
         conn = get_connection()
         if not conn:
             return False
@@ -127,13 +105,6 @@ class User(UserAccount):
         finally:
             if conn:
                 conn.close()
-
-    def calculateDailyCaloricNeeds(self) -> float:
-        """
-        Calculates TDEE (Total Daily Energy Expenditure).
-        Maps to +calculateDailyCaloricNeeds(): double from the UML diagram.
-        """
-        return 2000.0 
 
     def register(self, plain_password: str, initial_weight_kg: float) -> bool:
         """

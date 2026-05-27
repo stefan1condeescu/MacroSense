@@ -146,12 +146,11 @@ def render_auth_page() -> None:
                     )
 
                     if submit_login:
-                        # Frontend Validation for Login
                         cleaned_email = email.strip()
                         if not cleaned_email or not password.strip():
                             st.warning("Te rog să introduci adresa de email și parola.")
                         else:
-                            # 1. Attempt to authenticate as Admin
+                            # Admin and user accounts are checked in separate tables.
                             admin_account = Admin(cleaned_email)
                             if admin_account.authenticate(password):
                                 st.session_state['role'] = 'admin'
@@ -160,7 +159,6 @@ def render_auth_page() -> None:
                                 login_slot.empty()
                                 st.rerun()
                             else:
-                                # 2. Attempt to authenticate as standard User
                                 user_account = User(cleaned_email)
                                 if user_account.authenticate(password):
                                     st.session_state['role'] = 'user'
