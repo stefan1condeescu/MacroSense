@@ -2,12 +2,23 @@ import streamlit as st
 from models.authentication import Admin, User
 from models.text_validation import has_obvious_html_chars, is_valid_person_name
 from models.tracking import WeightLog
+from ui.language import translate
 from ui.page_theme import apply_page_theme
 
 
 AUTH_NAVIGATION_KEY = "auth_navigation"
 AUTH_REDIRECT_TO_LOGIN_KEY = "auth_redirect_to_login"
 AUTH_REGISTER_SUCCESS_KEY = "auth_register_success_message"
+AUTH_LOGIN_PAGE_ID = "login"
+AUTH_REGISTER_PAGE_ID = "register"
+AUTH_PAGES = {
+    AUTH_LOGIN_PAGE_ID: "Login",
+    AUTH_REGISTER_PAGE_ID: "Create account",
+}
+LEGACY_AUTH_PAGE_IDS = {
+    "Autentificare": AUTH_LOGIN_PAGE_ID,
+    "Creare Cont": AUTH_REGISTER_PAGE_ID,
+}
 
 
 def get_registration_error_message(error_code: str) -> str:
@@ -38,17 +49,38 @@ def get_registration_error_message(error_code: str) -> str:
     return messages.get(error_code, "Contul nu a putut fi creat. Verifică datele introduse și încearcă din nou.")
 
 
+def display_auth_page_name(page_id: str) -> str:
+    """Return the translated label for a stable authentication page ID."""
+    source_label = AUTH_PAGES.get(page_id)
+    if source_label is None:
+        return page_id
+    return translate(source_label)
+
+
+def normalize_auth_page_id(page_id: str | None) -> str:
+    """Convert a current or legacy authentication selection to a stable ID."""
+    if page_id in AUTH_PAGES:
+        return str(page_id)
+    return LEGACY_AUTH_PAGE_IDS.get(str(page_id), AUTH_LOGIN_PAGE_ID)
+
+
 def render_auth_page() -> None:
     st.sidebar.title("MacroSense")
-    menu = ["Autentificare", "Creare Cont"]
     if st.session_state.pop(AUTH_REDIRECT_TO_LOGIN_KEY, False):
-        st.session_state[AUTH_NAVIGATION_KEY] = "Autentificare"
-    if AUTH_NAVIGATION_KEY not in st.session_state:
-        st.session_state[AUTH_NAVIGATION_KEY] = "Autentificare"
-    choice = st.sidebar.selectbox("Navigație", menu, key=AUTH_NAVIGATION_KEY)
+        st.session_state[AUTH_NAVIGATION_KEY] = AUTH_LOGIN_PAGE_ID
+    current_page = st.session_state.get(AUTH_NAVIGATION_KEY)
+    normalized_page = normalize_auth_page_id(current_page)
+    if current_page != normalized_page:
+        st.session_state[AUTH_NAVIGATION_KEY] = normalized_page
+    selected_page = st.sidebar.selectbox(
+        translate("Navigation"),
+        options=list(AUTH_PAGES),
+        format_func=display_auth_page_name,
+        key=AUTH_NAVIGATION_KEY,
+    )
     apply_page_theme("auth")
     
-    if choice == "Creare Cont":
+    if selected_page == AUTH_REGISTER_PAGE_ID:
         st.subheader("Creează un profil nou")
         with st.form("register_form"):
             email = st.text_input("Adresă Email")
@@ -118,7 +150,7 @@ def render_auth_page() -> None:
                 else:
                     st.error(get_registration_error_message(new_user.last_error_code))
        
-    elif choice == "Autentificare":
+    elif selected_page == AUTH_LOGIN_PAGE_ID:
         registration_success_message = st.session_state.pop(AUTH_REGISTER_SUCCESS_KEY, None)
         if registration_success_message:
             st.success(registration_success_message)

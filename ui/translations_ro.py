@@ -11,4 +11,10 @@ ROMANIAN_TRANSLATIONS = {
     "Food catalog": "Catalog Alimente",
     "Activity catalog": "Catalog Activități",
     "Main menu": "Meniu Principal",
+    "Login": "Autentificare",
+    "Create account": "Creare Cont",
+    "Navigation": "Navigație",
+    "Food management": "Gestiune Alimente",
+    "Activity management": "Gestiune Activități",
+    "Admin menu": "Meniu Admin",
 }
