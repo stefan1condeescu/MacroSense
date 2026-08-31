@@ -13,6 +13,17 @@ PAGE_THEME_CLASSES = {
     "auth": "page-theme-auth",
 }
 
+USER_PAGE_THEMES = {
+    "dashboard": "dashboard",
+    "food_journal": "food",
+    "activity_journal": "activity",
+    "weight_journal": "weight",
+    "custom_meals": "meals",
+    "what_if": "what_if",
+    "food_catalog": "food",
+    "activity_catalog": "activity",
+}
+
 
 def apply_page_theme(theme_key: str) -> None:
     """Adds an invisible marker used by the global CSS theme rules."""
@@ -23,20 +34,9 @@ def apply_page_theme(theme_key: str) -> None:
     )
 
 
-def get_user_page_theme(menu_choice: str) -> str:
-    """Returns the visual theme key for a user-facing menu option."""
-    normalized_choice = str(menu_choice or "").lower()
-    if "jurnal alimentar" in normalized_choice or "catalog alimente" in normalized_choice:
-        return "food"
-    if "jurnal activit" in normalized_choice or "catalog activit" in normalized_choice:
-        return "activity"
-    if "jurnal greutate" in normalized_choice:
-        return "weight"
-    if "mese personalizate" in normalized_choice:
-        return "meals"
-    if "what-if" in normalized_choice:
-        return "what_if"
-    return "dashboard"
+def get_user_page_theme(page_id: str) -> str:
+    """Return the visual theme key for a stable user page ID."""
+    return USER_PAGE_THEMES.get(page_id, "dashboard")
 
 
 def get_admin_page_theme(menu_choice: str) -> str:
