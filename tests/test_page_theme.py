@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from ui import page_theme
+from ui.pages.admin_routes import ADMIN_MENU_OPTIONS
 from ui.pages.user_routes import USER_MENU_OPTIONS
 
 
@@ -21,9 +22,18 @@ class PageThemeTests(unittest.TestCase):
         self.assertEqual(page_theme.get_user_page_theme("food_journal"), "food")
         self.assertEqual(page_theme.get_user_page_theme("activity_catalog"), "activity")
 
+    def test_every_admin_page_id_has_an_explicit_theme_mapping(self):
+        self.assertEqual(set(ADMIN_MENU_OPTIONS), set(page_theme.ADMIN_PAGE_THEMES))
+
+    def test_admin_page_ids_map_to_known_themes(self):
+        for page_id in ADMIN_MENU_OPTIONS:
+            with self.subTest(page_id=page_id):
+                theme_key = page_theme.get_admin_page_theme(page_id)
+                self.assertIn(theme_key, page_theme.PAGE_THEME_CLASSES)
+
     def test_admin_activity_catalog_uses_activity_theme(self):
         self.assertEqual(
-            page_theme.get_admin_page_theme("Gestiune Activități"),
+            page_theme.get_admin_page_theme("activity_catalog"),
             "catalog_activity",
         )
 

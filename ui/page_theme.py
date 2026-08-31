@@ -24,6 +24,11 @@ USER_PAGE_THEMES = {
     "activity_catalog": "activity",
 }
 
+ADMIN_PAGE_THEMES = {
+    "food_catalog": "catalog_food",
+    "activity_catalog": "catalog_activity",
+}
+
 
 def apply_page_theme(theme_key: str) -> None:
     """Adds an invisible marker used by the global CSS theme rules."""
@@ -39,9 +44,6 @@ def get_user_page_theme(page_id: str) -> str:
     return USER_PAGE_THEMES.get(page_id, "dashboard")
 
 
-def get_admin_page_theme(menu_choice: str) -> str:
-    """Returns the visual theme key for an admin catalog page."""
-    normalized_choice = str(menu_choice or "").lower()
-    if "activit" in normalized_choice:
-        return "catalog_activity"
-    return "catalog_food"
+def get_admin_page_theme(page_id: str) -> str:
+    """Return the visual theme key for a stable administrator page ID."""
+    return ADMIN_PAGE_THEMES.get(page_id, "catalog_food")
