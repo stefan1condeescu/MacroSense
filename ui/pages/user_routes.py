@@ -5,6 +5,7 @@ from typing import Any
 import streamlit as st
 from database import get_connection
 from services.analytics.energy import calculate_bmi
+from ui.language import translate
 from ui.page_theme import apply_page_theme, get_user_page_theme
 from ui.pages.activity_journal_page import (
     ACTIVITY_JOURNAL_DATE_KEY,
@@ -21,16 +22,41 @@ from ui.pages.weight_journal_page import (
 from ui.pages.what_if_page import render_what_if_page
 
 
-USER_MENU_OPTIONS = [
-    "Acasă",
-    "Jurnal Alimentar",
-    "Jurnal Activități",
-    "Jurnal Greutate",
-    "Mese Personalizate",
-    "Simulator What-if",
-    "Catalog Alimente",
-    "Catalog Activități",
-]
+USER_PAGES = {
+    "dashboard": {
+        "label": "Home",
+        "render": render_dashboard_page,
+    },
+    "food_journal": {
+        "label": "Food journal",
+        "render": render_food_journal_page,
+    },
+    "activity_journal": {
+        "label": "Activity journal",
+        "render": render_activity_journal_page,
+    },
+    "weight_journal": {
+        "label": "Weight journal",
+        "render": render_weight_journal_page,
+    },
+    "custom_meals": {
+        "label": "Custom meals",
+        "render": render_custom_meals_page,
+    },
+    "what_if": {
+        "label": "What-if simulator",
+        "render": render_what_if_page,
+    },
+    "food_catalog": {
+        "label": "Food catalog",
+        "render": render_user_food_catalog_page,
+    },
+    "activity_catalog": {
+        "label": "Activity catalog",
+        "render": render_user_activity_catalog_page,
+    },
+}
+USER_MENU_OPTIONS = tuple(USER_PAGES)
 USER_LAST_RENDERED_PAGE_KEY = "user_last_rendered_page"
 JOURNAL_DATE_SELECTOR_KEYS = {
     FOOD_JOURNAL_DATE_KEY,
@@ -44,20 +70,25 @@ def render_user_routes() -> None:
     st.sidebar.title(f"Salut, {st.session_state['user_full_name']}!")
     _render_sidebar_profile_summary()
 
-    choice = st.sidebar.radio("Meniu Principal", USER_MENU_OPTIONS, key="user_main_menu")
+    selected_page = st.sidebar.radio(
+        translate("Main menu"),
+        options=list(USER_PAGES),
+        format_func=display_page_name,
+        key="user_main_menu",
+    )
 
     last_rendered_page = st.session_state.get(USER_LAST_RENDERED_PAGE_KEY)
     if last_rendered_page is None:
-        st.session_state[USER_LAST_RENDERED_PAGE_KEY] = choice
-    elif last_rendered_page != choice:
+        st.session_state[USER_LAST_RENDERED_PAGE_KEY] = selected_page
+    elif last_rendered_page != selected_page:
         _reset_journal_date_selectors()
-        st.session_state[USER_LAST_RENDERED_PAGE_KEY] = choice
+        st.session_state[USER_LAST_RENDERED_PAGE_KEY] = selected_page
         st.rerun()
 
     page_slot = st.empty()
     with page_slot.container():
-        apply_page_theme(get_user_page_theme(choice))
-        _render_selected_user_page(choice)
+        apply_page_theme(get_user_page_theme(selected_page))
+        _render_selected_user_page(selected_page)
 
     st.sidebar.divider()
     if st.sidebar.button("Deconectare", width="stretch", type="tertiary"):
@@ -223,20 +254,13 @@ def _reset_journal_date_selectors() -> None:
             del st.session_state[key]
 
 
-def _render_selected_user_page(choice: str) -> None:
-    if choice == "Acasă":
-        render_dashboard_page()
-    elif choice == "Jurnal Alimentar":
-        render_food_journal_page()
-    elif choice == "Jurnal Activități":
-        render_activity_journal_page()
-    elif choice == "Jurnal Greutate":
-        render_weight_journal_page()
-    elif choice == "Mese Personalizate":
-        render_custom_meals_page()
-    elif choice == "Simulator What-if":
-        render_what_if_page()
-    elif choice == "Catalog Alimente":
-        render_user_food_catalog_page()
-    elif choice == "Catalog Activități":
-        render_user_activity_catalog_page()
+def display_page_name(page_id: str) -> str:
+    """Return the translated label for a stable user page ID."""
+    page = USER_PAGES.get(page_id)
+    if page is None:
+        return page_id
+    return translate(str(page["label"]))
+
+
+def _render_selected_user_page(page_id: str) -> None:
+    USER_PAGES[page_id]["render"]()

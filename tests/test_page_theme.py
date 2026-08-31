@@ -8,11 +8,18 @@ from ui.pages.user_routes import USER_MENU_OPTIONS
 
 
 class PageThemeTests(unittest.TestCase):
-    def test_user_menu_options_map_to_known_themes(self):
-        for menu_choice in USER_MENU_OPTIONS:
-            with self.subTest(menu_choice=menu_choice):
-                theme_key = page_theme.get_user_page_theme(menu_choice)
+    def test_user_page_ids_map_to_known_themes(self):
+        for page_id in USER_MENU_OPTIONS:
+            with self.subTest(page_id=page_id):
+                theme_key = page_theme.get_user_page_theme(page_id)
                 self.assertIn(theme_key, page_theme.PAGE_THEME_CLASSES)
+
+    def test_every_user_page_id_has_an_explicit_theme_mapping(self):
+        self.assertEqual(set(USER_MENU_OPTIONS), set(page_theme.USER_PAGE_THEMES))
+
+    def test_user_page_theme_does_not_depend_on_display_language(self):
+        self.assertEqual(page_theme.get_user_page_theme("food_journal"), "food")
+        self.assertEqual(page_theme.get_user_page_theme("activity_catalog"), "activity")
 
     def test_admin_activity_catalog_uses_activity_theme(self):
         self.assertEqual(
