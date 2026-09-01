@@ -390,7 +390,7 @@ def _render_weight_prediction_section(
     analysis_date: date | None,
     today: date | None = None,
 ) -> UserWeightPredictions | None:
-    st.subheader("Predicție greutate")
+    st.subheader(translate("Weight prediction"))
 
     try:
         prediction_result = get_latest_available_user_weight_predictions(
@@ -402,8 +402,10 @@ def _render_weight_prediction_section(
         )
     except RuntimeError:
         st.info(
-            "Predicția ML nu este disponibilă momentan. Verifică modelele "
-            "antrenate și conexiunea la baza de date."
+            translate(
+                "The ML prediction is temporarily unavailable. Check the "
+                "trained models and database connection."
+            )
         )
         return None
 
@@ -423,8 +425,10 @@ def _render_weight_prediction_section(
         )
     else:
         st.info(
-            "Predicția apare după ce există suficiente alimente, cântăriri și "
-            "modele ML antrenate pentru utilizatorul curent."
+            translate(
+                "The prediction appears once there are enough logged meals, "
+                "weigh-ins, and trained ML models for the current user."
+            )
         )
 
     return prediction_result
@@ -510,26 +514,28 @@ def _build_weight_prediction_cards(
     for horizon_days in DEFAULT_PREDICTION_HORIZONS:
         prediction = predictions_by_horizon.get(horizon_days)
         if prediction:
-            label = f"Peste {horizon_days} zile"
+            label = translate("In {days} days", days=horizon_days)
             if uses_fallback_date:
-                label = (
-                    f"Peste {horizon_days} zile de la "
-                    f"{_format_date(prediction.analysis_date)}"
+                label = translate(
+                    "In {days} days from {date}",
+                    days=horizon_days,
+                    date=_format_date(prediction.analysis_date),
                 )
             cards.append(
                 {
                     "label": label,
                     "value": _format_kg(prediction.predicted_weight_kg),
-                    "caption": (
-                        "Schimbare estimată: "
-                        f"{_format_kg_delta(prediction.predicted_change_kg) or '—'} | "
-                        f"Data: {_format_date(prediction.target_date)} | "
-                        f"MAE: {_format_prediction_error(prediction.metrics.get('mae'))}"
+                    "caption": translate(
+                        "Estimated change: {change} | Date: {date} | MAE: {mae}",
+                        change=_format_kg_delta(prediction.predicted_change_kg)
+                        or "—",
+                        date=_format_date(prediction.target_date),
+                        mae=_format_prediction_error(prediction.metrics.get("mae")),
                     ),
                     "accent": "prediction",
-                    "help": (
-                        "Predicție ML calculată din istoricul de "
-                        "alimente, activități și greutate, fără date din viitor."
+                    "help": translate(
+                        "ML prediction calculated from food, activity, and weight "
+                        "history, without future data."
                     ),
                 }
             )
@@ -537,15 +543,17 @@ def _build_weight_prediction_cards(
 
         reason = prediction_result.unavailable_horizons.get(
             horizon_days,
-            "Nu există suficiente date pentru acest interval.",
+            "There is not enough data for this interval.",
         )
         cards.append(
             {
-                "label": f"Peste {horizon_days} zile",
-                "value": "Indisponibil",
+                "label": translate("In {days} days", days=horizon_days),
+                "value": translate("Unavailable"),
                 "caption": _format_prediction_unavailable_reason(reason),
                 "accent": "prediction",
-                "help": "Predicția devine disponibilă după ce există date suficiente.",
+                "help": translate(
+                    "The prediction becomes available once enough data exists."
+                ),
             }
         )
     return cards
@@ -564,19 +572,21 @@ def _format_prediction_source_caption(
     )
     current_date = today or date.today()
     if actual_date == requested_date:
-        return (
-            "Predicție calculată din datele disponibile până la "
-            f"{_format_date(actual_date)}."
+        return translate(
+            "Prediction calculated from data available through {date}.",
+            date=_format_date(actual_date),
         )
     if requested_date == current_date:
-        return (
-            f"Predicția pornește de la {_format_date(actual_date)}, ultima zi "
-            "cu date suficiente. Ziua curentă este evitată pentru că poate fi "
-            "incompletă."
+        return translate(
+            "The prediction starts from {actual_date}, the latest day with enough "
+            "data. The current day is skipped because it may be incomplete.",
+            actual_date=_format_date(actual_date),
         )
-    return (
-        f"Predicția pornește de la {_format_date(actual_date)}, deoarece pentru "
-        f"{_format_date(requested_date)} nu există suficiente date recente."
+    return translate(
+        "The prediction starts from {actual_date} because there is not enough "
+        "recent data for {requested_date}.",
+        actual_date=_format_date(actual_date),
+        requested_date=_format_date(requested_date),
     )
 
 
@@ -589,8 +599,20 @@ def _format_prediction_error(value: Any) -> str:
 
 def _format_prediction_unavailable_reason(reason: str) -> str:
     if "Missing model artifact" in reason or "Missing metadata artifact" in reason:
-        return "Modelele ML nu au fost antrenate încă."
-    return reason
+        return translate("The ML models have not been trained yet.")
+    if reason in {
+        "Nu există suficiente date pentru acest interval.",
+        "There is not enough data for this interval.",
+    }:
+        return translate("There is not enough data for this interval.")
+    if reason in {
+        "Nu există suficiente date recente pentru predicție.",
+        "There is not enough recent data for a prediction.",
+    }:
+        return translate("There is not enough recent data for a prediction.")
+    if reason in {"Utilizatorul nu există.", "The user could not be found."}:
+        return translate("The user could not be found.")
+    return translate("The ML prediction is temporarily unavailable.")
 
 
 def _resolve_interval_label(value: Any) -> str:

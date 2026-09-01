@@ -232,4 +232,50 @@ ROMANIAN_TRANSLATIONS = {
     "Focus on a controlled surplus, protein, and strength training.": (
         "Accent pe surplus controlat, proteine și antrenamente de forță."
     ),
+    "Weight prediction": "Predicție greutate",
+    "The ML prediction is temporarily unavailable. Check the trained models and database connection.": (
+        "Predicția ML nu este disponibilă momentan. Verifică modelele antrenate "
+        "și conexiunea la baza de date."
+    ),
+    "The prediction appears once there are enough logged meals, weigh-ins, and trained ML models for the current user.": (
+        "Predicția apare după ce există suficiente alimente, cântăriri și modele "
+        "ML antrenate pentru utilizatorul curent."
+    ),
+    "In {days} days": "Peste {days} zile",
+    "In {days} days from {date}": "Peste {days} zile de la {date}",
+    "Estimated change: {change} | Date: {date} | MAE: {mae}": (
+        "Schimbare estimată: {change} | Data: {date} | MAE: {mae}"
+    ),
+    "ML prediction calculated from food, activity, and weight history, without future data.": (
+        "Predicție ML calculată din istoricul de alimente, activități și greutate, "
+        "fără date din viitor."
+    ),
+    "There is not enough data for this interval.": (
+        "Nu există suficiente date pentru acest interval."
+    ),
+    "Unavailable": "Indisponibil",
+    "The prediction becomes available once enough data exists.": (
+        "Predicția devine disponibilă după ce există date suficiente."
+    ),
+    "Prediction calculated from data available through {date}.": (
+        "Predicție calculată din datele disponibile până la {date}."
+    ),
+    "The prediction starts from {actual_date}, the latest day with enough data. The current day is skipped because it may be incomplete.": (
+        "Predicția pornește de la {actual_date}, ultima zi cu date suficiente. "
+        "Ziua curentă este evitată pentru că poate fi incompletă."
+    ),
+    "The prediction starts from {actual_date} because there is not enough recent data for {requested_date}.": (
+        "Predicția pornește de la {actual_date}, deoarece pentru {requested_date} "
+        "nu există suficiente date recente."
+    ),
+    "The ML models have not been trained yet.": (
+        "Modelele ML nu au fost antrenate încă."
+    ),
+    "There is not enough recent data for a prediction.": (
+        "Nu există suficiente date recente pentru predicție."
+    ),
+    "The user could not be found.": "Utilizatorul nu există.",
+    "The ML prediction is temporarily unavailable.": (
+        "Predicția ML nu este disponibilă momentan."
+    ),
 }
