@@ -1,13 +1,17 @@
 from datetime import date
 import inspect
 import unittest
+from unittest.mock import patch
 
 import pandas as pd
 
+from services.recommendations.simple_recommendations import RecommendationCard
+from ui import language
 from ui.pages import dashboard_page
 from ui.pages.dashboard_page import (
     _analysis_date_context,
     _build_dashboard_card_html,
+    _build_recommendation_card_html,
     _build_weight_prediction_cards,
     _daily_x_axis,
     _date_order_domain,
@@ -24,6 +28,45 @@ from services.ml.prediction import UserWeightPredictions, WeightPrediction
 
 
 class DashboardPageHelperTests(unittest.TestCase):
+    def test_recommendation_card_html_uses_the_active_language(self):
+        card = RecommendationCard(
+            "Meals",
+            "Not enough data",
+            "Log meals more often.",
+            "quality",
+        )
+
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_html = _build_recommendation_card_html(card)
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_html = _build_recommendation_card_html(card)
+
+        self.assertIn(">Mese</div>", romanian_html)
+        self.assertIn(">Date puține</div>", romanian_html)
+        self.assertIn(">Loghează mesele mai des.</div>", romanian_html)
+        self.assertIn(">Meals</div>", english_html)
+        self.assertIn(">Not enough data</div>", english_html)
+        self.assertIn(">Log meals more often.</div>", english_html)
+        self.assertIn('class="recommendation-card quality"', romanian_html)
+        self.assertIn('class="recommendation-card quality"', english_html)
+
+    def test_recommendation_card_html_escapes_all_card_fields(self):
+        card = RecommendationCard(
+            "<Meals>",
+            "<Status>",
+            "<Message>",
+            'quality" data-test="unsafe',
+        )
+
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            html = _build_recommendation_card_html(card)
+
+        self.assertIn("&lt;Meals&gt;", html)
+        self.assertIn("&lt;Status&gt;", html)
+        self.assertIn("&lt;Message&gt;", html)
+        self.assertNotIn("<Meals>", html)
+        self.assertNotIn('data-test="unsafe"', html)
+
     def test_daily_chart_rows_use_one_discrete_label_per_day(self):
         rows = pd.DataFrame(
             [

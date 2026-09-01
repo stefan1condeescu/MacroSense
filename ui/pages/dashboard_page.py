@@ -22,6 +22,7 @@ from services.recommendations.simple_recommendations import (
     RecommendationCard,
     build_dashboard_recommendation_cards,
 )
+from ui.language import translate
 
 
 INTERVAL_OPTIONS = {
@@ -395,13 +396,21 @@ def _render_recommendation_section(
         except RuntimeError:
             recommendation_data = dashboard_data
 
-    st.subheader("Recomandări")
+    st.subheader(translate("Recommendations"))
     day_context = _analysis_date_context(analysis_date)
     if bool(day_context["is_today"]):
-        st.caption(f"Pe baza ultimelor {RECOMMENDATION_DAYS} zile.")
+        st.caption(
+            translate(
+                "Based on the last {days} days.",
+                days=RECOMMENDATION_DAYS,
+            )
+        )
     else:
         st.caption(
-            f"Pe baza ultimelor {RECOMMENDATION_DAYS} zile până la data analizată."
+            translate(
+                "Based on the last {days} days through the analysis date.",
+                days=RECOMMENDATION_DAYS,
+            )
         )
     cards = build_dashboard_recommendation_cards(
         recommendation_data,
@@ -418,12 +427,15 @@ def _render_recommendation_grid(cards: list[RecommendationCard]) -> None:
 
 
 def _build_recommendation_card_html(card: RecommendationCard) -> str:
+    category = escape(translate(card.category))
+    status = escape(translate(card.status))
+    message = escape(translate(card.message))
     return "".join(
         [
             f'<div class="recommendation-card {escape(card.accent)}">',
-            f'<div class="recommendation-card-category">{escape(card.category)}</div>',
-            f'<div class="recommendation-card-status">{escape(card.status)}</div>',
-            f'<div class="recommendation-card-message">{escape(card.message)}</div>',
+            f'<div class="recommendation-card-category">{category}</div>',
+            f'<div class="recommendation-card-status">{status}</div>',
+            f'<div class="recommendation-card-message">{message}</div>',
             "</div>",
         ]
     )
