@@ -58,6 +58,11 @@ USER_PAGES = {
 }
 USER_MENU_OPTIONS = tuple(USER_PAGES)
 USER_LAST_RENDERED_PAGE_KEY = "user_last_rendered_page"
+PROFILE_GOAL_SOURCE_TEXT = {
+    "Slabire": "Weight loss",
+    "Mentinere": "Maintenance",
+    "Crestere": "Muscle gain",
+}
 JOURNAL_DATE_SELECTOR_KEYS = {
     FOOD_JOURNAL_DATE_KEY,
     ACTIVITY_JOURNAL_DATE_KEY,
@@ -67,7 +72,12 @@ JOURNAL_DATE_SELECTOR_PREFIXES = (WEIGHT_LOG_ADD_DATE_KEY_PREFIX,)
 
 
 def render_user_routes() -> None:
-    st.sidebar.title(f"Salut, {st.session_state['user_full_name']}!")
+    st.sidebar.title(
+        translate(
+            "Hello, {name}!",
+            name=st.session_state["user_full_name"],
+        )
+    )
     _render_sidebar_profile_summary()
 
     selected_page = st.sidebar.radio(
@@ -91,7 +101,11 @@ def render_user_routes() -> None:
         _render_selected_user_page(selected_page)
 
     st.sidebar.divider()
-    if st.sidebar.button("Deconectare", width="stretch", type="tertiary"):
+    if st.sidebar.button(
+        translate("Log out"),
+        width="stretch",
+        type="tertiary",
+    ):
         st.session_state.clear()
         st.rerun()
 
@@ -101,14 +115,14 @@ def _render_sidebar_profile_summary() -> None:
     if not user_id:
         return
 
-    with st.sidebar.expander("Profilul meu"):
+    with st.sidebar.expander(translate("My profile")):
         try:
             profile = load_user_profile_summary(int(user_id))
         except RuntimeError:
-            st.caption("Profilul nu poate fi încărcat momentan.")
+            st.caption(translate("The profile cannot be loaded right now."))
             return
         if not profile:
-            st.caption("Profilul nu poate fi încărcat momentan.")
+            st.caption(translate("The profile cannot be loaded right now."))
             return
         st.markdown(build_user_profile_summary_html(profile), unsafe_allow_html=True)
 
@@ -171,21 +185,27 @@ def load_user_profile_summary(user_id: int) -> dict[str, Any] | None:
 def build_user_profile_summary_html(profile: dict[str, Any]) -> str:
     """Build escaped read-only sidebar profile details."""
     rows = [
-        ("Email", _format_profile_text(profile.get("email"))),
-        ("Nume", _format_profile_text(profile.get("full_name"))),
-        ("Înregistrare", _format_profile_date(profile.get("registration_date"))),
-        ("Înălțime", _format_profile_number(profile.get("height_cm"), " cm", 0)),
-        ("Sex", _format_profile_text(profile.get("gender"))),
-        ("Vârstă", _format_profile_number(profile.get("age"), " ani", 0)),
-        ("Obiectiv", _format_profile_text(profile.get("goal"))),
+        (translate("Email"), _format_profile_text(profile.get("email"))),
+        (translate("Name"), _format_profile_text(profile.get("full_name"))),
         (
-            "Greutate",
+            translate("Registration"),
+            _format_profile_date(profile.get("registration_date")),
+        ),
+        (
+            translate("Height"),
+            _format_profile_number(profile.get("height_cm"), " cm", 0),
+        ),
+        (translate("Gender"), _format_profile_text(profile.get("gender"))),
+        (translate("Age"), _format_profile_age(profile.get("age"))),
+        (translate("Goal"), _format_profile_goal(profile.get("goal"))),
+        (
+            translate("Weight"),
             _format_profile_weight(
                 profile.get("latest_weight_kg"),
                 profile.get("latest_weight_date"),
             ),
         ),
-        ("BMI", _format_profile_number(profile.get("bmi"), "", 1)),
+        (translate("BMI"), _format_profile_number(profile.get("bmi"), "", 1)),
     ]
     row_html = "".join(
         [
@@ -222,6 +242,24 @@ def _format_profile_number(value: Any, suffix: str, decimals: int) -> str:
     if decimals == 0:
         return f"{numeric_value:.0f}{suffix}"
     return f"{numeric_value:.{decimals}f}{suffix}"
+
+
+def _format_profile_age(value: Any) -> str:
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return "—"
+    return translate("{age:.0f} years", age=numeric_value)
+
+
+def _format_profile_goal(value: Any) -> str:
+    goal = _format_profile_text(value)
+    if goal == "—":
+        return goal
+    source_text = PROFILE_GOAL_SOURCE_TEXT.get(goal)
+    if source_text is None:
+        return goal
+    return translate(source_text)
 
 
 def _format_profile_weight(weight_kg: Any, weight_date: Any) -> str:
