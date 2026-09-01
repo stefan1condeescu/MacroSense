@@ -7,9 +7,10 @@ import pandas as pd
 import streamlit as st
 
 from ui.formatters import format_kcal_for_display
+from ui.language import translate
 
 
-MISSING_FOOD_LABEL = "Nelogat"
+MISSING_FOOD_SOURCE_TEXT = "Not logged"
 
 
 def build_daily_energy_summary_cards(energy_estimate: dict[str, Any]) -> list[dict[str, str]]:
@@ -19,26 +20,26 @@ def build_daily_energy_summary_cards(energy_estimate: dict[str, Any]) -> list[di
 
     return [
         {
-            "label": "Calorii consumate",
+            "label": translate("Calories consumed"),
             "value": _format_food_calories(energy_estimate),
             "accent": "food",
         },
         {
-            "label": "Calorii activități",
+            "label": translate("Activity calories"),
             "value": format_kcal_for_display(activity_calories),
             "accent": "activity",
         },
         {
-            "label": "TDEE estimat",
+            "label": translate("Estimated TDEE"),
             "value": format_kcal_for_display(energy_estimate.get("estimated_tdee")),
             "accent": "energy",
         },
         {
-            "label": "Balanță estimată",
+            "label": translate("Estimated balance"),
             "value": (
                 format_kcal_for_display(energy_estimate.get("estimated_balance"), signed=True)
                 if has_food_logs
-                else MISSING_FOOD_LABEL
+                else translate(MISSING_FOOD_SOURCE_TEXT)
             ),
             "accent": "balance",
         },
@@ -61,7 +62,7 @@ def render_daily_energy_summary(energy_estimate: dict[str, Any]) -> None:
 
 def _format_food_calories(energy_estimate: dict[str, Any]) -> str:
     if not energy_estimate.get("has_food_logs"):
-        return MISSING_FOOD_LABEL
+        return translate(MISSING_FOOD_SOURCE_TEXT)
     return format_kcal_for_display(energy_estimate.get("food_calories_in"))
 
 
