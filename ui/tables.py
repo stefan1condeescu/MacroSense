@@ -3,7 +3,12 @@ import html
 
 import pandas as pd
 import streamlit as st
-from ui.food_selection import normalize_search_text
+from ui.food_selection import (
+    format_food_entry_type,
+    format_meal_type,
+    normalize_search_text,
+)
+from ui.language import translate
 
 
 def get_table_height(dataframe: pd.DataFrame, max_rows: int = 6, row_height: int = 32) -> int:
@@ -263,26 +268,38 @@ def render_log_entry_card(
     )
 
 
-def render_food_log_cards(dataframe: pd.DataFrame) -> None:
-    """Renders food journal entries as compact readable cards."""
+def build_food_log_cards_html(dataframe: pd.DataFrame) -> str:
+    """Build bilingual food-log cards without mutating stable service values."""
     cards_html = []
     for _, row in dataframe.iterrows():
-        card_type, badge_type = get_food_log_card_style(row.get("Tip"))
+        raw_entry_type = row.get("Tip", "-")
+        card_type, badge_type = get_food_log_card_style(raw_entry_type)
         cards_html.append(
             build_log_entry_card_html(
                 title=row.get("Aliment / Masă", "-"),
-                badge=row.get("Tip", "-"),
+                badge=format_food_entry_type(raw_entry_type),
                 card_type=card_type,
                 badge_type=badge_type,
                 metrics=[
-                ("Cantitate", format_card_number(row.get("Cantitate (g)"), "g")),
-                ("Calorii", format_card_number(row.get("Calorii"), "kcal")),
-                ("Masă", row.get("Masă", "-")),
-                ("Ora", row.get("Ora", "-")),
+                (
+                    translate("Quantity"),
+                    format_card_number(row.get("Cantitate (g)"), "g"),
+                ),
+                (
+                    translate("Calories"),
+                    format_card_number(row.get("Calorii"), "kcal"),
+                ),
+                (translate("Meal"), format_meal_type(row.get("Masă", "-"))),
+                (translate("Time"), row.get("Ora", "-")),
                 ],
             )
         )
-    st.markdown(f'<div class="log-entry-list">{"".join(cards_html)}</div>', unsafe_allow_html=True)
+    return f'<div class="log-entry-list">{"".join(cards_html)}</div>'
+
+
+def render_food_log_cards(dataframe: pd.DataFrame) -> None:
+    """Renders food journal entries as compact readable cards."""
+    st.markdown(build_food_log_cards_html(dataframe), unsafe_allow_html=True)
 
 
 def render_activity_log_cards(dataframe: pd.DataFrame) -> None:

@@ -436,4 +436,139 @@ ROMANIAN_TRANSLATIONS = {
     "Other": "Altele",
     "MacroSense estimate": "Estimare MacroSense",
     "Manual": "Manual",
+    "Select day:": "Selectează ziua:",
+    "Invalid session. Please log in again.": (
+        "Sesiune invalidă. Te rugăm să te reautentifici."
+    ),
+    "You cannot save food entries for a future date.": (
+        "Nu poți salva înregistrări alimentare pentru o dată viitoare."
+    ),
+    "Add food intake": "Adaugă consum alimentar",
+    "Entry type": "Tip înregistrare",
+    "Catalog food": "Aliment din catalog",
+    "Custom meal": "Masă personalizată",
+    "The food catalog is empty. The administrator must add foods first.": (
+        "Catalogul de alimente este gol. Administratorul trebuie să adauge "
+        "alimente mai întâi."
+    ),
+    "Search for food": "Caută aliment",
+    "E.g. bananas, broccoli, salmon": "Ex: banane, broccoli, salmon",
+    "All": "Toate",
+    "No foods match the selected search and category.": (
+        "Nu există alimente pentru căutarea și categoria selectate."
+    ),
+    "Select the food from the table below. The Source column distinguishes MacroSense foods from USDA foods.": (
+        "Selectează alimentul din tabelul de mai jos. Coloana Sursă diferențiază "
+        "alimentele MacroSense de cele USDA."
+    ),
+    "Quantity (g)": "Cantitate (g)",
+    "Consumption time": "Ora consumului",
+    "Meal": "Masă",
+    "Breakfast": "Mic dejun",
+    "Lunch": "Prânz",
+    "Dinner": "Cină",
+    "Snack": "Gustare",
+    "Quantity": "Cantitate",
+    "🔥 Selected food: **{name}** ({source}) · Estimated calories: **{calories} kcal**": (
+        "🔥 Aliment selectat: **{name}** ({source}) · Calorii estimate: "
+        "**{calories} kcal**"
+    ),
+    "Select a food to calculate the calorie estimate.": (
+        "Selectează un aliment pentru a calcula estimarea calorică."
+    ),
+    "Save entry": "Salvează înregistrarea",
+    "Error accessing the daily journal.": "Eroare la accesarea jurnalului zilnic.",
+    "{name} ({quantity}g) added successfully!": (
+        "{name} ({quantity}g) adăugat cu succes!"
+    ),
+    "Error saving the entry.": "Eroare la salvarea înregistrării.",
+    "Validation error: {error}": "Eroare de validare: {error}",
+    "You have no active custom meals. Create or restore one on the Custom meals page.": (
+        "Nu ai mese personalizate active. Creează sau reactivează una în pagina "
+        "„Mese Personalizate”."
+    ),
+    "Consumed quantity (g)": "Cantitate consumată (g)",
+    "Consumed quantity": "Cantitatea consumată",
+    "🔥 Estimated calories: **{calories} kcal**": (
+        "🔥 Calorii estimate: **{calories} kcal**"
+    ),
+    "Save meal to journal": "Salvează masa în jurnal",
+    "Custom meal {name} ({quantity}g) added successfully!": (
+        "Masa personalizată {name} ({quantity}g) a fost adăugată cu succes!"
+    ),
+    "Error saving the custom meal.": "Eroare la salvarea mesei personalizate.",
+    "Foods consumed on {date}": "Alimente consumate pe {date}",
+    "Edit an entry": "Editează o înregistrare",
+    "Entry to edit": "Înregistrare de editat",
+    "New quantity (g)": "Cantitate nouă (g)",
+    "New meal": "Masă nouă",
+    "New time": "Oră nouă",
+    "Save changes": "Salvează modificările",
+    "New quantity": "Cantitatea nouă",
+    "The entry was updated successfully.": (
+        "Înregistrarea a fost actualizată cu succes."
+    ),
+    "Error updating the entry.": "Eroare la actualizarea înregistrării.",
+    "Delete an entry": "Șterge o înregistrare",
+    "Entry": "Înregistrare",
+    "I confirm deletion of this entry": (
+        "Confirm ștergerea acestei înregistrări"
+    ),
+    "Delete entry": "Șterge înregistrarea",
+    "Check the confirmation box before deleting.": (
+        "Bifează confirmarea înainte de ștergere."
+    ),
+    "The entry was deleted successfully.": (
+        "Înregistrarea a fost ștearsă cu succes."
+    ),
+    "Error deleting the entry.": "Eroare la ștergerea înregistrării.",
+    "There are no food entries for this day. Add the first food using the form above.": (
+        "Nu există înregistrări alimentare pentru această zi. Adaugă primul "
+        "aliment folosind formularul de mai sus."
+    ),
+    "{field_label} must be a valid number.": (
+        "{field_label} trebuie să fie un număr valid."
+    ),
+    "{field_label} must be at least {minimum:.0f} g.": (
+        "{field_label} trebuie să fie cel puțin {minimum:.0f} g."
+    ),
+    "{field_label} must be at most {maximum:.0f} g.": (
+        "{field_label} trebuie să fie cel mult {maximum:.0f} g."
+    ),
+    "Accepted range: {minimum:.0f}-{maximum:.0f} g.": (
+        "Interval acceptat: {minimum:.0f}-{maximum:.0f} g."
+    ),
+    "Food": "Aliment",
+    "Calories": "Calorii",
+    "Time": "Ora",
+    "Fruits": "Fructe",
+    "Vegetables": "Legume",
+    "Meat": "Carne",
+    "Fish": "Pește",
+    "Eggs": "Ouă",
+    "Dairy": "Lactate",
+    "Grains": "Cereale",
+    "Bread & bakery products": "Pâine & Panificație",
+    "Pasta & rice": "Paste & Orez",
+    "Legumes": "Leguminoase",
+    "Nuts & seeds": "Nuci & Semințe",
+    "Oils & fats": "Uleiuri & Grăsimi",
+    "Processed meats": "Mezeluri",
+    "Sweets": "Dulciuri",
+    "Snacks": "Gustări",
+    "Beverages & juices": "Băuturi & Sucuri",
+    "Alcoholic beverages": "Alcoolice",
+    "Condiments & sauces": "Condimente & Sosuri",
+    "January": "Ianuarie",
+    "February": "Februarie",
+    "March": "Martie",
+    "April": "Aprilie",
+    "May": "Mai",
+    "June": "Iunie",
+    "July": "Iulie",
+    "August": "August",
+    "September": "Septembrie",
+    "October": "Octombrie",
+    "November": "Noiembrie",
+    "December": "Decembrie",
 }
