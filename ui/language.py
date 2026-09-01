@@ -19,8 +19,12 @@ def initialize_language() -> str:
     return language
 
 
-def translate(source_text: str) -> str:
-    """Translate English UI source text using the active session language."""
+def translate(source_text: str, **format_values: object) -> str:
+    """Translate English UI source text and insert optional dynamic values."""
     if initialize_language() == "ro":
-        return ROMANIAN_TRANSLATIONS.get(source_text, source_text)
-    return source_text
+        translated_text = ROMANIAN_TRANSLATIONS.get(source_text, source_text)
+    else:
+        translated_text = source_text
+    if format_values:
+        return translated_text.format(**format_values)
+    return translated_text

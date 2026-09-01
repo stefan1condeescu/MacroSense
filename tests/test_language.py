@@ -25,6 +25,26 @@ class LanguageTests(unittest.TestCase):
         with patch.object(language.st, "session_state", {"language": "ro"}):
             self.assertEqual(language.translate("Untranslated text"), "Untranslated text")
 
+    def test_translate_formats_dynamic_values_in_romanian(self):
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            message = language.translate(
+                "Height must be between {minimum:.0f} and {maximum:.0f} cm.",
+                minimum=100,
+                maximum=250,
+            )
+
+        self.assertEqual(message, "Înălțimea trebuie să fie între 100 și 250 cm.")
+
+    def test_translate_formats_dynamic_values_in_english(self):
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            message = language.translate(
+                "Height must be between {minimum:.0f} and {maximum:.0f} cm.",
+                minimum=100,
+                maximum=250,
+            )
+
+        self.assertEqual(message, "Height must be between 100 and 250 cm.")
+
     def test_invalid_language_falls_back_to_romanian(self):
         session_state = {"language": "invalid"}
 

@@ -18,6 +18,30 @@ class AuthPageHelperTests(unittest.TestCase):
         with patch.object(language.st, "session_state", {"language": "en"}):
             self.assertEqual(auth_page.display_auth_page_name("login"), "Login")
 
+    def test_auth_goal_labels_translate_without_changing_stored_values(self):
+        self.assertEqual(set(auth_page.AUTH_GOAL_LABELS), set(auth_page.User.VALID_GOALS))
+
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            self.assertEqual(auth_page.display_auth_goal_name("Slabire"), "Slăbire")
+            self.assertEqual(auth_page.display_auth_goal_name("Mentinere"), "Menținere")
+            self.assertEqual(auth_page.display_auth_goal_name("Crestere"), "Creștere")
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            self.assertEqual(auth_page.display_auth_goal_name("Slabire"), "Weight loss")
+            self.assertEqual(auth_page.display_auth_goal_name("Mentinere"), "Maintenance")
+            self.assertEqual(auth_page.display_auth_goal_name("Crestere"), "Muscle gain")
+
+    def test_registration_errors_use_the_active_session_language(self):
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            self.assertEqual(
+                auth_page.get_registration_error_message("invalid_height"),
+                "Înălțimea trebuie să fie între 100 și 250 cm.",
+            )
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            self.assertEqual(
+                auth_page.get_registration_error_message("invalid_height"),
+                "Height must be between 100 and 250 cm.",
+            )
+
     def test_auth_navigation_formats_ids_for_display(self):
         source = inspect.getsource(auth_page.render_auth_page)
 
@@ -43,10 +67,10 @@ class AuthPageHelperTests(unittest.TestCase):
         self.assertIn("auth-login-panel", source)
         self.assertIn("auth-login-copy", source)
         self.assertIn("auth-login-note", source)
-        self.assertIn("Bine ai revenit", source)
-        self.assertIn("Intră în MacroSense pentru a continua monitorizarea.", source)
+        self.assertIn('translate("Welcome back")', source)
+        self.assertIn('translate("Log in to MacroSense to continue tracking.")', source)
         self.assertIn("st.columns([0.2, 1, 0.2])", source)
-        self.assertIn('"Intră în cont"', source)
+        self.assertIn('translate("Log in")', source)
         self.assertIn('width="stretch"', source)
 
     def test_successful_login_clears_form_before_rerun(self):
