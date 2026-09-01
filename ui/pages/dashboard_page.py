@@ -25,12 +25,13 @@ from services.recommendations.simple_recommendations import (
 from ui.language import translate
 
 
-INTERVAL_OPTIONS = {
+INTERVAL_OPTIONS = (7, 30, 90)
+DEFAULT_INTERVAL_DAYS = 30
+LEGACY_INTERVAL_DAYS = {
     "7 zile": 7,
     "30 zile": 30,
     "90 zile": 90,
 }
-DEFAULT_INTERVAL_LABEL = "30 zile"
 DASHBOARD_INTERVAL_KEY = "dashboard_interval_selection"
 DASHBOARD_ANALYSIS_DATE_KEY = "dashboard_analysis_date"
 
@@ -58,10 +59,7 @@ def render_dashboard_page() -> None:
         )
     )
 
-    selected_interval = _resolve_interval_label(
-        st.session_state.get(DASHBOARD_INTERVAL_KEY)
-    )
-    days = INTERVAL_OPTIONS.get(selected_interval, 30)
+    days = _initialize_interval_selection()
 
     user_id = st.session_state.get("user_id")
     if not user_id:
@@ -115,13 +113,14 @@ def render_dashboard_page() -> None:
     )
 
     st.divider()
-    st.subheader("Evoluție pe interval")
+    st.subheader(translate("Progress over the interval"))
     st.radio(
-        "Interval analiză",
-        list(INTERVAL_OPTIONS.keys()),
-        index=list(INTERVAL_OPTIONS.keys()).index(selected_interval),
+        translate("Analysis interval"),
+        list(INTERVAL_OPTIONS),
+        format_func=_display_interval_name,
         horizontal=True,
         key=DASHBOARD_INTERVAL_KEY,
+        **_interval_radio_kwargs(days),
     )
 
     _render_interval_summary(data)
@@ -615,10 +614,34 @@ def _format_prediction_unavailable_reason(reason: str) -> str:
     return translate("The ML prediction is temporarily unavailable.")
 
 
-def _resolve_interval_label(value: Any) -> str:
-    if value in INTERVAL_OPTIONS:
-        return str(value)
-    return DEFAULT_INTERVAL_LABEL
+def _resolve_interval_days(value: Any) -> int:
+    if (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and value in INTERVAL_OPTIONS
+    ):
+        return int(value)
+    if isinstance(value, str) and value in LEGACY_INTERVAL_DAYS:
+        return LEGACY_INTERVAL_DAYS[value]
+    return DEFAULT_INTERVAL_DAYS
+
+
+def _initialize_interval_selection() -> int:
+    current_value = st.session_state.get(DASHBOARD_INTERVAL_KEY)
+    selected_days = _resolve_interval_days(current_value)
+    if current_value is not None and current_value != selected_days:
+        st.session_state[DASHBOARD_INTERVAL_KEY] = selected_days
+    return selected_days
+
+
+def _interval_radio_kwargs(days: int) -> dict[str, int]:
+    if DASHBOARD_INTERVAL_KEY in st.session_state:
+        return {}
+    return {"index": list(INTERVAL_OPTIONS).index(days)}
+
+
+def _display_interval_name(days: int) -> str:
+    return translate("{days} days", days=days)
 
 
 def _render_card_grid(cards: list[dict[str, Any]], columns_count: int) -> None:
@@ -700,40 +723,40 @@ def _render_interval_summary(data: dict[str, Any]) -> None:
     _render_card_grid(
         [
             {
-                "label": "Trend greutate interval",
+                "label": translate("Interval weight trend"),
                 "value": _format_kg_delta(interval_weight_delta) or "—",
                 "accent": "weight",
-                "help": (
-                    "Diferența dintre greutatea de referință din ultima zi a "
-                    "intervalului și prima zi a intervalului. Nu înseamnă că ai "
-                    "avut cântărire reală în fiecare zi."
+                "help": translate(
+                    "The difference between the reference weight on the last day "
+                    "of the interval and the first day. It does not mean that you "
+                    "had an actual weigh-in every day."
                 ),
             },
             {
-                "label": "Consum mediu / zi logată",
+                "label": translate("Average intake / logged day"),
                 "value": _format_kcal(summary.get("avg_calories_in")),
                 "accent": "food",
-                "help": (
-                    "Media caloriilor consumate doar pe zilele cu alimente "
-                    "logate. Zilele fără alimente nu sunt tratate ca 0 kcal."
+                "help": translate(
+                    "Average calories consumed only on days with logged food. "
+                    "Days without logged food are not treated as 0 kcal."
                 ),
             },
             {
-                "label": "TDEE mediu / zi alimentară",
+                "label": translate("Average TDEE / food-logged day"),
                 "value": _format_kcal(summary.get("avg_estimated_tdee")),
                 "accent": "energy",
-                "help": (
-                    "Media TDEE-ului estimat doar pentru zilele cu alimentație "
-                    "logată, ca să fie comparabil cu consumul alimentar."
+                "help": translate(
+                    "Average estimated TDEE only on days with logged food, so it "
+                    "can be compared with food intake."
                 ),
             },
             {
-                "label": "Balanță medie / zi alimentară",
+                "label": translate("Average balance / food-logged day"),
                 "value": _format_signed_kcal(summary.get("avg_estimated_balance")),
                 "accent": "balance",
-                "help": (
-                    "Media valorilor zilnice calorii consumate - TDEE estimat, "
-                    "calculată doar pe zilele cu alimente logate."
+                "help": translate(
+                    "Average daily calories consumed - estimated TDEE, calculated "
+                    "only on days with logged food."
                 ),
             },
         ],
@@ -743,34 +766,56 @@ def _render_interval_summary(data: dict[str, Any]) -> None:
     _render_card_grid(
         [
             {
-                "label": "Consistență alimente",
+                "label": translate("Food logging consistency"),
                 "value": _format_percent(summary.get("food_logging_consistency")),
-                "caption": f"{summary.get('food_days', 0)} / {days} zile",
+                "caption": translate(
+                    "{logged_days} / {days} days",
+                    logged_days=summary.get("food_days", 0),
+                    days=days,
+                ),
                 "accent": "food",
-                "help": "Procentul de zile din interval cu cel puțin un aliment logat.",
+                "help": translate(
+                    "Percentage of days in the interval with at least one logged food."
+                ),
             },
             {
-                "label": "Consistență antrenamente",
+                "label": translate("Activity logging consistency"),
                 "value": _format_percent(summary.get("activity_logging_consistency")),
-                "caption": f"{summary.get('activity_days', 0)} / {days} zile",
+                "caption": translate(
+                    "{logged_days} / {days} days",
+                    logged_days=summary.get("activity_days", 0),
+                    days=days,
+                ),
                 "accent": "activity",
-                "help": "Procentul de zile din interval cu cel puțin un antrenament logat.",
+                "help": translate(
+                    "Percentage of days in the interval with at least one logged workout."
+                ),
             },
             {
-                "label": "Consistență greutate",
+                "label": translate("Weight logging consistency"),
                 "value": _format_percent(summary.get("weight_logging_consistency")),
-                "caption": f"{summary.get('weight_days', 0)} / {days} zile",
+                "caption": translate(
+                    "{logged_days} / {days} days",
+                    logged_days=summary.get("weight_days", 0),
+                    days=days,
+                ),
                 "accent": "weight",
-                "help": "Procentul de zile din interval cu o cântărire introdusă efectiv.",
+                "help": translate(
+                    "Percentage of days in the interval with an actual weigh-in."
+                ),
             },
             {
-                "label": "Consistență generală",
+                "label": translate("Overall logging consistency"),
                 "value": _format_percent(summary.get("overall_logging_consistency")),
-                "caption": f"{summary.get('logged_days', 0)} / {days} zile",
+                "caption": translate(
+                    "{logged_days} / {days} days",
+                    logged_days=summary.get("logged_days", 0),
+                    days=days,
+                ),
                 "accent": "quality",
-                "help": (
-                    "Procentul de zile din interval în care există alimente, "
-                    "antrenament sau cântărire reală."
+                "help": translate(
+                    "Percentage of days in the interval with logged food, a "
+                    "workout, or an actual weigh-in."
                 ),
             },
         ],
@@ -780,33 +825,37 @@ def _render_interval_summary(data: dict[str, Any]) -> None:
     _render_card_grid(
         [
             {
-                "label": "Calorii activități totale",
+                "label": translate("Total activity calories"),
                 "value": _format_kcal_zero(summary.get("activity_total_calories")),
                 "accent": "activity",
-                "help": "Totalul caloriilor arse prin antrenamente în intervalul selectat.",
-            },
-            {
-                "label": "Înregistrări exerciții",
-                "value": str(summary.get("workouts_count", 0)),
-                "accent": "activity",
-                "help": (
-                    "Numărul total de exerciții/antrenamente logate în interval. "
-                    "O singură zi poate avea mai multe înregistrări."
+                "help": translate(
+                    "Total calories burned through workouts in the selected interval."
                 ),
             },
             {
-                "label": "Proteină medie",
-                "value": _format_number(summary.get("avg_protein_g"), " g"),
-                "accent": "food",
-                "help": "Media proteinelor consumate pe zilele cu alimente logate.",
+                "label": translate("Exercise entries"),
+                "value": str(summary.get("workouts_count", 0)),
+                "accent": "activity",
+                "help": translate(
+                    "Total number of logged exercises or workouts in the interval. "
+                    "A single day can have multiple entries."
+                ),
             },
             {
-                "label": "Proteină / kg corp",
+                "label": translate("Average protein"),
+                "value": _format_number(summary.get("avg_protein_g"), " g"),
+                "accent": "food",
+                "help": translate(
+                    "Average protein consumed on days with logged food."
+                ),
+            },
+            {
+                "label": translate("Protein / kg body weight"),
                 "value": _format_number(summary.get("avg_protein_per_kg"), " g/kg"),
                 "accent": "health",
-                "help": (
-                    "Media proteinelor zilnice împărțită la greutatea de referință "
-                    "a zilei. Va fi utilă pentru recomandările alimentare."
+                "help": translate(
+                    "Average daily protein divided by the reference weight for "
+                    "that day. It will be useful for food recommendations."
                 ),
             },
         ],
@@ -815,8 +864,10 @@ def _render_interval_summary(data: dict[str, Any]) -> None:
 
     if not summary.get("has_energy_estimates"):
         st.info(
-            "Adaugă cel puțin o greutate pentru a putea calcula BMR, TDEE și "
-            "balanța calorică estimată."
+            translate(
+                "Add at least one weight entry to calculate BMR, TDEE, and the "
+                "estimated calorie balance."
+            )
         )
 
 

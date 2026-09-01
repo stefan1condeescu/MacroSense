@@ -278,4 +278,68 @@ ROMANIAN_TRANSLATIONS = {
     "The ML prediction is temporarily unavailable.": (
         "Predicția ML nu este disponibilă momentan."
     ),
+    "Progress over the interval": "Evoluție pe interval",
+    "Analysis interval": "Interval analiză",
+    "{days} days": "{days} zile",
+    "Interval weight trend": "Trend greutate interval",
+    "The difference between the reference weight on the last day of the interval and the first day. It does not mean that you had an actual weigh-in every day.": (
+        "Diferența dintre greutatea de referință din ultima zi a intervalului "
+        "și prima zi a intervalului. Nu înseamnă că ai avut cântărire reală "
+        "în fiecare zi."
+    ),
+    "Average intake / logged day": "Consum mediu / zi logată",
+    "Average calories consumed only on days with logged food. Days without logged food are not treated as 0 kcal.": (
+        "Media caloriilor consumate doar pe zilele cu alimente logate. Zilele "
+        "fără alimente nu sunt tratate ca 0 kcal."
+    ),
+    "Average TDEE / food-logged day": "TDEE mediu / zi alimentară",
+    "Average estimated TDEE only on days with logged food, so it can be compared with food intake.": (
+        "Media TDEE-ului estimat doar pentru zilele cu alimentație logată, ca "
+        "să fie comparabil cu consumul alimentar."
+    ),
+    "Average balance / food-logged day": "Balanță medie / zi alimentară",
+    "Average daily calories consumed - estimated TDEE, calculated only on days with logged food.": (
+        "Media valorilor zilnice calorii consumate - TDEE estimat, calculată "
+        "doar pe zilele cu alimente logate."
+    ),
+    "Food logging consistency": "Consistență alimente",
+    "Activity logging consistency": "Consistență antrenamente",
+    "Weight logging consistency": "Consistență greutate",
+    "Overall logging consistency": "Consistență generală",
+    "{logged_days} / {days} days": "{logged_days} / {days} zile",
+    "Percentage of days in the interval with at least one logged food.": (
+        "Procentul de zile din interval cu cel puțin un aliment logat."
+    ),
+    "Percentage of days in the interval with at least one logged workout.": (
+        "Procentul de zile din interval cu cel puțin un antrenament logat."
+    ),
+    "Percentage of days in the interval with an actual weigh-in.": (
+        "Procentul de zile din interval cu o cântărire introdusă efectiv."
+    ),
+    "Percentage of days in the interval with logged food, a workout, or an actual weigh-in.": (
+        "Procentul de zile din interval în care există alimente, antrenament "
+        "sau cântărire reală."
+    ),
+    "Total activity calories": "Calorii activități totale",
+    "Total calories burned through workouts in the selected interval.": (
+        "Totalul caloriilor arse prin antrenamente în intervalul selectat."
+    ),
+    "Exercise entries": "Înregistrări exerciții",
+    "Total number of logged exercises or workouts in the interval. A single day can have multiple entries.": (
+        "Numărul total de exerciții/antrenamente logate în interval. O "
+        "singură zi poate avea mai multe înregistrări."
+    ),
+    "Average protein": "Proteină medie",
+    "Average protein consumed on days with logged food.": (
+        "Media proteinelor consumate pe zilele cu alimente logate."
+    ),
+    "Protein / kg body weight": "Proteină / kg corp",
+    "Average daily protein divided by the reference weight for that day. It will be useful for food recommendations.": (
+        "Media proteinelor zilnice împărțită la greutatea de referință a "
+        "zilei. Va fi utilă pentru recomandările alimentare."
+    ),
+    "Add at least one weight entry to calculate BMR, TDEE, and the estimated calorie balance.": (
+        "Adaugă cel puțin o greutate pentru a putea calcula BMR, TDEE și "
+        "balanța calorică estimată."
+    ),
 }
