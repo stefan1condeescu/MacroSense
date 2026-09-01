@@ -15,8 +15,11 @@ from ui.pages.dashboard_page import (
     _build_weight_prediction_cards,
     _daily_x_axis,
     _date_order_domain,
+    _format_age,
     _format_prediction_source_caption,
     _format_gender,
+    _format_goal,
+    _format_kcal_or_missing,
     _goal_description,
     _prepare_daily_rows,
     _prepare_daily_weight_rows,
@@ -155,12 +158,29 @@ class DashboardPageHelperTests(unittest.TestCase):
     def test_current_state_uses_goal_description_in_objective_tooltip(self):
         source = inspect.getsource(dashboard_page._render_current_state)
 
-        self.assertIn('"help": _goal_description(current.get("goal")) or GOAL_HELP', source)
+        self.assertIn("or translate(GOAL_HELP_SOURCE_TEXT)", source)
         self.assertNotIn("st.caption(goal_description)", source)
-        self.assertEqual(
-            _goal_description("Crestere"),
-            "Accent pe surplus controlat, proteine și antrenamente de forță.",
-        )
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            self.assertEqual(
+                _goal_description("Crestere"),
+                "Accent pe surplus controlat, proteine și antrenamente de forță.",
+            )
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            self.assertEqual(
+                _goal_description("Crestere"),
+                "Focus on a controlled surplus, protein, and strength training.",
+            )
+
+    def test_current_state_display_values_use_the_active_language(self):
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            self.assertEqual(_format_age(25), "25 ani")
+            self.assertEqual(_format_goal("Slabire"), "Slăbire")
+            self.assertEqual(_format_kcal_or_missing(None), "Nelogat")
+
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            self.assertEqual(_format_age(25), "25 years")
+            self.assertEqual(_format_goal("Slabire"), "Weight loss")
+            self.assertEqual(_format_kcal_or_missing(None), "Not logged")
 
     def test_macro_chart_has_short_description(self):
         source = inspect.getsource(dashboard_page._render_macro_chart)
@@ -243,19 +263,201 @@ class DashboardPageHelperTests(unittest.TestCase):
         )
 
     def test_analysis_date_context_keeps_today_labels_only_for_current_day(self):
-        today_context = _analysis_date_context(
-            date(2026, 5, 25),
-            today=date(2026, 5, 25),
-        )
-        historical_context = _analysis_date_context(
-            date(2026, 5, 23),
-            today=date(2026, 5, 25),
-        )
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            today_context = _analysis_date_context(
+                date(2026, 5, 25),
+                today=date(2026, 5, 25),
+            )
+            historical_context = _analysis_date_context(
+                date(2026, 5, 23),
+                today=date(2026, 5, 25),
+            )
 
         self.assertTrue(today_context["is_today"])
+        self.assertEqual(today_context["state_title"], "Starea curentă")
         self.assertEqual(today_context["day_phrase"], "azi")
         self.assertFalse(historical_context["is_today"])
+        self.assertEqual(historical_context["state_title"], "Starea la data analizată")
         self.assertEqual(historical_context["day_phrase"], "la data analizată")
+
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_today_context = _analysis_date_context(
+                date(2026, 5, 25),
+                today=date(2026, 5, 25),
+            )
+            english_historical_context = _analysis_date_context(
+                date(2026, 5, 23),
+                today=date(2026, 5, 25),
+            )
+
+        self.assertEqual(english_today_context["state_title"], "Current state")
+        self.assertEqual(english_today_context["day_phrase"], "today")
+        self.assertEqual(
+            english_historical_context["state_title"],
+            "State on the analysis date",
+        )
+        self.assertEqual(
+            english_historical_context["day_phrase"],
+            "on the analysis date",
+        )
+
+    def test_dashboard_header_and_login_warning_use_the_active_language(self):
+        expected_text = {
+            "ro": ("🏠 Acasă", "Autentifică-te pentru a vedea dashboard-ul."),
+            "en": ("🏠 Home", "Log in to view the dashboard."),
+        }
+
+        for language_code, (expected_title, expected_warning) in expected_text.items():
+            with self.subTest(language=language_code):
+                with (
+                    patch.object(
+                        language.st,
+                        "session_state",
+                        {"language": language_code},
+                    ),
+                    patch.object(dashboard_page.st, "title") as title,
+                    patch.object(dashboard_page.st, "caption"),
+                    patch.object(dashboard_page.st, "warning") as warning,
+                ):
+                    dashboard_page.render_dashboard_page()
+
+                title.assert_called_once_with(expected_title)
+                warning.assert_called_once_with(expected_warning)
+
+    def test_analysis_date_selector_uses_english_display_text(self):
+        latest_data_date = date(2026, 5, 23)
+        today = date(2026, 5, 25)
+
+        with (
+            patch.object(language.st, "session_state", {"language": "en"}),
+            patch.object(
+                dashboard_page.st,
+                "date_input",
+                return_value=latest_data_date,
+            ) as date_input,
+            patch.object(dashboard_page.st, "caption") as caption,
+        ):
+            selected_date = dashboard_page._render_analysis_date_selector(
+                latest_data_date=latest_data_date,
+                today=today,
+            )
+
+        self.assertEqual(selected_date, latest_data_date)
+        self.assertEqual(date_input.call_args.args[0], "Analysis date")
+        self.assertEqual(
+            date_input.call_args.kwargs["help"],
+            "The dashboard, recommendations, and ML prediction are calculated "
+            "through this date.",
+        )
+        caption.assert_called_once_with(
+            "The analysis date is the latest day with logged data."
+        )
+
+    def test_current_state_cards_translate_without_changing_data_values(self):
+        current = {
+            "height_cm": 180,
+            "gender": "M",
+            "age": 25,
+            "goal": "Slabire",
+            "current_weight_kg": 80,
+            "weight_delta_kg": -0.5,
+            "current_bmi": 24.7,
+            "current_bmr": 1800,
+            "today_estimated_tdee": 2400,
+            "today_calories_in": None,
+            "today_activity_calories": 300,
+            "today_estimated_balance": None,
+            "today_has_food_logs": True,
+            "today_has_activity_logs": True,
+        }
+
+        def render_cards(language_code):
+            with (
+                patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ),
+                patch.object(dashboard_page.st, "subheader") as subheader,
+                patch.object(dashboard_page, "_render_card_grid") as card_grid,
+            ):
+                dashboard_page._render_current_state(
+                    current,
+                    date(2026, 5, 25),
+                    today=date(2026, 5, 25),
+                )
+            return (
+                subheader.call_args.args[0],
+                [call.args[0] for call in card_grid.call_args_list],
+            )
+
+        romanian_title, romanian_rows = render_cards("ro")
+        english_title, english_rows = render_cards("en")
+
+        self.assertEqual(romanian_title, "Starea curentă")
+        self.assertEqual(english_title, "Current state")
+        self.assertEqual(
+            [card["label"] for card in romanian_rows[0]],
+            ["Înălțime", "Sex", "Vârstă", "Obiectiv"],
+        )
+        self.assertEqual(
+            [card["label"] for card in english_rows[0]],
+            ["Height", "Gender", "Age", "Goal"],
+        )
+        self.assertEqual(romanian_rows[0][2]["value"], "25 ani")
+        self.assertEqual(english_rows[0][2]["value"], "25 years")
+        self.assertEqual(romanian_rows[0][3]["value"], "Slăbire")
+        self.assertEqual(english_rows[0][3]["value"], "Weight loss")
+        self.assertEqual(romanian_rows[2][0]["value"], "Nelogat")
+        self.assertEqual(english_rows[2][0]["value"], "Not logged")
+        self.assertEqual(
+            [card["label"] for card in english_rows[2]],
+            [
+                "Calories consumed today",
+                "Activity calories today",
+                "Estimated balance today",
+            ],
+        )
+
+    def test_current_state_missing_log_messages_use_date_context_and_language(self):
+        today = date(2026, 5, 25)
+
+        def render_info(language_code, analysis_date):
+            with (
+                patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ),
+                patch.object(dashboard_page.st, "subheader"),
+                patch.object(dashboard_page, "_render_card_grid"),
+                patch.object(dashboard_page.st, "info") as info,
+            ):
+                dashboard_page._render_current_state(
+                    {},
+                    analysis_date,
+                    today=today,
+                )
+            return info.call_args.args[0]
+
+        self.assertEqual(
+            render_info("ro", today),
+            "Adaugă mesele de azi ca să vezi consumul și balanța energetică. "
+            "Fără antrenamente azi: activitatea logată este 0 kcal, deci ziua "
+            "este considerată de repaus.",
+        )
+        self.assertEqual(
+            render_info("en", today),
+            "Add today's meals to see calorie intake and energy balance. "
+            "No workouts today: logged activity is 0 kcal, so the day is treated "
+            "as a rest day.",
+        )
+        self.assertEqual(
+            render_info("en", date(2026, 5, 23)),
+            "No meals are logged on the analysis date; calorie intake and energy "
+            "balance remain unlogged. No workouts are logged on the analysis "
+            "date; activity is 0 kcal, as on a rest day.",
+        )
 
     def test_weight_prediction_cards_show_14_and_30_day_outputs(self):
         result = UserWeightPredictions(
