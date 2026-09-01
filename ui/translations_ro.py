@@ -17,4 +17,9 @@ ROMANIAN_TRANSLATIONS = {
     "Food management": "Gestiune Alimente",
     "Activity management": "Gestiune Activități",
     "Admin menu": "Meniu Admin",
+    "Calories consumed": "Calorii consumate",
+    "Activity calories": "Calorii activități",
+    "Estimated TDEE": "TDEE estimat",
+    "Estimated balance": "Balanță estimată",
+    "Not logged": "Nelogat",
 }
