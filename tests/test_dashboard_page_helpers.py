@@ -15,6 +15,8 @@ from ui.pages.dashboard_page import (
     _build_dashboard_card_html,
     _build_recommendation_card_html,
     _build_weight_prediction_cards,
+    _calculate_interval_weight_delta,
+    _calculate_interval_weight_delta_from_daily,
     _daily_x_axis,
     _date_order_domain,
     _display_interval_name,
@@ -89,21 +91,27 @@ class DashboardPageHelperTests(unittest.TestCase):
                 },
                 {
                     "log_date": date(2026, 5, 7),
-                    "food_calories_in": 2200,
+                    "food_calories_in": None,
                     "estimated_tdee": 2500,
-                    "estimated_balance": -300,
-                    "activity_calories_burned": 0,
+                    "estimated_balance": None,
+                    "activity_calories_burned": None,
                 },
             ]
         )
 
         prepared_rows = _prepare_daily_rows(rows)
 
-        self.assertEqual(prepared_rows["DataLabel"].tolist(), ["06.05", "07.05"])
+        self.assertEqual(prepared_rows["date_label"].tolist(), ["06.05", "07.05"])
         self.assertEqual(
-            prepared_rows["DataOrder"].tolist(), ["2026-05-06", "2026-05-07"]
+            prepared_rows["date_order"].tolist(), ["2026-05-06", "2026-05-07"]
         )
-        self.assertEqual(prepared_rows["Calorii activități"].tolist(), [300, 0])
+        self.assertEqual(
+            prepared_rows["activity_calories_burned"].tolist(),
+            [300, 0],
+        )
+        self.assertTrue(pd.isna(prepared_rows.loc[1, "food_calories_in"]))
+        self.assertTrue(pd.isna(prepared_rows.loc[1, "estimated_balance"]))
+        self.assertNotIn("Calorii activități", prepared_rows.columns)
 
     def test_macro_chart_rows_keep_date_labels_for_melted_chart(self):
         rows = pd.DataFrame(
@@ -119,8 +127,10 @@ class DashboardPageHelperTests(unittest.TestCase):
 
         prepared_rows = _prepare_macro_rows(rows)
 
-        self.assertEqual(prepared_rows.loc[0, "DataLabel"], "09.05")
-        self.assertEqual(prepared_rows.loc[0, "DataOrder"], "2026-05-09")
+        self.assertEqual(prepared_rows.loc[0, "date_label"], "09.05")
+        self.assertEqual(prepared_rows.loc[0, "date_order"], "2026-05-09")
+        self.assertEqual(prepared_rows.loc[0, "protein_g"], 80)
+        self.assertNotIn("Proteine", prepared_rows.columns)
 
     def test_daily_weight_rows_include_reference_source_labels(self):
         rows = pd.DataFrame(
@@ -148,14 +158,36 @@ class DashboardPageHelperTests(unittest.TestCase):
 
         prepared_rows = _prepare_daily_weight_rows(rows)
 
-        self.assertEqual(prepared_rows.loc[0, "Sursă referință"], "Cântărire reală")
         self.assertEqual(
-            prepared_rows.loc[1, "Sursă referință"],
-            "Greutate anterioară folosită ca referință",
+            prepared_rows["reference_weight_source_id"].tolist(),
+            ["actual", "previous", "future_fallback"],
         )
+        self.assertNotIn("reference_weight_source_label", prepared_rows.columns)
+
+    def test_interval_weight_delta_helpers_use_canonical_weight_fields(self):
+        weight_rows = pd.DataFrame(
+            [
+                {"log_date": date(2026, 5, 1), "weight_kg": 80.0},
+                {"log_date": date(2026, 5, 2), "weight_kg": 79.2},
+            ]
+        )
+        daily_rows = pd.DataFrame(
+            [
+                {
+                    "log_date": date(2026, 5, 1),
+                    "reference_weight_kg": 80.0,
+                },
+                {
+                    "log_date": date(2026, 5, 2),
+                    "reference_weight_kg": 79.5,
+                },
+            ]
+        )
+
+        self.assertEqual(_calculate_interval_weight_delta(weight_rows), -0.8)
         self.assertEqual(
-            prepared_rows.loc[2, "Sursă referință"],
-            "Fallback din prima greutate viitoare",
+            _calculate_interval_weight_delta_from_daily(daily_rows),
+            -0.5,
         )
 
     def test_gender_is_compact_for_dashboard_cards(self):
@@ -189,13 +221,528 @@ class DashboardPageHelperTests(unittest.TestCase):
             self.assertEqual(_format_goal("Slabire"), "Weight loss")
             self.assertEqual(_format_kcal_or_missing(None), "Not logged")
 
-    def test_macro_chart_has_short_description(self):
-        source = inspect.getsource(dashboard_page._render_macro_chart)
+    def test_macro_chart_description_uses_the_active_language(self):
+        expected_text = {
+            "ro": (
+                "Macronutrienți",
+                "Distribuția macronutrienților pe proteine, carbohidrați și grăsimi.",
+                "Nu există alimente logate în intervalul selectat.",
+            ),
+            "en": (
+                "Macronutrients",
+                "Macronutrient distribution across protein, carbohydrates, and fats.",
+                "No food is logged in the selected interval.",
+            ),
+        }
 
-        self.assertIn(
-            "Distribuția macronutrienților pe proteine, carbohidrați și grăsimi.",
-            source,
+        for language_code, expected in expected_text.items():
+            with self.subTest(language=language_code):
+                with (
+                    patch.object(
+                        language.st,
+                        "session_state",
+                        {"language": language_code},
+                    ),
+                    patch.object(dashboard_page.st, "subheader") as subheader,
+                    patch.object(dashboard_page.st, "caption") as caption,
+                    patch.object(dashboard_page.st, "info") as info,
+                ):
+                    dashboard_page._render_macro_chart({})
+
+                subheader.assert_called_once_with(expected[0])
+                caption.assert_called_once_with(expected[1])
+                info.assert_called_once_with(expected[2])
+
+    def test_dashboard_chart_specs_use_stable_fields_and_color_ids(self):
+        daily_rows = pd.DataFrame(
+            [
+                {
+                    "log_date": date(2026, 5, 1),
+                    "reference_weight_kg": 80.0,
+                    "reference_weight_days_distance": 0,
+                    "reference_weight_uses_future_reference": False,
+                    "food_calories_in": 2000,
+                    "estimated_tdee": 2400,
+                    "estimated_balance": -400,
+                    "activity_calories_burned": 300,
+                    "has_food_logs": True,
+                    "has_activity_logs": True,
+                },
+                {
+                    "log_date": date(2026, 5, 2),
+                    "reference_weight_kg": 79.8,
+                    "reference_weight_days_distance": 1,
+                    "reference_weight_uses_future_reference": False,
+                    "food_calories_in": None,
+                    "estimated_tdee": 2350,
+                    "estimated_balance": None,
+                    "activity_calories_burned": None,
+                    "has_food_logs": False,
+                    "has_activity_logs": False,
+                },
+                {
+                    "log_date": date(2026, 5, 3),
+                    "reference_weight_kg": 79.6,
+                    "reference_weight_days_distance": 0,
+                    "reference_weight_uses_future_reference": False,
+                    "food_calories_in": 2350,
+                    "estimated_tdee": 2350,
+                    "estimated_balance": 0,
+                    "activity_calories_burned": 0,
+                    "has_food_logs": True,
+                    "has_activity_logs": False,
+                },
+            ]
         )
+        data = {
+            "daily_rows": daily_rows,
+            "weight_rows": pd.DataFrame(
+                [
+                    {"log_date": date(2026, 5, 1), "weight_kg": 80.0},
+                    {"log_date": date(2026, 5, 3), "weight_kg": 79.6},
+                ]
+            ),
+            "macro_rows": pd.DataFrame(
+                [
+                    {
+                        "log_date": date(2026, 5, 1),
+                        "protein_g": 100,
+                        "carbs_g": 220,
+                        "fats_g": 70,
+                    }
+                ]
+            ),
+            "activity_breakdown": pd.DataFrame(
+                [
+                    {
+                        "category": "Forță",
+                        "calculation_method": "Estimare MacroSense",
+                        "entries_count": 2,
+                        "total_duration_min": 45.0,
+                        "total_calories_burned": 300.0,
+                    }
+                ]
+            ),
+        }
+
+        def render_chart(render_function, language_code):
+            with (
+                patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ),
+                patch.object(dashboard_page.st, "subheader") as subheader,
+                patch.object(dashboard_page.st, "caption") as caption,
+                patch.object(dashboard_page.st, "info"),
+                patch.object(dashboard_page.st, "dataframe"),
+                patch.object(dashboard_page.st, "altair_chart") as altair_chart,
+            ):
+                render_function(data)
+            return (
+                altair_chart.call_args.args[0].to_dict(),
+                subheader.call_args.args[0],
+                [caption_call.args[0] for caption_call in caption.call_args_list],
+            )
+
+        english = {
+            "weight": render_chart(dashboard_page._render_weight_chart, "en"),
+            "calories": render_chart(dashboard_page._render_calorie_chart, "en"),
+            "balance": render_chart(dashboard_page._render_balance_chart, "en"),
+            "macros": render_chart(dashboard_page._render_macro_chart, "en"),
+            "activity": render_chart(dashboard_page._render_activity_section, "en"),
+        }
+        romanian = {
+            "weight": render_chart(dashboard_page._render_weight_chart, "ro"),
+            "calories": render_chart(dashboard_page._render_calorie_chart, "ro"),
+            "balance": render_chart(dashboard_page._render_balance_chart, "ro"),
+            "macros": render_chart(dashboard_page._render_macro_chart, "ro"),
+            "activity": render_chart(dashboard_page._render_activity_section, "ro"),
+        }
+
+        weight_spec = english["weight"][0]
+        self.assertEqual(len(weight_spec["layer"]), 3)
+        self.assertEqual(
+            weight_spec["layer"][0]["encoding"]["y"]["field"],
+            "reference_weight_kg",
+        )
+        self.assertEqual(
+            weight_spec["layer"][2]["encoding"]["y"]["field"],
+            "weight_kg",
+        )
+        self.assertFalse(weight_spec["layer"][0]["encoding"]["y"]["scale"]["zero"])
+        english_weight_rows = weight_spec["datasets"][
+            weight_spec["layer"][0]["data"]["name"]
+        ]
+        romanian_weight_spec = romanian["weight"][0]
+        romanian_weight_rows = romanian_weight_spec["datasets"][
+            romanian_weight_spec["layer"][0]["data"]["name"]
+        ]
+        self.assertEqual(
+            english_weight_rows[0]["reference_weight_source_label"],
+            "Actual weigh-in",
+        )
+        self.assertEqual(
+            romanian_weight_rows[0]["reference_weight_source_label"],
+            "Cântărire reală",
+        )
+
+        calorie_spec = english["calories"][0]
+        self.assertEqual(
+            [layer["encoding"]["y"]["field"] for layer in calorie_spec["layer"]],
+            ["food_calories_in", "estimated_tdee", "estimated_tdee"],
+        )
+        self.assertEqual(calorie_spec["resolve"]["scale"]["y"], "shared")
+
+        balance_spec = english["balance"][0]
+        balance_color = balance_spec["layer"][0]["encoding"]["color"]
+        self.assertEqual(balance_color["field"], "balance_type_id")
+        self.assertEqual(balance_color["scale"]["domain"], ["deficit", "surplus"])
+        self.assertEqual(
+            balance_color["scale"]["range"],
+            [dashboard_page.DEFICIT_COLOR, dashboard_page.SURPLUS_COLOR],
+        )
+        balance_data = balance_spec["datasets"][
+            balance_spec["layer"][0]["data"]["name"]
+        ]
+        self.assertEqual(
+            [row["balance_type_id"] for row in balance_data],
+            ["deficit", "surplus"],
+        )
+
+        macro_spec = english["macros"][0]
+        self.assertEqual(macro_spec["encoding"]["y"]["field"], "grams")
+        self.assertEqual(
+            macro_spec["encoding"]["color"]["field"],
+            "macronutrient_id",
+        )
+        self.assertEqual(
+            macro_spec["encoding"]["color"]["scale"]["domain"],
+            ["protein_g", "carbs_g", "fats_g"],
+        )
+        self.assertEqual(
+            macro_spec["encoding"]["color"]["scale"]["range"],
+            [
+                dashboard_page.PROTEIN_COLOR,
+                dashboard_page.CARBS_COLOR,
+                dashboard_page.FATS_COLOR,
+            ],
+        )
+        macro_data = macro_spec["datasets"][macro_spec["data"]["name"]]
+        self.assertEqual(len(macro_data), 3)
+
+        activity_spec = english["activity"][0]
+        self.assertEqual(
+            activity_spec["encoding"]["y"]["field"],
+            "activity_calories_burned",
+        )
+        self.assertEqual(
+            activity_spec["encoding"]["tooltip"][2]["field"],
+            "activity_status_label",
+        )
+
+        for chart_name in english:
+            english_spec = english[chart_name][0]
+            romanian_spec = romanian[chart_name][0]
+            english_x = english_spec.get("layer", [english_spec])[0]["encoding"]["x"]
+            romanian_x = romanian_spec.get("layer", [romanian_spec])[0]["encoding"][
+                "x"
+            ]
+            self.assertEqual(english_x["field"], "date_order")
+            self.assertEqual(romanian_x["field"], "date_order")
+            self.assertEqual(english_x["type"], "nominal")
+            self.assertEqual(english_x["scale"], romanian_x["scale"])
+        self.assertEqual(
+            [english[name][1] for name in english],
+            [
+                "Weight trend",
+                "Calories consumed vs estimated TDEE",
+                "Estimated calorie balance",
+                "Macronutrients",
+                "Physical activity",
+            ],
+        )
+        self.assertEqual(
+            [romanian[name][1] for name in romanian],
+            [
+                "Evoluția greutății",
+                "Calorii consumate vs TDEE estimat",
+                "Balanță calorică estimată",
+                "Macronutrienți",
+                "Activitate fizică",
+            ],
+        )
+        self.assertNotEqual(
+            english["macros"][0]["encoding"]["color"]["legend"]["labelExpr"],
+            romanian["macros"][0]["encoding"]["color"]["legend"]["labelExpr"],
+        )
+
+    def test_activity_table_translates_a_copy_and_keeps_stable_columns(self):
+        daily_rows = pd.DataFrame(
+            [
+                {
+                    "log_date": date(2026, 5, 1),
+                    "food_calories_in": 2000,
+                    "estimated_tdee": 2400,
+                    "estimated_balance": -400,
+                    "activity_calories_burned": 300,
+                    "has_food_logs": True,
+                    "has_activity_logs": True,
+                },
+                {
+                    "log_date": date(2026, 5, 2),
+                    "food_calories_in": None,
+                    "estimated_tdee": 2300,
+                    "estimated_balance": None,
+                    "activity_calories_burned": None,
+                    "has_food_logs": False,
+                    "has_activity_logs": False,
+                },
+            ]
+        )
+        activity_breakdown = pd.DataFrame(
+            [
+                {
+                    "category": "Forță",
+                    "calculation_method": "Estimare MacroSense",
+                    "entries_count": 2,
+                    "total_duration_min": 45.5,
+                    "total_calories_burned": 300.25,
+                },
+                {
+                    "category": "Categorie nouă",
+                    "calculation_method": "Metodă nouă",
+                    "entries_count": 1,
+                    "total_duration_min": 20.0,
+                    "total_calories_burned": 100.0,
+                },
+            ]
+        )
+        original_breakdown = activity_breakdown.copy(deep=True)
+        data = {
+            "daily_rows": daily_rows,
+            "activity_breakdown": activity_breakdown,
+        }
+
+        def render_activity(language_code):
+            with (
+                patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ),
+                patch.object(dashboard_page.st, "subheader"),
+                patch.object(dashboard_page.st, "caption") as caption,
+                patch.object(dashboard_page.st, "info") as info,
+                patch.object(dashboard_page.st, "altair_chart") as altair_chart,
+                patch.object(dashboard_page.st, "dataframe") as dataframe,
+            ):
+                dashboard_page._render_activity_section(data)
+            return {
+                "rows": dataframe.call_args.args[0],
+                "dataframe_kwargs": dataframe.call_args.kwargs,
+                "chart": altair_chart.call_args.args[0].to_dict(),
+                "captions": [
+                    caption_call.args[0] for caption_call in caption.call_args_list
+                ],
+                "info_calls": info.call_count,
+            }
+
+        romanian = render_activity("ro")
+        english = render_activity("en")
+
+        pd.testing.assert_frame_equal(activity_breakdown, original_breakdown)
+        self.assertEqual(
+            english["rows"].columns.tolist(),
+            [
+                "category",
+                "calculation_method",
+                "entries_count",
+                "total_duration_min",
+                "total_calories_burned",
+            ],
+        )
+        self.assertEqual(
+            romanian["rows"]["category"].tolist(),
+            ["Forță", "Categorie nouă"],
+        )
+        self.assertEqual(
+            english["rows"]["category"].tolist(),
+            ["Strength", "Categorie nouă"],
+        )
+        self.assertEqual(
+            english["rows"]["calculation_method"].tolist(),
+            ["MacroSense estimate", "Metodă nouă"],
+        )
+        self.assertEqual(
+            english["rows"]["total_calories_burned"].tolist(),
+            [300.25, 100.0],
+        )
+        self.assertTrue(english["dataframe_kwargs"]["hide_index"])
+        self.assertEqual(english["dataframe_kwargs"]["width"], "stretch")
+        english_config = english["dataframe_kwargs"]["column_config"]
+        romanian_config = romanian["dataframe_kwargs"]["column_config"]
+        self.assertEqual(
+            [config["label"] for config in english_config.values()],
+            [
+                "Category",
+                "Method",
+                "Entries",
+                "Total duration (min)",
+                "Activity calories",
+            ],
+        )
+        self.assertEqual(
+            [config["label"] for config in romanian_config.values()],
+            [
+                "Categorie",
+                "Metodă",
+                "Înregistrări",
+                "Durată totală (min)",
+                "Calorii activități",
+            ],
+        )
+        self.assertEqual(
+            english_config["total_duration_min"]["type_config"]["format"],
+            "%.1f",
+        )
+        self.assertEqual(
+            english_config["total_calories_burned"]["type_config"]["format"],
+            "%.1f kcal",
+        )
+        english_chart_rows = english["chart"]["datasets"][
+            english["chart"]["data"]["name"]
+        ]
+        romanian_chart_rows = romanian["chart"]["datasets"][
+            romanian["chart"]["data"]["name"]
+        ]
+        self.assertEqual(
+            [row["activity_status_id"] for row in english_chart_rows],
+            ["logged", "rest_day"],
+        )
+        self.assertEqual(
+            [row["activity_status_label"] for row in english_chart_rows],
+            ["Workout logged", "Day without a workout"],
+        )
+        self.assertEqual(
+            [row["activity_status_label"] for row in romanian_chart_rows],
+            ["Antrenament logat", "Zi fără antrenament"],
+        )
+        self.assertEqual(english["info_calls"], 0)
+        self.assertEqual(romanian["info_calls"], 0)
+        self.assertNotEqual(english["captions"], romanian["captions"])
+
+    def test_activity_display_mappings_cover_canonical_domain_values(self):
+        canonical_categories = [
+            "Cardio",
+            "Forță",
+            "Flexibilitate",
+            "Sport de echipă",
+            "Activități zilnice",
+            "Altele",
+        ]
+
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_categories = [
+                dashboard_page._format_activity_category(value)
+                for value in canonical_categories
+            ]
+            romanian_methods = [
+                dashboard_page._format_activity_method(value)
+                for value in ["Manual", "Estimare MacroSense"]
+            ]
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_categories = [
+                dashboard_page._format_activity_category(value)
+                for value in canonical_categories
+            ]
+            english_methods = [
+                dashboard_page._format_activity_method(value)
+                for value in ["Manual", "Estimare MacroSense"]
+            ]
+
+        self.assertEqual(romanian_categories, canonical_categories)
+        self.assertEqual(
+            english_categories,
+            [
+                "Cardio",
+                "Strength",
+                "Flexibility",
+                "Team sport",
+                "Daily activities",
+                "Other",
+            ],
+        )
+        self.assertEqual(romanian_methods, ["Manual", "Estimare MacroSense"])
+        self.assertEqual(english_methods, ["Manual", "MacroSense estimate"])
+
+    def test_dashboard_chart_empty_states_use_the_active_language(self):
+        expected_text = {
+            "ro": [
+                (
+                    dashboard_page._render_weight_chart,
+                    "Evoluția greutății",
+                    "Nu există greutate de referință pentru intervalul selectat.",
+                ),
+                (
+                    dashboard_page._render_calorie_chart,
+                    "Calorii consumate vs TDEE estimat",
+                    "Nu există date în intervalul selectat.",
+                ),
+                (
+                    dashboard_page._render_balance_chart,
+                    "Balanță calorică estimată",
+                    "Nu există suficiente date pentru balanța calorică estimată.",
+                ),
+                (
+                    dashboard_page._render_activity_section,
+                    "Activitate fizică",
+                    "Nu există date în intervalul selectat.",
+                ),
+            ],
+            "en": [
+                (
+                    dashboard_page._render_weight_chart,
+                    "Weight trend",
+                    "No reference weight is available for the selected interval.",
+                ),
+                (
+                    dashboard_page._render_calorie_chart,
+                    "Calories consumed vs estimated TDEE",
+                    "No data is available for the selected interval.",
+                ),
+                (
+                    dashboard_page._render_balance_chart,
+                    "Estimated calorie balance",
+                    "Not enough data is available for the estimated calorie balance.",
+                ),
+                (
+                    dashboard_page._render_activity_section,
+                    "Physical activity",
+                    "No data is available for the selected interval.",
+                ),
+            ],
+        }
+
+        for language_code, cases in expected_text.items():
+            for render_function, expected_title, expected_info in cases:
+                with self.subTest(
+                    language=language_code,
+                    renderer=render_function.__name__,
+                ):
+                    with (
+                        patch.object(
+                            language.st,
+                            "session_state",
+                            {"language": language_code},
+                        ),
+                        patch.object(dashboard_page.st, "subheader") as subheader,
+                        patch.object(dashboard_page.st, "info") as info,
+                    ):
+                        render_function({})
+
+                    subheader.assert_called_once_with(expected_title)
+                    info.assert_called_once_with(expected_info)
 
     def test_dashboard_card_html_renders_caption_without_markdown_code_block(self):
         html = _build_dashboard_card_html(
@@ -222,14 +769,23 @@ class DashboardPageHelperTests(unittest.TestCase):
         self.assertIn("quote &quot; test", html)
 
     def test_daily_x_axis_uses_discrete_dates_instead_of_temporal_ticks(self):
-        axis_spec = _daily_x_axis().to_dict()
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_spec = _daily_x_axis().to_dict()
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_spec = _daily_x_axis().to_dict()
 
-        self.assertEqual(axis_spec["field"], "DataOrder")
-        self.assertEqual(axis_spec["type"], "nominal")
-        self.assertIn("substring(datum.label", axis_spec["axis"]["labelExpr"])
+        self.assertEqual(romanian_spec["field"], "date_order")
+        self.assertEqual(english_spec["field"], "date_order")
+        self.assertEqual(english_spec["type"], "nominal")
+        self.assertEqual(romanian_spec["title"], "Data")
+        self.assertEqual(english_spec["title"], "Date")
+        self.assertIn("substring(datum.label", english_spec["axis"]["labelExpr"])
 
     def test_daily_x_axis_can_share_the_full_interval_domain(self):
-        axis_spec = _daily_x_axis(["2026-05-08", "2026-05-09", "2026-05-10"]).to_dict()
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            axis_spec = _daily_x_axis(
+                ["2026-05-08", "2026-05-09", "2026-05-10"]
+            ).to_dict()
 
         self.assertEqual(
             axis_spec["scale"]["domain"], ["2026-05-08", "2026-05-09", "2026-05-10"]
@@ -238,7 +794,7 @@ class DashboardPageHelperTests(unittest.TestCase):
     def test_date_order_domain_uses_unique_calendar_days(self):
         rows = pd.DataFrame(
             {
-                "DataOrder": ["2026-05-08", "2026-05-09", "2026-05-09"],
+                "date_order": ["2026-05-08", "2026-05-09", "2026-05-09"],
             }
         )
 

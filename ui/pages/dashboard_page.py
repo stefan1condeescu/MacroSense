@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from html import escape
+import json
 from typing import Any
 
 import altair as alt
@@ -48,6 +49,38 @@ FOOD_COLOR = "#4E79A7"
 ACTIVITY_COLOR = "#6F52ED"
 DEFICIT_COLOR = "#2E7D32"
 SURPLUS_COLOR = "#C94C4C"
+
+REFERENCE_WEIGHT_SOURCE_TEXT = {
+    "missing": "No weight",
+    "actual": "Actual weigh-in",
+    "future_fallback": "Fallback from the first future weight",
+    "previous": "Previous weight used as reference",
+}
+BALANCE_TYPE_SOURCE_TEXT = {
+    "deficit": "Deficit",
+    "surplus": "Surplus",
+}
+MACRONUTRIENT_SOURCE_TEXT = {
+    "protein_g": "Protein",
+    "carbs_g": "Carbohydrates",
+    "fats_g": "Fats",
+}
+ACTIVITY_STATUS_SOURCE_TEXT = {
+    "logged": "Workout logged",
+    "rest_day": "Day without a workout",
+}
+ACTIVITY_CATEGORY_SOURCE_TEXT = {
+    "Cardio": "Cardio",
+    "Forță": "Strength",
+    "Flexibilitate": "Flexibility",
+    "Sport de echipă": "Team sport",
+    "Activități zilnice": "Daily activities",
+    "Altele": "Other",
+}
+ACTIVITY_METHOD_SOURCE_TEXT = {
+    "Manual": "Manual",
+    "Estimare MacroSense": "MacroSense estimate",
+}
 
 
 def render_dashboard_page() -> None:
@@ -872,26 +905,49 @@ def _render_interval_summary(data: dict[str, Any]) -> None:
 
 
 def _render_weight_chart(data: dict[str, Any]) -> None:
-    st.subheader("Evoluția greutății")
+    st.subheader(translate("Weight trend"))
     reference_rows = _prepare_daily_weight_rows(data.get("daily_rows", pd.DataFrame()))
     actual_rows = _prepare_weight_rows(data.get("weight_rows", pd.DataFrame()))
     date_domain = _date_order_domain(reference_rows)
     if reference_rows.empty:
-        st.info("Nu există greutate de referință pentru intervalul selectat.")
+        st.info(
+            translate(
+                "No reference weight is available for the selected interval."
+            )
+        )
         return
+
+    reference_rows = reference_rows.copy()
+    reference_rows["reference_weight_source_label"] = reference_rows[
+        "reference_weight_source_id"
+    ].map(_format_reference_weight_source)
 
     base = alt.Chart(reference_rows).encode(
         x=_daily_x_axis(date_domain),
         y=alt.Y(
-            "Greutate (kg):Q",
-            title="Greutate (kg)",
+            "reference_weight_kg:Q",
+            title=translate("Weight (kg)"),
             scale=alt.Scale(zero=False),
         ),
         tooltip=[
-            alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-            alt.Tooltip("Greutate (kg):Q", title="Greutate de referință", format=".1f"),
-            alt.Tooltip("Sursă referință:N", title="Sursă"),
-            alt.Tooltip("Distanță zile:Q", title="Distanță zile"),
+            alt.Tooltip(
+                "log_date:T",
+                title=translate("Date"),
+                format="%d.%m.%Y",
+            ),
+            alt.Tooltip(
+                "reference_weight_kg:Q",
+                title=translate("Reference weight"),
+                format=".1f",
+            ),
+            alt.Tooltip(
+                "reference_weight_source_label:N",
+                title=translate("Source"),
+            ),
+            alt.Tooltip(
+                "reference_weight_days_distance:Q",
+                title=translate("Distance in days"),
+            ),
         ],
     )
     layers = [
@@ -903,10 +959,22 @@ def _render_weight_chart(data: dict[str, Any]) -> None:
             color="#111827", filled=True, size=90
         ).encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("Greutate (kg):Q", title="Greutate (kg)", scale=alt.Scale(zero=False)),
+            y=alt.Y(
+                "weight_kg:Q",
+                title=translate("Weight (kg)"),
+                scale=alt.Scale(zero=False),
+            ),
             tooltip=[
-                alt.Tooltip("Data:T", title="Cântărire reală", format="%d.%m.%Y"),
-                alt.Tooltip("Greutate (kg):Q", title="Greutate", format=".1f"),
+                alt.Tooltip(
+                    "log_date:T",
+                    title=translate("Actual weigh-in"),
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip(
+                    "weight_kg:Q",
+                    title=translate("Weight"),
+                    format=".1f",
+                ),
             ],
         )
         layers.append(actual_points)
@@ -914,25 +982,29 @@ def _render_weight_chart(data: dict[str, Any]) -> None:
     chart = alt.layer(*layers).properties(height=260)
     st.altair_chart(_configure_chart(chart), width="stretch")
     st.caption(
-        "Linia arată greutatea de referință pentru fiecare zi. Punctele negre "
-        "marchează zilele în care ai introdus efectiv o cântărire."
+        translate(
+            "The line shows the reference weight for each day. The black points "
+            "mark the days when you entered an actual weigh-in."
+        )
     )
 
 
 def _render_calorie_chart(data: dict[str, Any]) -> None:
-    st.subheader("Calorii consumate vs TDEE estimat")
+    st.subheader(translate("Calories consumed vs estimated TDEE"))
     daily_rows = _prepare_daily_rows(data.get("daily_rows", pd.DataFrame()))
     date_domain = _date_order_domain(daily_rows)
     if daily_rows.empty:
-        st.info("Nu există date în intervalul selectat.")
+        st.info(translate("No data is available for the selected interval."))
         return
 
     food_rows = daily_rows[daily_rows["has_food_logs"]].dropna(
-        subset=["Calorii consumate"]
+        subset=["food_calories_in"]
     )
-    tdee_rows = daily_rows.dropna(subset=["TDEE estimat"])
+    tdee_rows = daily_rows.dropna(subset=["estimated_tdee"])
     if food_rows.empty and tdee_rows.empty:
-        st.info("Nu există suficiente date pentru graficul caloric.")
+        st.info(
+            translate("Not enough data is available for the calorie chart.")
+        )
         return
 
     layers = []
@@ -942,10 +1014,18 @@ def _render_calorie_chart(data: dict[str, Any]) -> None:
             .mark_bar(color=FOOD_COLOR, opacity=0.8)
             .encode(
                 x=_daily_x_axis(date_domain),
-                y=alt.Y("Calorii consumate:Q", title="kcal"),
+                y=alt.Y("food_calories_in:Q", title="kcal"),
                 tooltip=[
-                    alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                    alt.Tooltip("Calorii consumate:Q", title="Consum", format=".0f"),
+                    alt.Tooltip(
+                        "log_date:T",
+                        title=translate("Date"),
+                        format="%d.%m.%Y",
+                    ),
+                    alt.Tooltip(
+                        "food_calories_in:Q",
+                        title=translate("Intake"),
+                        format=".0f",
+                    ),
                 ],
             )
         )
@@ -953,10 +1033,14 @@ def _render_calorie_chart(data: dict[str, Any]) -> None:
     if not tdee_rows.empty:
         line_base = alt.Chart(tdee_rows).encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("TDEE estimat:Q", title="kcal"),
+            y=alt.Y("estimated_tdee:Q", title="kcal"),
             tooltip=[
-                alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                alt.Tooltip("TDEE estimat:Q", title="TDEE", format=".0f"),
+                alt.Tooltip(
+                    "log_date:T",
+                    title=translate("Date"),
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip("estimated_tdee:Q", title="TDEE", format=".0f"),
             ],
         )
         layers.append(line_base.mark_line(color=TDEE_COLOR, strokeWidth=3))
@@ -965,45 +1049,75 @@ def _render_calorie_chart(data: dict[str, Any]) -> None:
     chart = alt.layer(*layers).resolve_scale(y="shared").properties(height=280)
     st.altair_chart(_configure_chart(chart), width="stretch")
     st.caption(
-        "Barele sunt zile cu alimente logate. Linia portocalie este TDEE-ul "
-        "estimat. Lipsa unei bare înseamnă zi fără alimente logate."
+        translate(
+            "Bars represent days with logged food. The orange line is estimated "
+            "TDEE. A missing bar means no food was logged that day."
+        )
     )
 
 
 def _render_balance_chart(data: dict[str, Any]) -> None:
-    st.subheader("Balanță calorică estimată")
+    st.subheader(translate("Estimated calorie balance"))
     daily_rows = _prepare_daily_rows(data.get("daily_rows", pd.DataFrame()))
     date_domain = _date_order_domain(daily_rows)
-    if daily_rows.empty or "Balanță kcal" not in daily_rows.columns:
-        st.info("Nu există suficiente date pentru balanța calorică estimată.")
+    if daily_rows.empty or "estimated_balance" not in daily_rows.columns:
+        st.info(
+            translate(
+                "Not enough data is available for the estimated calorie balance."
+            )
+        )
         return
 
-    chart_rows = daily_rows.dropna(subset=["Balanță kcal"]).copy()
+    chart_rows = daily_rows.dropna(subset=["estimated_balance"]).copy()
     if chart_rows.empty:
-        st.info("Balanța se calculează doar pentru zilele cu alimentație logată.")
+        st.info(
+            translate("The balance is calculated only for days with logged food.")
+        )
         return
 
-    chart_rows["Tip"] = chart_rows["Balanță kcal"].apply(
-        lambda value: "Deficit" if value < 0 else "Surplus"
+    chart_rows["balance_type_id"] = chart_rows["estimated_balance"].apply(
+        lambda value: "deficit" if value < 0 else "surplus"
+    )
+    chart_rows["balance_type_label"] = chart_rows["balance_type_id"].map(
+        lambda value: _translate_stable_value(value, BALANCE_TYPE_SOURCE_TEXT)
     )
     bars = (
         alt.Chart(chart_rows)
         .mark_bar()
         .encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("Balanță kcal:Q", title="kcal", scale=alt.Scale(zero=True)),
+            y=alt.Y(
+                "estimated_balance:Q",
+                title="kcal",
+                scale=alt.Scale(zero=True),
+            ),
             color=alt.Color(
-                "Tip:N",
+                "balance_type_id:N",
                 scale=alt.Scale(
-                    domain=["Deficit", "Surplus"],
+                    domain=["deficit", "surplus"],
                     range=[DEFICIT_COLOR, SURPLUS_COLOR],
                 ),
-                legend=alt.Legend(title=None, orient="bottom"),
+                legend=alt.Legend(
+                    title=None,
+                    orient="bottom",
+                    labelExpr=_legend_label_expression(BALANCE_TYPE_SOURCE_TEXT),
+                ),
             ),
             tooltip=[
-                alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                alt.Tooltip("Balanță kcal:Q", title="Balanță", format="+.0f"),
-                alt.Tooltip("Tip:N", title="Tip"),
+                alt.Tooltip(
+                    "log_date:T",
+                    title=translate("Date"),
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip(
+                    "estimated_balance:Q",
+                    title=translate("Balance"),
+                    format="+.0f",
+                ),
+                alt.Tooltip(
+                    "balance_type_label:N",
+                    title=translate("Type"),
+                ),
             ],
         )
     )
@@ -1015,47 +1129,69 @@ def _render_balance_chart(data: dict[str, Any]) -> None:
     chart = alt.layer(bars, zero_line).properties(height=260)
     st.altair_chart(_configure_chart(chart), width="stretch")
     st.caption(
-        "Balanță = calorii consumate - TDEE estimat. Valorile negative indică "
-        "deficit, iar cele pozitive indică surplus."
+        translate(
+            "Balance = calories consumed - estimated TDEE. Negative values "
+            "indicate a deficit, while positive values indicate a surplus."
+        )
     )
 
 
 def _render_macro_chart(data: dict[str, Any]) -> None:
-    st.subheader("Macronutrienți")
+    st.subheader(translate("Macronutrients"))
     st.caption(
-        "Distribuția macronutrienților pe proteine, carbohidrați și grăsimi."
+        translate(
+            "Macronutrient distribution across protein, carbohydrates, and fats."
+        )
     )
     daily_rows = _prepare_daily_rows(data.get("daily_rows", pd.DataFrame()))
     date_domain = _date_order_domain(daily_rows)
     macro_rows = _prepare_macro_rows(data.get("macro_rows", pd.DataFrame()))
     if macro_rows.empty:
-        st.info("Nu există alimente logate în intervalul selectat.")
+        st.info(translate("No food is logged in the selected interval."))
         return
 
     chart_rows = macro_rows.melt(
-        id_vars=["Data", "DataLabel", "DataOrder"],
-        value_vars=["Proteine", "Carbohidrați", "Grăsimi"],
-        var_name="Macronutrient",
-        value_name="Grame",
+        id_vars=["log_date", "date_label", "date_order"],
+        value_vars=list(MACRONUTRIENT_SOURCE_TEXT),
+        var_name="macronutrient_id",
+        value_name="grams",
+    )
+    chart_rows["macronutrient_label"] = chart_rows["macronutrient_id"].map(
+        lambda value: _translate_stable_value(value, MACRONUTRIENT_SOURCE_TEXT)
     )
     chart = (
         alt.Chart(chart_rows)
         .mark_bar()
         .encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("Grame:Q", title="Grame"),
+            y=alt.Y("grams:Q", title=translate("Grams")),
             color=alt.Color(
-                "Macronutrient:N",
+                "macronutrient_id:N",
                 scale=alt.Scale(
-                    domain=["Proteine", "Carbohidrați", "Grăsimi"],
+                    domain=list(MACRONUTRIENT_SOURCE_TEXT),
                     range=[PROTEIN_COLOR, CARBS_COLOR, FATS_COLOR],
                 ),
-                legend=alt.Legend(title=None, orient="bottom"),
+                legend=alt.Legend(
+                    title=None,
+                    orient="bottom",
+                    labelExpr=_legend_label_expression(MACRONUTRIENT_SOURCE_TEXT),
+                ),
             ),
             tooltip=[
-                alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                alt.Tooltip("Macronutrient:N", title="Macro"),
-                alt.Tooltip("Grame:Q", title="Grame", format=".1f"),
+                alt.Tooltip(
+                    "log_date:T",
+                    title=translate("Date"),
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip(
+                    "macronutrient_label:N",
+                    title=translate("Macro"),
+                ),
+                alt.Tooltip(
+                    "grams:Q",
+                    title=translate("Grams"),
+                    format=".1f",
+                ),
             ],
         )
         .properties(height=280)
@@ -1064,63 +1200,90 @@ def _render_macro_chart(data: dict[str, Any]) -> None:
 
 
 def _render_activity_section(data: dict[str, Any]) -> None:
-    st.subheader("Activitate fizică")
+    st.subheader(translate("Physical activity"))
     daily_rows = _prepare_daily_rows(data.get("daily_rows", pd.DataFrame()))
     date_domain = _date_order_domain(daily_rows)
     activity_breakdown = data.get("activity_breakdown", pd.DataFrame())
 
     if daily_rows.empty:
-        st.info("Nu există date în intervalul selectat.")
+        st.info(translate("No data is available for the selected interval."))
         return
 
     chart_rows = daily_rows.copy()
-    chart_rows["Status"] = chart_rows["has_activity_logs"].apply(
-        lambda value: "Antrenament logat" if value else "Zi fără antrenament"
+    chart_rows["activity_status_id"] = chart_rows["has_activity_logs"].apply(
+        lambda value: "logged" if value else "rest_day"
+    )
+    chart_rows["activity_status_label"] = chart_rows["activity_status_id"].map(
+        lambda value: _translate_stable_value(value, ACTIVITY_STATUS_SOURCE_TEXT)
     )
     chart = (
         alt.Chart(chart_rows)
         .mark_bar(color=ACTIVITY_COLOR, opacity=0.85)
         .encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("Calorii activități:Q", title="kcal"),
+            y=alt.Y("activity_calories_burned:Q", title="kcal"),
             tooltip=[
-                alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                alt.Tooltip("Calorii activități:Q", title="Calorii activități", format=".0f"),
-                alt.Tooltip("Status:N", title="Status"),
+                alt.Tooltip(
+                    "log_date:T",
+                    title=translate("Date"),
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip(
+                    "activity_calories_burned:Q",
+                    title=translate("Activity calories"),
+                    format=".0f",
+                ),
+                alt.Tooltip(
+                    "activity_status_label:N",
+                    title=translate("Status"),
+                ),
             ],
         )
         .properties(height=260)
     )
     st.altair_chart(_configure_chart(chart), width="stretch")
     st.caption(
-        "Zilele fără antrenament sunt afișate ca 0 kcal arse, pentru că pot "
-        "reprezenta zile normale de repaus."
+        translate(
+            "Days without a workout are shown as 0 kcal burned because they can "
+            "represent normal rest days."
+        )
     )
 
     if activity_breakdown.empty:
-        st.info("Nu există antrenamente logate în intervalul selectat.")
+        st.info(translate("No workouts are logged in the selected interval."))
         return
 
     st.caption(
-        "Tabelul de mai jos grupează antrenamentele după categorie și metoda de "
-        "calcul: estimare MacroSense sau calorii introduse manual."
+        translate(
+            "The table below groups workouts by category and calculation method: "
+            "MacroSense estimate or manually entered calories."
+        )
     )
-    method_rows = activity_breakdown.rename(
-        columns={
-            "category": "Categorie",
-            "calculation_method": "Metodă",
-            "entries_count": "Înregistrări",
-            "total_duration_min": "Durată totală (min)",
-            "total_calories_burned": "Calorii activități",
-        }
-    )
+    method_rows = activity_breakdown.copy()
+    if "category" in method_rows.columns:
+        method_rows["category"] = method_rows["category"].map(
+            _format_activity_category
+        )
+    if "calculation_method" in method_rows.columns:
+        method_rows["calculation_method"] = method_rows[
+            "calculation_method"
+        ].map(_format_activity_method)
     st.dataframe(
         method_rows,
         hide_index=True,
         width="stretch",
         column_config={
-            "Durată totală (min)": st.column_config.NumberColumn(format="%.1f"),
-            "Calorii activități": st.column_config.NumberColumn(format="%.1f kcal"),
+            "category": st.column_config.TextColumn(translate("Category")),
+            "calculation_method": st.column_config.TextColumn(translate("Method")),
+            "entries_count": st.column_config.NumberColumn(translate("Entries")),
+            "total_duration_min": st.column_config.NumberColumn(
+                translate("Total duration (min)"),
+                format="%.1f",
+            ),
+            "total_calories_burned": st.column_config.NumberColumn(
+                translate("Activity calories"),
+                format="%.1f kcal",
+            ),
         },
     )
 
@@ -1129,61 +1292,94 @@ def _prepare_weight_rows(weight_rows: pd.DataFrame) -> pd.DataFrame:
     if weight_rows.empty:
         return pd.DataFrame()
     chart_rows = weight_rows.copy()
-    chart_rows["Data"] = pd.to_datetime(chart_rows["log_date"])
+    chart_rows["log_date"] = pd.to_datetime(chart_rows["log_date"])
     chart_rows = _add_date_display_columns(chart_rows)
-    chart_rows["Greutate (kg)"] = pd.to_numeric(
-        chart_rows["weight_kg"], errors="coerce"
-    )
-    return chart_rows.dropna(subset=["Data", "Greutate (kg)"])
+    chart_rows["weight_kg"] = pd.to_numeric(chart_rows["weight_kg"], errors="coerce")
+    return chart_rows.dropna(subset=["log_date", "weight_kg"])
 
 
 def _prepare_daily_weight_rows(daily_rows: pd.DataFrame) -> pd.DataFrame:
     if daily_rows.empty or "reference_weight_kg" not in daily_rows.columns:
         return pd.DataFrame()
     chart_rows = daily_rows.copy()
-    chart_rows["Data"] = pd.to_datetime(chart_rows["log_date"])
+    chart_rows["log_date"] = pd.to_datetime(chart_rows["log_date"])
     chart_rows = _add_date_display_columns(chart_rows)
-    chart_rows["Greutate (kg)"] = pd.to_numeric(
+    chart_rows["reference_weight_kg"] = pd.to_numeric(
         chart_rows["reference_weight_kg"], errors="coerce"
     )
     if "reference_weight_days_distance" in chart_rows.columns:
-        chart_rows["Distanță zile"] = pd.to_numeric(
+        chart_rows["reference_weight_days_distance"] = pd.to_numeric(
             chart_rows["reference_weight_days_distance"], errors="coerce"
         )
     else:
-        chart_rows["Distanță zile"] = None
-    chart_rows["Sursă referință"] = chart_rows.apply(
-        _format_reference_weight_source, axis=1
+        chart_rows["reference_weight_days_distance"] = None
+    chart_rows["reference_weight_source_id"] = chart_rows.apply(
+        _reference_weight_source_id,
+        axis=1,
     )
-    return chart_rows.dropna(subset=["Data", "Greutate (kg)"])
+    return chart_rows.dropna(subset=["log_date", "reference_weight_kg"])
 
 
-def _format_reference_weight_source(row: pd.Series) -> str:
+def _reference_weight_source_id(row: pd.Series) -> str:
     if pd.isna(row.get("reference_weight_kg")):
-        return "Fără greutate"
+        return "missing"
     if row.get("reference_weight_days_distance") == 0:
-        return "Cântărire reală"
+        return "actual"
     if bool(row.get("reference_weight_uses_future_reference")):
-        return "Fallback din prima greutate viitoare"
-    return "Greutate anterioară folosită ca referință"
+        return "future_fallback"
+    return "previous"
+
+
+def _format_reference_weight_source(source_id: str) -> str:
+    return _translate_stable_value(source_id, REFERENCE_WEIGHT_SOURCE_TEXT)
+
+
+def _translate_stable_value(
+    value: Any,
+    source_text_by_value: dict[str, str],
+) -> str:
+    stable_value = str(value)
+    source_text = source_text_by_value.get(stable_value)
+    if source_text is None:
+        return _format_text(value)
+    return translate(source_text)
+
+
+def _legend_label_expression(source_text_by_id: dict[str, str]) -> str:
+    expression = "datum.label"
+    for stable_id, source_text in reversed(list(source_text_by_id.items())):
+        translated_label = translate(source_text)
+        expression = (
+            f"datum.label == {json.dumps(stable_id)} ? "
+            f"{json.dumps(translated_label, ensure_ascii=False)} : ({expression})"
+        )
+    return expression
+
+
+def _format_activity_category(value: Any) -> str:
+    return _translate_stable_value(value, ACTIVITY_CATEGORY_SOURCE_TEXT)
+
+
+def _format_activity_method(value: Any) -> str:
+    return _translate_stable_value(value, ACTIVITY_METHOD_SOURCE_TEXT)
 
 
 def _prepare_daily_rows(daily_rows: pd.DataFrame) -> pd.DataFrame:
     if daily_rows.empty:
         return pd.DataFrame()
     chart_rows = daily_rows.copy()
-    chart_rows["Data"] = pd.to_datetime(chart_rows["log_date"])
+    chart_rows["log_date"] = pd.to_datetime(chart_rows["log_date"])
     chart_rows = _add_date_display_columns(chart_rows)
-    chart_rows["Calorii consumate"] = pd.to_numeric(
+    chart_rows["food_calories_in"] = pd.to_numeric(
         chart_rows["food_calories_in"], errors="coerce"
     )
-    chart_rows["TDEE estimat"] = pd.to_numeric(
+    chart_rows["estimated_tdee"] = pd.to_numeric(
         chart_rows["estimated_tdee"], errors="coerce"
     )
-    chart_rows["Balanță kcal"] = pd.to_numeric(
+    chart_rows["estimated_balance"] = pd.to_numeric(
         chart_rows["estimated_balance"], errors="coerce"
     )
-    chart_rows["Calorii activități"] = pd.to_numeric(
+    chart_rows["activity_calories_burned"] = pd.to_numeric(
         chart_rows["activity_calories_burned"], errors="coerce"
     ).fillna(0.0)
     return chart_rows
@@ -1193,33 +1389,33 @@ def _prepare_macro_rows(macro_rows: pd.DataFrame) -> pd.DataFrame:
     if macro_rows.empty:
         return pd.DataFrame()
     chart_rows = macro_rows.copy()
-    chart_rows["Data"] = pd.to_datetime(chart_rows["log_date"])
+    chart_rows["log_date"] = pd.to_datetime(chart_rows["log_date"])
     chart_rows = _add_date_display_columns(chart_rows)
-    chart_rows["Proteine"] = pd.to_numeric(chart_rows["protein_g"], errors="coerce")
-    chart_rows["Carbohidrați"] = pd.to_numeric(chart_rows["carbs_g"], errors="coerce")
-    chart_rows["Grăsimi"] = pd.to_numeric(chart_rows["fats_g"], errors="coerce")
-    return chart_rows.dropna(subset=["Data"])
+    chart_rows["protein_g"] = pd.to_numeric(chart_rows["protein_g"], errors="coerce")
+    chart_rows["carbs_g"] = pd.to_numeric(chart_rows["carbs_g"], errors="coerce")
+    chart_rows["fats_g"] = pd.to_numeric(chart_rows["fats_g"], errors="coerce")
+    return chart_rows.dropna(subset=["log_date"])
 
 
 def _add_date_display_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
     chart_rows = dataframe.copy()
-    chart_rows["DataLabel"] = chart_rows["Data"].dt.strftime("%d.%m")
-    chart_rows["DataOrder"] = chart_rows["Data"].dt.strftime("%Y-%m-%d")
+    chart_rows["date_label"] = chart_rows["log_date"].dt.strftime("%d.%m")
+    chart_rows["date_order"] = chart_rows["log_date"].dt.strftime("%Y-%m-%d")
     return chart_rows
 
 
 def _date_order_domain(dataframe: pd.DataFrame) -> list[str] | None:
-    if dataframe.empty or "DataOrder" not in dataframe.columns:
+    if dataframe.empty or "date_order" not in dataframe.columns:
         return None
-    domain = dataframe["DataOrder"].dropna().astype(str).drop_duplicates().tolist()
+    domain = dataframe["date_order"].dropna().astype(str).drop_duplicates().tolist()
     return domain or None
 
 
 def _daily_x_axis(domain: list[str] | None = None) -> alt.X:
     scale = alt.Scale(domain=domain) if domain else alt.Undefined
     return alt.X(
-        "DataOrder:N",
-        title="Data",
+        "date_order:N",
+        title=translate("Date"),
         scale=scale,
         axis=alt.Axis(
             labelAngle=0,
@@ -1243,8 +1439,8 @@ def _calculate_interval_weight_delta(weight_rows: pd.DataFrame | None) -> float 
     )
     if prepared_rows.shape[0] < 2:
         return None
-    first_weight = float(prepared_rows.iloc[0]["Greutate (kg)"])
-    last_weight = float(prepared_rows.iloc[-1]["Greutate (kg)"])
+    first_weight = float(prepared_rows.iloc[0]["weight_kg"])
+    last_weight = float(prepared_rows.iloc[-1]["weight_kg"])
     return round(last_weight - first_weight, 2)
 
 
@@ -1256,8 +1452,8 @@ def _calculate_interval_weight_delta_from_daily(
     )
     if prepared_rows.shape[0] < 2:
         return None
-    first_weight = float(prepared_rows.iloc[0]["Greutate (kg)"])
-    last_weight = float(prepared_rows.iloc[-1]["Greutate (kg)"])
+    first_weight = float(prepared_rows.iloc[0]["reference_weight_kg"])
+    last_weight = float(prepared_rows.iloc[-1]["reference_weight_kg"])
     return round(last_weight - first_weight, 2)
 
 

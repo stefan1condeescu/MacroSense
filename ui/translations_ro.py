@@ -342,4 +342,92 @@ ROMANIAN_TRANSLATIONS = {
         "Adaugă cel puțin o greutate pentru a putea calcula BMR, TDEE și "
         "balanța calorică estimată."
     ),
+    "Date": "Data",
+    "Weight trend": "Evoluția greutății",
+    "No reference weight is available for the selected interval.": (
+        "Nu există greutate de referință pentru intervalul selectat."
+    ),
+    "Weight (kg)": "Greutate (kg)",
+    "Reference weight": "Greutate de referință",
+    "Source": "Sursă",
+    "Distance in days": "Distanță zile",
+    "Actual weigh-in": "Cântărire reală",
+    "Weight": "Greutate",
+    "The line shows the reference weight for each day. The black points mark the days when you entered an actual weigh-in.": (
+        "Linia arată greutatea de referință pentru fiecare zi. Punctele "
+        "negre marchează zilele în care ai introdus efectiv o cântărire."
+    ),
+    "No weight": "Fără greutate",
+    "Fallback from the first future weight": (
+        "Fallback din prima greutate viitoare"
+    ),
+    "Previous weight used as reference": (
+        "Greutate anterioară folosită ca referință"
+    ),
+    "Calories consumed vs estimated TDEE": (
+        "Calorii consumate vs TDEE estimat"
+    ),
+    "No data is available for the selected interval.": (
+        "Nu există date în intervalul selectat."
+    ),
+    "Not enough data is available for the calorie chart.": (
+        "Nu există suficiente date pentru graficul caloric."
+    ),
+    "Intake": "Consum",
+    "Bars represent days with logged food. The orange line is estimated TDEE. A missing bar means no food was logged that day.": (
+        "Barele sunt zile cu alimente logate. Linia portocalie este TDEE-ul "
+        "estimat. Lipsa unei bare înseamnă zi fără alimente logate."
+    ),
+    "Estimated calorie balance": "Balanță calorică estimată",
+    "Not enough data is available for the estimated calorie balance.": (
+        "Nu există suficiente date pentru balanța calorică estimată."
+    ),
+    "The balance is calculated only for days with logged food.": (
+        "Balanța se calculează doar pentru zilele cu alimentație logată."
+    ),
+    "Balance": "Balanță",
+    "Type": "Tip",
+    "Deficit": "Deficit",
+    "Surplus": "Surplus",
+    "Balance = calories consumed - estimated TDEE. Negative values indicate a deficit, while positive values indicate a surplus.": (
+        "Balanță = calorii consumate - TDEE estimat. Valorile negative indică "
+        "deficit, iar cele pozitive indică surplus."
+    ),
+    "Macronutrients": "Macronutrienți",
+    "Macronutrient distribution across protein, carbohydrates, and fats.": (
+        "Distribuția macronutrienților pe proteine, carbohidrați și grăsimi."
+    ),
+    "No food is logged in the selected interval.": (
+        "Nu există alimente logate în intervalul selectat."
+    ),
+    "Carbohydrates": "Carbohidrați",
+    "Fats": "Grăsimi",
+    "Grams": "Grame",
+    "Macro": "Macro",
+    "Physical activity": "Activitate fizică",
+    "Workout logged": "Antrenament logat",
+    "Day without a workout": "Zi fără antrenament",
+    "Status": "Status",
+    "Days without a workout are shown as 0 kcal burned because they can represent normal rest days.": (
+        "Zilele fără antrenament sunt afișate ca 0 kcal arse, pentru că pot "
+        "reprezenta zile normale de repaus."
+    ),
+    "No workouts are logged in the selected interval.": (
+        "Nu există antrenamente logate în intervalul selectat."
+    ),
+    "The table below groups workouts by category and calculation method: MacroSense estimate or manually entered calories.": (
+        "Tabelul de mai jos grupează antrenamentele după categorie și metoda "
+        "de calcul: estimare MacroSense sau calorii introduse manual."
+    ),
+    "Category": "Categorie",
+    "Method": "Metodă",
+    "Entries": "Înregistrări",
+    "Total duration (min)": "Durată totală (min)",
+    "Strength": "Forță",
+    "Flexibility": "Flexibilitate",
+    "Team sport": "Sport de echipă",
+    "Daily activities": "Activități zilnice",
+    "Other": "Altele",
+    "MacroSense estimate": "Estimare MacroSense",
+    "Manual": "Manual",
 }
