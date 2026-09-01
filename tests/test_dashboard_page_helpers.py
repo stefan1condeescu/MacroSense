@@ -9,24 +9,30 @@ from services.recommendations.simple_recommendations import RecommendationCard
 from ui import language
 from ui.pages import dashboard_page
 from ui.pages.dashboard_page import (
+    DASHBOARD_INTERVAL_KEY,
+    INTERVAL_OPTIONS,
     _analysis_date_context,
     _build_dashboard_card_html,
     _build_recommendation_card_html,
     _build_weight_prediction_cards,
     _daily_x_axis,
     _date_order_domain,
+    _display_interval_name,
     _format_age,
-    _format_prediction_source_caption,
     _format_gender,
     _format_goal,
     _format_kcal_or_missing,
-    _goal_description,
+    _format_prediction_source_caption,
     _format_prediction_unavailable_reason,
+    _goal_description,
+    _initialize_interval_selection,
+    _interval_radio_kwargs,
     _prepare_daily_rows,
     _prepare_daily_weight_rows,
     _prepare_macro_rows,
+    _render_interval_summary,
     _resolve_dashboard_analysis_date,
-    _resolve_interval_label,
+    _resolve_interval_days,
 )
 from services.ml.prediction import UserWeightPredictions, WeightPrediction
 
@@ -238,10 +244,249 @@ class DashboardPageHelperTests(unittest.TestCase):
 
         self.assertEqual(_date_order_domain(rows), ["2026-05-08", "2026-05-09"])
 
-    def test_dashboard_interval_defaults_without_session_state_assignment(self):
-        self.assertEqual(_resolve_interval_label(None), "30 zile")
-        self.assertEqual(_resolve_interval_label("90 zile"), "90 zile")
-        self.assertEqual(_resolve_interval_label("invalid"), "30 zile")
+    def test_dashboard_interval_registry_uses_stable_ids(self):
+        self.assertEqual(INTERVAL_OPTIONS, (7, 30, 90))
+        self.assertEqual(_resolve_interval_days(None), 30)
+        self.assertEqual(_resolve_interval_days(90), 90)
+        self.assertEqual(_resolve_interval_days("90 zile"), 90)
+        self.assertEqual(_resolve_interval_days("invalid"), 30)
+
+    def test_dashboard_interval_names_translate_without_changing_ids(self):
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_names = {
+                days: _display_interval_name(days) for days in INTERVAL_OPTIONS
+            }
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_names = {
+                days: _display_interval_name(days) for days in INTERVAL_OPTIONS
+            }
+
+        self.assertEqual(
+            romanian_names,
+            {7: "7 zile", 30: "30 zile", 90: "90 zile"},
+        )
+        self.assertEqual(
+            english_names,
+            {7: "7 days", 30: "30 days", 90: "90 days"},
+        )
+
+    def test_dashboard_interval_migrates_legacy_session_value(self):
+        session_state = {DASHBOARD_INTERVAL_KEY: "90 zile"}
+
+        with patch.object(language.st, "session_state", session_state):
+            selected_days = _initialize_interval_selection()
+            radio_kwargs = _interval_radio_kwargs(selected_days)
+
+        self.assertEqual(selected_days, 90)
+        self.assertEqual(session_state[DASHBOARD_INTERVAL_KEY], 90)
+        self.assertEqual(radio_kwargs, {})
+
+        invalid_state = {DASHBOARD_INTERVAL_KEY: "invalid"}
+        with patch.object(language.st, "session_state", invalid_state):
+            fallback_days = _initialize_interval_selection()
+
+        self.assertEqual(fallback_days, 30)
+        self.assertEqual(invalid_state[DASHBOARD_INTERVAL_KEY], 30)
+
+    def test_dashboard_uses_stable_interval_for_ui_and_analytics(self):
+        analysis_date = date(2026, 5, 25)
+        session_state = {
+            "language": "en",
+            "user_id": 42,
+            DASHBOARD_INTERVAL_KEY: "90 zile",
+        }
+        dashboard_data = {"current": {}, "end_date": analysis_date}
+
+        with (
+            patch.object(language.st, "session_state", session_state),
+            patch.object(dashboard_page.st, "title"),
+            patch.object(dashboard_page.st, "caption"),
+            patch.object(dashboard_page.st, "divider"),
+            patch.object(dashboard_page.st, "subheader") as subheader,
+            patch.object(
+                dashboard_page.st,
+                "radio",
+                return_value=90,
+            ) as radio,
+            patch.object(
+                dashboard_page,
+                "get_latest_user_data_date",
+                return_value=analysis_date,
+            ),
+            patch.object(
+                dashboard_page,
+                "_render_analysis_date_selector",
+                return_value=analysis_date,
+            ),
+            patch.object(
+                dashboard_page,
+                "get_dashboard_data",
+                return_value=dashboard_data,
+            ) as get_data,
+            patch.object(dashboard_page, "_render_current_state"),
+            patch.object(
+                dashboard_page,
+                "_render_weight_prediction_section",
+                return_value=None,
+            ),
+            patch.object(dashboard_page, "_render_recommendation_section"),
+            patch.object(dashboard_page, "_render_interval_summary"),
+            patch.object(dashboard_page, "_render_weight_chart"),
+            patch.object(dashboard_page, "_render_calorie_chart"),
+            patch.object(dashboard_page, "_render_balance_chart"),
+            patch.object(dashboard_page, "_render_macro_chart"),
+            patch.object(dashboard_page, "_render_activity_section"),
+        ):
+            dashboard_page.render_dashboard_page()
+            formatted_interval_label = radio.call_args.kwargs["format_func"](30)
+
+        self.assertEqual(session_state[DASHBOARD_INTERVAL_KEY], 90)
+        get_data.assert_called_once_with(
+            user_id=42,
+            days=90,
+            end_date=analysis_date,
+        )
+        subheader.assert_called_once_with("Progress over the interval")
+        self.assertEqual(radio.call_args.args[:2], ("Analysis interval", [7, 30, 90]))
+        self.assertNotIn("index", radio.call_args.kwargs)
+        self.assertEqual(radio.call_args.kwargs["key"], DASHBOARD_INTERVAL_KEY)
+        self.assertEqual(formatted_interval_label, "30 days")
+
+    def test_dashboard_interval_default_does_not_prepopulate_session_state(self):
+        session_state = {}
+
+        with patch.object(language.st, "session_state", session_state):
+            selected_days = _initialize_interval_selection()
+            radio_kwargs = _interval_radio_kwargs(selected_days)
+
+        self.assertEqual(selected_days, 30)
+        self.assertNotIn(DASHBOARD_INTERVAL_KEY, session_state)
+        self.assertEqual(radio_kwargs, {"index": 1})
+
+    def test_dashboard_interval_summary_translates_without_changing_values(self):
+        data = {
+            "days": 30,
+            "daily_rows": pd.DataFrame(
+                [
+                    {
+                        "log_date": date(2026, 5, 1),
+                        "reference_weight_kg": 80.0,
+                        "reference_weight_days_distance": 0,
+                        "reference_weight_uses_future_reference": False,
+                    },
+                    {
+                        "log_date": date(2026, 5, 30),
+                        "reference_weight_kg": 79.5,
+                        "reference_weight_days_distance": 0,
+                        "reference_weight_uses_future_reference": False,
+                    },
+                ]
+            ),
+            "summary": {
+                "avg_calories_in": 2100.4,
+                "avg_estimated_tdee": 2500.2,
+                "avg_estimated_balance": -399.8,
+                "food_logging_consistency": 80.0,
+                "activity_logging_consistency": 50.0,
+                "weight_logging_consistency": 10.0,
+                "overall_logging_consistency": 90.0,
+                "food_days": 24,
+                "activity_days": 15,
+                "weight_days": 3,
+                "logged_days": 27,
+                "activity_total_calories": 1235.4,
+                "workouts_count": 12,
+                "avg_protein_g": 120.3,
+                "avg_protein_per_kg": 1.5,
+                "has_energy_estimates": False,
+            },
+        }
+
+        def render_summary(language_code):
+            with (
+                patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ),
+                patch.object(dashboard_page, "_render_card_grid") as card_grid,
+                patch.object(dashboard_page.st, "info") as info,
+            ):
+                _render_interval_summary(data)
+            return card_grid.call_args_list, info.call_args.args[0]
+
+        romanian_calls, romanian_info = render_summary("ro")
+        english_calls, english_info = render_summary("en")
+        romanian_rows = [render_call.args[0] for render_call in romanian_calls]
+        english_rows = [render_call.args[0] for render_call in english_calls]
+
+        self.assertEqual(
+            [card["label"] for row in romanian_rows for card in row],
+            [
+                "Trend greutate interval",
+                "Consum mediu / zi logată",
+                "TDEE mediu / zi alimentară",
+                "Balanță medie / zi alimentară",
+                "Consistență alimente",
+                "Consistență antrenamente",
+                "Consistență greutate",
+                "Consistență generală",
+                "Calorii activități totale",
+                "Înregistrări exerciții",
+                "Proteină medie",
+                "Proteină / kg corp",
+            ],
+        )
+        self.assertEqual(
+            [card["label"] for row in english_rows for card in row],
+            [
+                "Interval weight trend",
+                "Average intake / logged day",
+                "Average TDEE / food-logged day",
+                "Average balance / food-logged day",
+                "Food logging consistency",
+                "Activity logging consistency",
+                "Weight logging consistency",
+                "Overall logging consistency",
+                "Total activity calories",
+                "Exercise entries",
+                "Average protein",
+                "Protein / kg body weight",
+            ],
+        )
+        self.assertEqual(
+            [card["value"] for row in romanian_rows for card in row],
+            [card["value"] for row in english_rows for card in row],
+        )
+        self.assertEqual(romanian_rows[0][0]["value"], "-0.5 kg")
+        self.assertEqual(english_rows[0][3]["value"], "-400 kcal")
+        self.assertEqual(romanian_rows[1][0]["caption"], "24 / 30 zile")
+        self.assertEqual(english_rows[1][0]["caption"], "24 / 30 days")
+        self.assertEqual(
+            [render_call.kwargs["columns_count"] for render_call in romanian_calls],
+            [4, 4, 4],
+        )
+        self.assertEqual(
+            [card["accent"] for row in romanian_rows for card in row],
+            [card["accent"] for row in english_rows for card in row],
+        )
+        self.assertTrue(
+            all(
+                romanian_card["help"] != english_card["help"]
+                for romanian_row, english_row in zip(romanian_rows, english_rows)
+                for romanian_card, english_card in zip(romanian_row, english_row)
+            )
+        )
+        self.assertEqual(
+            romanian_info,
+            "Adaugă cel puțin o greutate pentru a putea calcula BMR, TDEE și "
+            "balanța calorică estimată.",
+        )
+        self.assertEqual(
+            english_info,
+            "Add at least one weight entry to calculate BMR, TDEE, and the "
+            "estimated calorie balance.",
+        )
 
     def test_dashboard_analysis_date_defaults_and_blocks_future_dates(self):
         today = date(2026, 5, 25)
