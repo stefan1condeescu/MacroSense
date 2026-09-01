@@ -21,6 +21,7 @@ from ui.pages.dashboard_page import (
     _format_goal,
     _format_kcal_or_missing,
     _goal_description,
+    _format_prediction_unavailable_reason,
     _prepare_daily_rows,
     _prepare_daily_weight_rows,
     _prepare_macro_rows,
@@ -488,14 +489,70 @@ class DashboardPageHelperTests(unittest.TestCase):
             unavailable_horizons={},
         )
 
-        cards = _build_weight_prediction_cards(result)
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_cards = _build_weight_prediction_cards(result)
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_cards = _build_weight_prediction_cards(result)
 
-        self.assertEqual([card["label"] for card in cards], ["Peste 14 zile", "Peste 30 zile"])
-        self.assertEqual(cards[0]["value"], "79.2 kg")
-        self.assertIn("Schimbare estimată: -0.8 kg", cards[0]["caption"])
-        self.assertIn("Data: 01.06.2026", cards[0]["caption"])
-        self.assertIn("MAE: 0.23 kg", cards[0]["caption"])
-        self.assertNotIn("orientativ", cards[0]["help"].lower())
+        self.assertEqual(
+            [card["label"] for card in romanian_cards],
+            ["Peste 14 zile", "Peste 30 zile"],
+        )
+        self.assertEqual(
+            [card["label"] for card in english_cards],
+            ["In 14 days", "In 30 days"],
+        )
+        self.assertEqual(romanian_cards[0]["value"], "79.2 kg")
+        self.assertEqual(english_cards[0]["value"], "79.2 kg")
+        self.assertIn(
+            "Schimbare estimată: -0.8 kg",
+            romanian_cards[0]["caption"],
+        )
+        self.assertIn("Estimated change: -0.8 kg", english_cards[0]["caption"])
+        self.assertIn("Date: 01.06.2026", english_cards[0]["caption"])
+        self.assertIn("MAE: 0.23 kg", english_cards[0]["caption"])
+        self.assertNotIn("orientativ", romanian_cards[0]["help"].lower())
+
+    def test_weight_prediction_runtime_error_uses_safe_translated_message(self):
+        expected_text = {
+            "ro": (
+                "Predicție greutate",
+                "Predicția ML nu este disponibilă momentan. Verifică modelele "
+                "antrenate și conexiunea la baza de date.",
+            ),
+            "en": (
+                "Weight prediction",
+                "The ML prediction is temporarily unavailable. Check the trained "
+                "models and database connection.",
+            ),
+        }
+
+        for language_code, (expected_title, expected_info) in expected_text.items():
+            with self.subTest(language=language_code):
+                with (
+                    patch.object(
+                        language.st,
+                        "session_state",
+                        {"language": language_code},
+                    ),
+                    patch.object(dashboard_page.st, "subheader") as subheader,
+                    patch.object(dashboard_page.st, "info") as info,
+                    patch.object(
+                        dashboard_page,
+                        "get_latest_available_user_weight_predictions",
+                        side_effect=RuntimeError("database details"),
+                    ),
+                ):
+                    result = dashboard_page._render_weight_prediction_section(
+                        user_id=7,
+                        analysis_date=date(2026, 5, 25),
+                        today=date(2026, 5, 25),
+                    )
+
+                self.assertIsNone(result)
+                subheader.assert_called_once_with(expected_title)
+                info.assert_called_once_with(expected_info)
+                self.assertNotIn("database details", info.call_args.args[0])
 
     def test_weight_prediction_cards_show_missing_artifact_as_untrained_model(self):
         result = UserWeightPredictions(
@@ -508,11 +565,29 @@ class DashboardPageHelperTests(unittest.TestCase):
             },
         )
 
-        cards = _build_weight_prediction_cards(result)
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_cards = _build_weight_prediction_cards(result)
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_cards = _build_weight_prediction_cards(result)
 
-        self.assertEqual(cards[0]["value"], "Indisponibil")
-        self.assertEqual(cards[0]["caption"], "Modelele ML nu au fost antrenate încă.")
-        self.assertEqual(cards[1]["caption"], "Nu există suficiente date recente pentru predicție.")
+        self.assertEqual(romanian_cards[0]["value"], "Indisponibil")
+        self.assertEqual(english_cards[0]["value"], "Unavailable")
+        self.assertEqual(
+            romanian_cards[0]["caption"],
+            "Modelele ML nu au fost antrenate încă.",
+        )
+        self.assertEqual(
+            english_cards[0]["caption"],
+            "The ML models have not been trained yet.",
+        )
+        self.assertEqual(
+            romanian_cards[1]["caption"],
+            "Nu există suficiente date recente pentru predicție.",
+        )
+        self.assertEqual(
+            english_cards[1]["caption"],
+            "There is not enough recent data for a prediction.",
+        )
 
     def test_weight_prediction_cards_explain_fallback_start_date(self):
         result = UserWeightPredictions(
@@ -533,13 +608,26 @@ class DashboardPageHelperTests(unittest.TestCase):
             unavailable_horizons={},
         )
 
-        cards = _build_weight_prediction_cards(
-            result,
-            requested_analysis_date=date(2026, 5, 25),
-        )
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_cards = _build_weight_prediction_cards(
+                result,
+                requested_analysis_date=date(2026, 5, 25),
+            )
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_cards = _build_weight_prediction_cards(
+                result,
+                requested_analysis_date=date(2026, 5, 25),
+            )
 
-        self.assertEqual(cards[0]["label"], "Peste 14 zile de la 23.05.2026")
-        self.assertEqual(cards[0]["value"], "79.5 kg")
+        self.assertEqual(
+            romanian_cards[0]["label"],
+            "Peste 14 zile de la 23.05.2026",
+        )
+        self.assertEqual(
+            english_cards[0]["label"],
+            "In 14 days from 23.05.2026",
+        )
+        self.assertEqual(english_cards[0]["value"], "79.5 kg")
 
     def test_prediction_caption_mentions_today_is_avoided_for_current_day(self):
         result = UserWeightPredictions(
@@ -549,14 +637,22 @@ class DashboardPageHelperTests(unittest.TestCase):
             unavailable_horizons={},
         )
 
-        caption = _format_prediction_source_caption(
-            result,
-            date(2026, 5, 25),
-            today=date(2026, 5, 25),
-        )
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_caption = _format_prediction_source_caption(
+                result,
+                date(2026, 5, 25),
+                today=date(2026, 5, 25),
+            )
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_caption = _format_prediction_source_caption(
+                result,
+                date(2026, 5, 25),
+                today=date(2026, 5, 25),
+            )
 
-        self.assertIn("23.05.2026", caption)
-        self.assertIn("Ziua curentă este evitată", caption)
+        self.assertIn("Ziua curentă este evitată", romanian_caption)
+        self.assertIn("The current day is skipped", english_caption)
+        self.assertIn("23.05.2026", english_caption)
 
     def test_prediction_caption_mentions_selected_date_without_recent_data(self):
         result = UserWeightPredictions(
@@ -566,14 +662,27 @@ class DashboardPageHelperTests(unittest.TestCase):
             unavailable_horizons={},
         )
 
-        caption = _format_prediction_source_caption(
-            result,
-            date(2026, 5, 23),
-            today=date(2026, 5, 25),
-        )
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_caption = _format_prediction_source_caption(
+                result,
+                date(2026, 5, 23),
+                today=date(2026, 5, 25),
+            )
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_caption = _format_prediction_source_caption(
+                result,
+                date(2026, 5, 23),
+                today=date(2026, 5, 25),
+            )
 
-        self.assertIn("20.05.2026", caption)
-        self.assertIn("pentru 23.05.2026 nu există suficiente date recente", caption)
+        self.assertIn(
+            "pentru 23.05.2026 nu există suficiente date recente",
+            romanian_caption,
+        )
+        self.assertIn(
+            "there is not enough recent data for 23.05.2026",
+            english_caption,
+        )
 
     def test_prediction_caption_for_exact_analysis_date_is_short(self):
         result = UserWeightPredictions(
@@ -583,16 +692,43 @@ class DashboardPageHelperTests(unittest.TestCase):
             unavailable_horizons={},
         )
 
-        caption = _format_prediction_source_caption(
-            result,
-            date(2026, 5, 23),
-            today=date(2026, 5, 25),
-        )
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_caption = _format_prediction_source_caption(
+                result,
+                date(2026, 5, 23),
+                today=date(2026, 5, 25),
+            )
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_caption = _format_prediction_source_caption(
+                result,
+                date(2026, 5, 23),
+                today=date(2026, 5, 25),
+            )
 
         self.assertEqual(
-            caption,
+            romanian_caption,
             "Predicție calculată din datele disponibile până la 23.05.2026.",
         )
+        self.assertEqual(
+            english_caption,
+            "Prediction calculated from data available through 23.05.2026.",
+        )
+
+    def test_prediction_unavailable_reason_hides_technical_details(self):
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            missing_user = _format_prediction_unavailable_reason(
+                "Utilizatorul nu există."
+            )
+            technical_error = _format_prediction_unavailable_reason(
+                "ML model prediction failed: shape mismatch"
+            )
+
+        self.assertEqual(missing_user, "The user could not be found.")
+        self.assertEqual(
+            technical_error,
+            "The ML prediction is temporarily unavailable.",
+        )
+        self.assertNotIn("shape mismatch", technical_error)
 
 
 if __name__ == "__main__":
