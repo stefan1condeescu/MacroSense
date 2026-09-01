@@ -1,7 +1,10 @@
 import unittest
+from unittest.mock import patch
 
 import pandas as pd
+from pandas.testing import assert_frame_equal
 
+from ui import language
 from ui.activity_selection import (
     build_activity_selection_dataframe,
     build_activity_selection_state_key,
@@ -9,6 +12,7 @@ from ui.activity_selection import (
 )
 from ui.activity_validation import validate_duration_minutes, validate_reps, validate_sets
 from ui.tables import (
+    build_food_log_cards_html,
     build_log_entry_card_html,
     build_weight_log_cards_html,
     escape_display_text,
@@ -80,6 +84,66 @@ class TableHelperTests(unittest.TestCase):
 
         self.assertIn("log-entry-card custom-meal", card_html)
         self.assertIn("log-entry-badge custom-meal", card_html)
+
+    def test_food_log_cards_translate_display_without_mutating_service_data(self):
+        dataframe = pd.DataFrame(
+            [
+                {
+                    "Tip": "Masă personalizată",
+                    "Aliment / Masă": "Bol proteic",
+                    "Cantitate (g)": 150.0,
+                    "Calorii": 450.0,
+                    "Masă": "Mic dejun",
+                    "Ora": "08:30",
+                }
+            ]
+        )
+        original_dataframe = dataframe.copy(deep=True)
+
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_html = build_food_log_cards_html(dataframe)
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_html = build_food_log_cards_html(dataframe)
+
+        assert_frame_equal(dataframe, original_dataframe)
+        self.assertIn("log-entry-card custom-meal", english_html)
+        self.assertIn("log-entry-badge custom-meal", english_html)
+        self.assertIn(">Custom meal</span>", english_html)
+        self.assertIn("<span>Quantity</span><strong>150.0 g</strong>", english_html)
+        self.assertIn("<span>Calories</span><strong>450.0 kcal</strong>", english_html)
+        self.assertIn("<span>Meal</span><strong>Breakfast</strong>", english_html)
+        self.assertIn("<span>Time</span><strong>08:30</strong>", english_html)
+        self.assertIn(">Masă personalizată</span>", romanian_html)
+        self.assertIn("<span>Cantitate</span><strong>150.0 g</strong>", romanian_html)
+        self.assertIn("<span>Masă</span><strong>Mic dejun</strong>", romanian_html)
+
+    def test_food_log_cards_escape_user_content_in_both_languages(self):
+        dataframe = pd.DataFrame(
+            [
+                {
+                    "Tip": "Aliment",
+                    "Aliment / Masă": "<script>alert(1)</script>",
+                    "Cantitate (g)": 100,
+                    "Calorii": 200,
+                    "Masă": "<img src=x onerror=alert(1)>",
+                    "Ora": "12:00",
+                }
+            ]
+        )
+
+        for language_code in ("en", "ro"):
+            with self.subTest(language_code=language_code):
+                with patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ):
+                    card_html = build_food_log_cards_html(dataframe)
+
+                self.assertIn("&lt;script&gt;alert(1)&lt;/script&gt;", card_html)
+                self.assertIn("&lt;img src=x onerror=alert(1)&gt;", card_html)
+                self.assertNotIn("<script>", card_html)
+                self.assertNotIn("<img", card_html)
 
     def test_weight_log_cards_become_scrollable_for_long_history(self):
         weight_rows = pd.DataFrame(
