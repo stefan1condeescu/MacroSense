@@ -34,10 +34,9 @@ DEFAULT_INTERVAL_LABEL = "30 zile"
 DASHBOARD_INTERVAL_KEY = "dashboard_interval_selection"
 DASHBOARD_ANALYSIS_DATE_KEY = "dashboard_analysis_date"
 
-GOAL_HELP = (
-    "Obiective posibile: Slabire = deficit caloric orientativ; Mentinere = "
-    "stabilizarea greutății; Crestere = surplus controlat și susținerea "
-    "antrenamentelor."
+GOAL_HELP_SOURCE_TEXT = (
+    "Possible goals: Weight loss = a suggested calorie deficit; Maintenance = "
+    "weight stability; Muscle gain = a controlled surplus that supports training."
 )
 
 PROTEIN_COLOR = "#D64545"
@@ -51,10 +50,12 @@ SURPLUS_COLOR = "#C94C4C"
 
 
 def render_dashboard_page() -> None:
-    st.title("🏠 Acasă")
+    st.title(f"🏠 {translate('Home')}")
     st.caption(
-        "Dashboard-ul este read-only. Valorile TDEE și balanța calorică sunt "
-        "estimări orientative calculate din profil, greutate și jurnale."
+        translate(
+            "The dashboard is read-only. TDEE and calorie balance values are "
+            "estimates calculated from your profile, weight, and journals."
+        )
     )
 
     selected_interval = _resolve_interval_label(
@@ -64,14 +65,19 @@ def render_dashboard_page() -> None:
 
     user_id = st.session_state.get("user_id")
     if not user_id:
-        st.warning("Autentifică-te pentru a vedea dashboard-ul.")
+        st.warning(translate("Log in to view the dashboard."))
         return
 
     today = date.today()
     try:
         latest_data_date = get_latest_user_data_date(int(user_id), today)
     except RuntimeError as exc:
-        st.error(f"Eroare la încărcarea datei de analiză: {exc}")
+        st.error(
+            translate(
+                "Error loading the analysis date: {error}",
+                error=exc,
+            )
+        )
         return
 
     selected_analysis_date = _render_analysis_date_selector(
@@ -86,7 +92,12 @@ def render_dashboard_page() -> None:
             end_date=selected_analysis_date,
         )
     except RuntimeError as exc:
-        st.error(f"Eroare la încărcarea dashboard-ului: {exc}")
+        st.error(
+            translate(
+                "Error loading the dashboard: {error}",
+                error=exc,
+            )
+        )
         return
 
     _render_current_state(data.get("current", {}), data.get("end_date"), today=today)
@@ -137,13 +148,13 @@ def _render_analysis_date_selector(
         st.session_state[DASHBOARD_ANALYSIS_DATE_KEY] = initial_date
 
     selected_date = st.date_input(
-        "Data analiză",
+        translate("Analysis date"),
         value=initial_date,
         max_value=today,
         key=DASHBOARD_ANALYSIS_DATE_KEY,
-        help=(
-            "Dashboard-ul, recomandările și predicția ML sunt calculate până "
-            "la această dată."
+        help=translate(
+            "The dashboard, recommendations, and ML prediction are calculated "
+            "through this date."
         ),
     )
     selected_date = _resolve_dashboard_analysis_date(
@@ -152,9 +163,11 @@ def _render_analysis_date_selector(
         today=today,
     )
     if latest_data_date and selected_date == latest_data_date and selected_date != today:
-        st.caption("Data analiză este ultima zi cu date înregistrate.")
+        st.caption(
+            translate("The analysis date is the latest day with logged data.")
+        )
     elif selected_date != today:
-        st.caption("Dashboard recalculat până la data selectată.")
+        st.caption(translate("Dashboard recalculated through the selected date."))
     return selected_date
 
 
@@ -180,9 +193,11 @@ def _analysis_date_context(
     is_today = _to_date(analysis_date or resolved_today) == resolved_today
     return {
         "is_today": is_today,
-        "state_title": "Starea curentă" if is_today else "Starea la data analizată",
-        "day_phrase": "azi" if is_today else "la data analizată",
-        "day_sentence": "Astăzi" if is_today else "La data analizată",
+        "state_title": translate(
+            "Current state" if is_today else "State on the analysis date"
+        ),
+        "day_phrase": translate("today" if is_today else "on the analysis date"),
+        "day_sentence": translate("Today" if is_today else "On the analysis date"),
     }
 
 
@@ -200,28 +215,38 @@ def _render_current_state(
     _render_card_grid(
         [
             {
-                "label": "Înălțime",
+                "label": translate("Height"),
                 "value": _format_cm(current.get("height_cm")),
                 "accent": "profile",
-                "help": "Înălțimea setată la crearea profilului. Este folosită la BMI și BMR.",
+                "help": translate(
+                    "The height saved when the profile was created. It is used "
+                    "to calculate BMI and BMR."
+                ),
             },
             {
-                "label": "Sex",
+                "label": translate("Gender"),
                 "value": _format_gender(current.get("gender")),
                 "accent": "profile",
-                "help": "Sexul biologic selectat în profil. Este folosit în formula BMR Mifflin-St Jeor.",
+                "help": translate(
+                    "The biological sex selected in the profile. It is used in "
+                    "the Mifflin-St Jeor BMR formula."
+                ),
             },
             {
-                "label": "Vârstă",
+                "label": translate("Age"),
                 "value": _format_age(current.get("age")),
                 "accent": "profile",
-                "help": "Vârsta setată în profil. Este folosită în formula BMR Mifflin-St Jeor.",
+                "help": translate(
+                    "The age saved in the profile. It is used in the Mifflin-St "
+                    "Jeor BMR formula."
+                ),
             },
             {
-                "label": "Obiectiv",
+                "label": translate("Goal"),
                 "value": _format_goal(current.get("goal")),
                 "accent": "goal",
-                "help": _goal_description(current.get("goal")) or GOAL_HELP,
+                "help": _goal_description(current.get("goal"))
+                or translate(GOAL_HELP_SOURCE_TEXT),
             },
         ],
         columns_count=4,
@@ -230,43 +255,50 @@ def _render_current_state(
     _render_card_grid(
         [
             {
-                "label": "Greutate curentă"
+                "label": translate("Current weight")
                 if is_today
-                else "Greutate la data analizată",
+                else translate("Weight on the analysis date"),
                 "value": _format_kg(current.get("current_weight_kg")),
                 "delta": _format_kg_delta(current.get("weight_delta_kg")),
                 "accent": "weight",
-                "help": (
-                    "Ultima greutate salvată până la data analizată. Delta arată "
-                    "diferența față de cântărirea anterioară disponibilă."
+                "help": translate(
+                    "The latest weight saved through the analysis date. The delta "
+                    "shows the difference from the previous available weigh-in."
                 ),
             },
             {
-                "label": "BMI curent" if is_today else "BMI la data analizată",
+                "label": translate("Current BMI")
+                if is_today
+                else translate("BMI on the analysis date"),
                 "value": _format_number(current.get("current_bmi"), ""),
                 "accent": "health",
-                "help": (
-                    "BMI = greutatea de referință / înălțime². Este un indicator "
-                    "orientativ, nu un diagnostic medical."
+                "help": translate(
+                    "BMI = reference weight / height². It is a general indicator, "
+                    "not a medical diagnosis."
                 ),
             },
             {
-                "label": "BMR estimat",
+                "label": translate("Estimated BMR"),
                 "value": _format_kcal(current.get("current_bmr")),
                 "accent": "energy",
-                "help": (
-                    "BMR este consumul bazal estimat prin formula Mifflin-St "
-                    "Jeor, pe baza greutății curente, înălțimii, vârstei și sexului."
+                "help": translate(
+                    "BMR is the basal energy expenditure estimated with the "
+                    "Mifflin-St Jeor formula, using current weight, height, age, "
+                    "and biological sex."
                 ),
             },
             {
-                "label": f"TDEE estimat {day_phrase}",
+                "label": translate(
+                    "Estimated TDEE {day_phrase}",
+                    day_phrase=day_phrase,
+                ),
                 "value": _format_kcal(current.get("today_estimated_tdee")),
                 "accent": "energy",
-                "help": (
-                    f"TDEE estimat {day_phrase} = BMR * 1.2 + caloriile arse prin "
-                    f"antrenamentele logate {day_phrase}. Factorul 1.2 reprezintă "
-                    "baza sedentară."
+                "help": translate(
+                    "Estimated TDEE {day_phrase} = BMR * 1.2 + calories burned "
+                    "through activities logged {day_phrase}. The 1.2 factor "
+                    "represents the sedentary baseline.",
+                    day_phrase=day_phrase,
                 ),
             },
         ],
@@ -276,31 +308,43 @@ def _render_current_state(
     _render_card_grid(
         [
             {
-                "label": f"Calorii consumate {day_phrase}",
+                "label": translate(
+                    "Calories consumed {day_phrase}",
+                    day_phrase=day_phrase,
+                ),
                 "value": _format_kcal_or_missing(current.get("today_calories_in")),
                 "accent": "food",
-                "help": (
-                    f"Totalul caloriilor din alimentele logate {day_phrase}. Dacă "
-                    "nu există alimente logate, valoarea este Nelogat, nu 0 kcal."
+                "help": translate(
+                    "Total calories from food logged {day_phrase}. If no food is "
+                    "logged, the value is Not logged, not 0 kcal.",
+                    day_phrase=day_phrase,
                 ),
             },
             {
-                "label": f"Calorii activități {day_phrase}",
+                "label": translate(
+                    "Activity calories {day_phrase}",
+                    day_phrase=day_phrase,
+                ),
                 "value": _format_kcal_zero(current.get("today_activity_calories")),
                 "accent": "activity",
-                "help": (
-                    f"Caloriile arse prin activitățile logate {day_phrase}. Dacă "
-                    "nu există antrenamente, se afișează 0 kcal ca zi de repaus."
+                "help": translate(
+                    "Calories burned through activities logged {day_phrase}. If "
+                    "there are no workouts, 0 kcal is displayed as a rest day.",
+                    day_phrase=day_phrase,
                 ),
             },
             {
-                "label": f"Balanță estimată {day_phrase}",
+                "label": translate(
+                    "Estimated balance {day_phrase}",
+                    day_phrase=day_phrase,
+                ),
                 "value": _format_signed_kcal(current.get("today_estimated_balance")),
                 "accent": "balance",
-                "help": (
-                    f"Balanță estimată {day_phrase} = calorii consumate "
-                    f"{day_phrase} - TDEE estimat {day_phrase}. Se calculează "
-                    f"doar dacă există alimente logate {day_phrase}."
+                "help": translate(
+                    "Estimated balance {day_phrase} = calories consumed "
+                    "{day_phrase} - estimated TDEE {day_phrase}. It is calculated "
+                    "only when food is logged {day_phrase}.",
+                    day_phrase=day_phrase,
                 ),
             },
         ],
@@ -311,23 +355,31 @@ def _render_current_state(
     if not current.get("today_has_food_logs"):
         if is_today:
             status_messages.append(
-                "Adaugă mesele de azi ca să vezi consumul și balanța energetică."
+                translate(
+                    "Add today's meals to see calorie intake and energy balance."
+                )
             )
         else:
             status_messages.append(
-                "La data analizată nu există mese logate; consumul și balanța "
-                "rămân nelogate."
+                translate(
+                    "No meals are logged on the analysis date; calorie intake "
+                    "and energy balance remain unlogged."
+                )
             )
     if not current.get("today_has_activity_logs"):
         if is_today:
             status_messages.append(
-                "Fără antrenamente azi: activitatea logată este 0 kcal, deci ziua "
-                "este considerată de repaus."
+                translate(
+                    "No workouts today: logged activity is 0 kcal, so the day is "
+                    "treated as a rest day."
+                )
             )
         else:
             status_messages.append(
-                "La data analizată nu există antrenamente logate; activitatea este "
-                "0 kcal, ca zi de repaus."
+                translate(
+                    "No workouts are logged on the analysis date; activity is "
+                    "0 kcal, as on a rest day."
+                )
             )
     if status_messages:
         st.info(" ".join(status_messages))
@@ -1153,7 +1205,7 @@ def _format_kcal_zero(value: Any) -> str:
 def _format_kcal_or_missing(value: Any) -> str:
     numeric_value = _as_float(value)
     if numeric_value is None:
-        return "Nelogat"
+        return translate("Not logged")
     return f"{numeric_value:.0f} kcal"
 
 
@@ -1189,7 +1241,7 @@ def _format_age(value: Any) -> str:
     numeric_value = _as_float(value)
     if numeric_value is None:
         return "—"
-    return f"{numeric_value:.0f} ani"
+    return translate("{age:.0f} years", age=numeric_value)
 
 
 def _format_gender(value: Any) -> str:
@@ -1202,28 +1254,34 @@ def _format_gender(value: Any) -> str:
 
 def _format_goal(value: Any) -> str:
     goal_key = _normalize_goal(value)
-    labels = {
-        "slabire": "Slabire",
-        "mentinere": "Mentinere",
-        "masa_musculara": "Crestere",
-        "crestere": "Crestere",
+    source_labels = {
+        "slabire": "Weight loss",
+        "mentinere": "Maintenance",
+        "masa_musculara": "Muscle gain",
+        "crestere": "Muscle gain",
     }
-    return labels.get(goal_key, _format_text(value))
+    source_label = source_labels.get(goal_key)
+    if source_label is None:
+        return _format_text(value)
+    return translate(source_label)
 
 
 def _goal_description(value: Any) -> str | None:
     goal_key = _normalize_goal(value)
-    descriptions = {
-        "slabire": "Accent pe deficit caloric controlat.",
-        "mentinere": "Accent pe stabilitatea greutății.",
+    source_descriptions = {
+        "slabire": "Focus on a controlled calorie deficit.",
+        "mentinere": "Focus on weight stability.",
         "masa_musculara": (
-            "Accent pe surplus controlat, proteine și antrenamente de forță."
+            "Focus on a controlled surplus, protein, and strength training."
         ),
         "crestere": (
-            "Accent pe surplus controlat, proteine și antrenamente de forță."
+            "Focus on a controlled surplus, protein, and strength training."
         ),
     }
-    return descriptions.get(goal_key)
+    source_description = source_descriptions.get(goal_key)
+    if source_description is None:
+        return None
+    return translate(source_description)
 
 
 def _normalize_goal(value: Any) -> str:
