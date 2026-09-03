@@ -354,11 +354,14 @@ def build_weight_log_cards_html(
         cards_html.append(
             build_log_entry_card_html(
                 title=format_card_date(row.get("Data")),
-                badge="Greutate",
+                badge=translate("Weight"),
                 card_type="weight",
                 badge_type="weight",
                 metrics=[
-                ("Greutate", format_card_number(row.get("Greutate (kg)"), "kg")),
+                (
+                    translate("Weight"),
+                    format_card_number(row.get("Greutate (kg)"), "kg"),
+                ),
                 ],
             )
         )
@@ -374,7 +377,9 @@ def render_weight_log_cards(dataframe: pd.DataFrame) -> None:
     cards_html, is_scrollable = build_weight_log_cards_html(dataframe)
     st.markdown(cards_html, unsafe_allow_html=True)
     if is_scrollable:
-        st.caption("Istoricul complet este derulabil pentru a păstra pagina compactă.")
+        st.caption(
+            translate("The full history is scrollable to keep the page compact.")
+        )
 
 
 food_catalog_table_config = {
