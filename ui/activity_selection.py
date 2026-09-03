@@ -3,6 +3,67 @@ import hashlib
 import pandas as pd
 
 from ui.food_selection import normalize_search_text
+from ui.language import translate
+
+
+ACTIVITY_CATEGORY_SOURCE_TEXT = {
+    "Toate": "All",
+    "Cardio": "Cardio",
+    "Forță": "Strength",
+    "Flexibilitate": "Flexibility",
+    "Sport de echipă": "Team sport",
+    "Activități zilnice": "Daily activities",
+    "Altele": "Other",
+}
+ACTIVITY_MET_METHOD_SOURCE_TEXT = {
+    "official_compendium": "Official Compendium",
+    "Oficial Compendium": "Official Compendium",
+    "compendium_mapping": "MacroSense mapping",
+    "Mapare MacroSense": "MacroSense mapping",
+    "manual_admin": "Manual admin",
+    "Manual Admin": "Manual admin",
+    "Necunoscut": "Unknown",
+}
+ACTIVITY_CALCULATION_METHOD_SOURCE_TEXT = {
+    "Manual": "Manual",
+    "Estimare MacroSense": "MacroSense estimate",
+}
+
+
+def _format_mapped_value(value, source_text_by_value: dict) -> str:
+    source_text = source_text_by_value.get(value)
+    if source_text is None:
+        return str(value)
+    return translate(source_text)
+
+
+def format_activity_category_for_display(value) -> str:
+    """Return a translated category label without changing its stored value."""
+    return _format_mapped_value(value, ACTIVITY_CATEGORY_SOURCE_TEXT)
+
+
+def format_activity_met_method_for_display(value) -> str:
+    """Return a translated MET-method label without changing its model value."""
+    return _format_mapped_value(value, ACTIVITY_MET_METHOD_SOURCE_TEXT)
+
+
+def format_activity_calculation_method_for_display(value) -> str:
+    """Return a translated log-calculation label without changing service data."""
+    return _format_mapped_value(value, ACTIVITY_CALCULATION_METHOD_SOURCE_TEXT)
+
+
+def build_activity_selection_display_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Return a translated selector copy while preserving activity IDs and MET."""
+    display_dataframe = dataframe.copy()
+    if "Categorie" in display_dataframe.columns:
+        display_dataframe["Categorie"] = display_dataframe["Categorie"].map(
+            format_activity_category_for_display
+        )
+    if "Metodă MET" in display_dataframe.columns:
+        display_dataframe["Metodă MET"] = display_dataframe["Metodă MET"].map(
+            format_activity_met_method_for_display
+        )
+    return display_dataframe
 
 
 def build_activity_selection_dataframe(

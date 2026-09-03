@@ -3,6 +3,10 @@ import html
 
 import pandas as pd
 import streamlit as st
+from ui.activity_selection import (
+    format_activity_calculation_method_for_display,
+    format_activity_category_for_display,
+)
 from ui.food_selection import (
     format_food_entry_type,
     format_meal_type,
@@ -302,29 +306,42 @@ def render_food_log_cards(dataframe: pd.DataFrame) -> None:
     st.markdown(build_food_log_cards_html(dataframe), unsafe_allow_html=True)
 
 
-def render_activity_log_cards(dataframe: pd.DataFrame) -> None:
-    """Renders activity journal entries as compact readable cards."""
+def build_activity_log_cards_html(dataframe: pd.DataFrame) -> str:
+    """Build bilingual activity cards without mutating stable service values."""
     cards_html = []
     for _, row in dataframe.iterrows():
-        method = row.get("Metodă calcul", "-")
-        method_text = str(method)
-        badge_type = "manual" if method_text == "Manual" else "estimated"
+        raw_method = row.get("Metodă calcul", "-")
+        badge_type = "manual" if str(raw_method) == "Manual" else "estimated"
         cards_html.append(
             build_log_entry_card_html(
                 title=row.get("Activitate", "-"),
-                badge=method,
+                badge=format_activity_calculation_method_for_display(raw_method),
                 card_type="activity",
                 badge_type=badge_type,
                 metrics=[
-                ("Categorie", row.get("Categorie", "-")),
-                ("Durată", format_card_number(row.get("Durată (min)"), "min")),
-                ("Seturi", row.get("Seturi", "-")),
-                ("Repetări", row.get("Repetări", "-")),
-                ("Calorii", format_card_number(row.get("Calorii Arse"), "kcal")),
+                (
+                    translate("Category"),
+                    format_activity_category_for_display(row.get("Categorie", "-")),
+                ),
+                (
+                    translate("Duration"),
+                    format_card_number(row.get("Durată (min)"), "min"),
+                ),
+                (translate("Sets"), row.get("Seturi", "-")),
+                (translate("Repetitions"), row.get("Repetări", "-")),
+                (
+                    translate("Calories"),
+                    format_card_number(row.get("Calorii Arse"), "kcal"),
+                ),
                 ],
             )
         )
-    st.markdown(f'<div class="log-entry-list">{"".join(cards_html)}</div>', unsafe_allow_html=True)
+    return f'<div class="log-entry-list">{"".join(cards_html)}</div>'
+
+
+def render_activity_log_cards(dataframe: pd.DataFrame) -> None:
+    """Renders activity journal entries as compact readable cards."""
+    st.markdown(build_activity_log_cards_html(dataframe), unsafe_allow_html=True)
 
 
 def build_weight_log_cards_html(
