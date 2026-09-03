@@ -153,7 +153,8 @@ class TableHelperTests(unittest.TestCase):
             ]
         )
 
-        cards_html, is_scrollable = build_weight_log_cards_html(weight_rows)
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            cards_html, is_scrollable = build_weight_log_cards_html(weight_rows)
 
         self.assertTrue(is_scrollable)
         self.assertIn("weight-history-list is-scrollable", cards_html)

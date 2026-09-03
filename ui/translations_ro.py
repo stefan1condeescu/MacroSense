@@ -693,4 +693,60 @@ ROMANIAN_TRANSLATIONS = {
     "Accepted range: {minimum:.1f}-{maximum:.0f} minutes.": (
         "Interval acceptat: {minimum:.1f}-{maximum:.0f} minute."
     ),
+    "The measurement date cannot be in the future.": (
+        "Data măsurării nu poate fi în viitor."
+    ),
+    "Latest weight": "Ultima greutate",
+    "Latest measurement date": "Data ultimei măsurători",
+    "There are no weight entries for this account yet.": (
+        "Nu există încă înregistrări de greutate pentru acest cont."
+    ),
+    "Add weight": "Adaugă greutate",
+    "Measurement date": "Data măsurării",
+    "A weight entry already exists for this date. Saving will update the existing value.": (
+        "Există deja o greutate pentru această dată. Salvarea va actualiza "
+        "valoarea existentă."
+    ),
+    "If a weight entry already exists for the same day, its value will be updated.": (
+        "Dacă există deja o greutate pentru aceeași zi, valoarea va fi "
+        "actualizată."
+    ),
+    "Save weight": "Salvează greutatea",
+    "Weight saved. Affected days: {count}.": (
+        "Greutate salvată. Zile afectate: {count}."
+    ),
+    "Weight updated. Affected days: {count}.": (
+        "Greutate actualizată. Zile afectate: {count}."
+    ),
+    "Weight deleted. Affected days: {count}.": (
+        "Greutate ștearsă. Zile afectate: {count}."
+    ),
+    "Weight changed. Affected days: {count}.": (
+        "Greutate modificată. Zile afectate: {count}."
+    ),
+    "Error saving the weight.": "Eroare la salvarea greutății.",
+    "Weight history": "Istoric greutate",
+    "Add the first weight using the form above.": (
+        "Adaugă prima greutate folosind formularul de mai sus."
+    ),
+    "Edit a weight entry": "Editează o greutate",
+    "New date": "Dată nouă",
+    "New weight (kg)": "Greutate nouă (kg)",
+    "A weight entry already exists for this date.": (
+        "Există deja o greutate salvată pentru această dată."
+    ),
+    "Error updating the weight.": "Eroare la actualizarea greutății.",
+    "Delete a weight entry": "Șterge o greutate",
+    "We keep at least one reference weight for MET calculations and future predictions.": (
+        "Păstrăm cel puțin o greutate de referință pentru calculele MET și "
+        "predicțiile viitoare."
+    ),
+    "I confirm deletion of this weight entry": (
+        "Confirm ștergerea acestei greutăți"
+    ),
+    "Delete weight": "Șterge greutatea",
+    "Error deleting the weight.": "Eroare la ștergerea greutății.",
+    "The full history is scrollable to keep the page compact.": (
+        "Istoricul complet este derulabil pentru a păstra pagina compactă."
+    ),
 }
