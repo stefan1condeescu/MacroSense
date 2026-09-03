@@ -571,4 +571,126 @@ ROMANIAN_TRANSLATIONS = {
     "October": "Octombrie",
     "November": "Noiembrie",
     "December": "Decembrie",
+    "Physical activity journal": "Jurnal Activități Fizice",
+    "You cannot save workouts for a future date.": (
+        "Nu poți salva antrenamente pentru o dată viitoare."
+    ),
+    "Search for activity": "Caută activitate",
+    "E.g. running, push-ups, chest press": "Ex: alergare, flotări, chest press",
+    "No activities match the selected search and category.": (
+        "Nu există activități pentru căutarea și categoria selectate."
+    ),
+    "MET method": "Metodă MET",
+    "Official Compendium": "Oficial Compendium",
+    "MacroSense mapping": "Mapare MacroSense",
+    "Manual admin": "Manual Admin",
+    "Unknown": "Necunoscut",
+    "There was no earlier weight for the selected date. MET calculations use the first available weight: {weight:.1f} kg from {date}.": (
+        "Pentru data selectată nu exista o greutate anterioară. Calculele MET "
+        "folosesc prima greutate disponibilă: {weight:.1f} kg din {date}."
+    ),
+    "There is no weight history yet. MET calculations temporarily use 70.0 kg.": (
+        "Nu există încă un istoric de greutate. Calculele MET folosesc temporar "
+        "70.0 kg."
+    ),
+    "Add workout": "Adaugă antrenament",
+    "The activity catalog is empty. The administrator must add activities first.": (
+        "Catalogul de activități este gol. Administratorul trebuie să adauge "
+        "date mai întâi."
+    ),
+    "Select the activity from the table below. The Source and MET method columns explain where the MET value comes from.": (
+        "Selectează activitatea din tabelul de mai jos. Coloanele Sursă și "
+        "Metodă MET explică proveniența valorii MET."
+    ),
+    "MET source: {source} · {method}": "Sursă MET: {source} · {method}",
+    "TOTAL session duration (minutes)": "Durată TOTALĂ sesiune (minute)",
+    "Total time spent on this exercise, including rest between sets. {range_help}": (
+        "Timpul total petrecut la acest exercițiu (inclusiv pauzele dintre "
+        "seturi). {range_help}"
+    ),
+    "Duration": "Durată",
+    "Total duration": "Durata totală",
+    "Sets": "Seturi",
+    "Repetitions": "Repetări",
+    "Set count": "Numărul de seturi",
+    "Repetition count": "Numărul de repetări",
+    "Repetitions per set": "Repetări pe set",
+    "📌 Sets and repetitions apply only to Strength exercises.": (
+        "📌 Seturile și repetările se aplică doar la exerciții de Forță."
+    ),
+    "🔥 Estimated calories burned: **{calories} kcal**": (
+        "🔥 Calorii estimate consumate: **{calories} kcal**"
+    ),
+    "Select an activity to calculate the calorie estimate.": (
+        "Selectează o activitate pentru a calcula estimarea calorică."
+    ),
+    "Use calories reported by a watch or cardio machine": (
+        "Folosesc caloriile raportate de ceas/aparat cardio"
+    ),
+    "The manual value will be saved instead of the MET/TUT estimate for this entry.": (
+        "Valoarea manuală va fi salvată în locul estimării MET/TUT pentru "
+        "această înregistrare."
+    ),
+    "Reported calories burned": "Calorii arse raportate",
+    "Manual calories must be between {minimum:.0f} and {maximum:.0f} kcal.": (
+        "Caloriile manuale trebuie să fie între {minimum:.0f} și "
+        "{maximum:.0f} kcal."
+    ),
+    "The manual value will be saved: **{calories:.1f} kcal**": (
+        "Se va salva valoarea manuală: **{calories:.1f} kcal**"
+    ),
+    "Save workout": "Salvează antrenamentul",
+    "{name} added successfully!": "{name} adăugat cu succes!",
+    "Workouts performed on {date}": "Antrenamente efectuate pe {date}",
+    "Edit a workout": "Editează un antrenament",
+    "Current activity: **{name}**. Select another row from the table only if you want to change the activity.": (
+        "Activitate curentă: **{name}**. Selectează alt rând din tabel doar "
+        "dacă vrei să schimbi activitatea."
+    ),
+    "Select a new activity from the table, or leave the table unselected to keep the current activity.": (
+        "Selectează o activitate nouă din tabel sau lasă tabelul neselectat "
+        "pentru a păstra activitatea curentă."
+    ),
+    "New duration (minutes)": "Durată nouă (minute)",
+    "New duration": "Durata nouă",
+    "New sets": "Seturi noi",
+    "New repetitions per set": "Repetări noi pe set",
+    "🔥 Estimated calories after the change: **{calories} kcal**": (
+        "🔥 Calorii estimate după modificare: **{calories} kcal**"
+    ),
+    "The manual value will replace the MET/TUT estimate only for this entry.": (
+        "Valoarea manuală va înlocui estimarea MET/TUT doar pentru această "
+        "înregistrare."
+    ),
+    "The workout was updated successfully.": (
+        "Antrenamentul a fost actualizat cu succes."
+    ),
+    "Error updating the workout.": "Eroare la actualizarea antrenamentului.",
+    "Delete a workout": "Șterge un antrenament",
+    "I confirm deletion of this workout": (
+        "Confirm ștergerea acestui antrenament"
+    ),
+    "Delete workout": "Șterge antrenamentul",
+    "The workout was deleted successfully.": (
+        "Antrenamentul a fost șters cu succes."
+    ),
+    "Error deleting the workout.": "Eroare la ștergerea antrenamentului.",
+    "There are no workouts recorded for this day.": (
+        "Nu există antrenamente înregistrate pentru această zi."
+    ),
+    "{field_label} must be at least {minimum:.1f} minutes.": (
+        "{field_label} trebuie să fie cel puțin {minimum:.1f} minute."
+    ),
+    "{field_label} must be at most {maximum:.0f} minutes.": (
+        "{field_label} trebuie să fie cel mult {maximum:.0f} minute."
+    ),
+    "{field_label} must be at least {minimum}.": (
+        "{field_label} trebuie să fie cel puțin {minimum}."
+    ),
+    "{field_label} must be at most {maximum}.": (
+        "{field_label} trebuie să fie cel mult {maximum}."
+    ),
+    "Accepted range: {minimum:.1f}-{maximum:.0f} minutes.": (
+        "Interval acceptat: {minimum:.1f}-{maximum:.0f} minute."
+    ),
 }
