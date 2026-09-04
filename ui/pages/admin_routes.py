@@ -23,7 +23,7 @@ def build_admin_identity_html(email: str) -> str:
     safe_email = html.escape(str(email or "-"), quote=True)
     return (
         '<div class="admin-auth-card">'
-        "<span>Autentificat ca:</span>"
+        f"<span>{html.escape(translate('Logged in as:'), quote=True)}</span>"
         f"<strong>{safe_email}</strong>"
         "</div>"
     )
@@ -42,7 +42,7 @@ def _render_selected_admin_page(page_id: str) -> None:
 
 
 def render_admin_routes() -> None:
-    st.sidebar.title("Panou Administrator")
+    st.sidebar.title(translate("Admin panel"))
     st.sidebar.markdown(
         build_admin_identity_html(st.session_state.get("logged_in_email")),
         unsafe_allow_html=True,
@@ -58,6 +58,6 @@ def render_admin_routes() -> None:
     _render_selected_admin_page(selected_page)
 
     st.sidebar.divider()
-    if st.sidebar.button("Deconectare", width="stretch", type="tertiary"):
+    if st.sidebar.button(translate("Log out"), width="stretch", type="tertiary"):
         st.session_state.clear()
         st.rerun()

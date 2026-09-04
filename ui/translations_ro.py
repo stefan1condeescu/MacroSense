@@ -23,6 +23,117 @@ ROMANIAN_TRANSLATIONS = {
     "Food management": "Gestiune Alimente",
     "Activity management": "Gestiune Activități",
     "Admin menu": "Meniu Admin",
+    "Logged in as:": "Autentificat ca:",
+    "Admin panel": "Panou Administrator",
+    "Food catalog management": "Gestiune Catalog Alimente",
+    "Add a new food": "Adaugă un aliment nou",
+    "Food name": "Denumire aliment",
+    "Calories (per 100g)": "Calorii (per 100g)",
+    "Protein (g)": "Proteine (g)",
+    "Carbohydrates (g)": "Carbohidrați (g)",
+    "Fats (g)": "Grăsimi (g)",
+    "Save food": "Salvează alimentul",
+    "Food name is required.": "Denumirea alimentului este obligatorie.",
+    "Food name cannot contain HTML-like characters.": (
+        "Denumirea alimentului nu poate conține caractere de tip HTML."
+    ),
+    "Food name must contain at least one letter.": (
+        "Denumirea alimentului trebuie să conțină cel puțin o literă."
+    ),
+    "Nutritional values cannot be negative.": (
+        "Valorile nutriționale nu pot fi negative."
+    ),
+    "Calories must be greater than 0.": "Caloriile trebuie să fie mai mari decât 0.",
+    "Enter at least one macronutrient greater than 0.": (
+        "Completează cel puțin un macronutrient mai mare decât 0."
+    ),
+    'Food "{name}" was added successfully!': (
+        "Alimentul „{name}” a fost adăugat cu succes!"
+    ),
+    "Could not add the food.": "Eroare la adăugarea alimentului.",
+    "The food does not satisfy the validation rules.": (
+        "Alimentul nu respectă regulile de validare."
+    ),
+    "The catalog is empty.": "Catalogul este gol.",
+    "Import food from USDA": "Importă aliment din USDA",
+    "Search for non-branded foods in FoodData Central and save their per-100g values locally.": (
+        "Caută alimente nebranduite în FoodData Central și salvează local "
+        "valorile per 100g."
+    ),
+    'USDA search works best with English terms, for example "ice cream", "salmon", or "orange juice".': (
+        "Căutarea USDA funcționează cel mai bine cu termeni în engleză, de "
+        "exemplu „ice cream”, „salmon” sau „orange juice”."
+    ),
+    "Configure `FDC_API_KEY` in Streamlit secrets or environment variables to use USDA import.": (
+        "Configurează cheia `FDC_API_KEY` în Streamlit secrets sau în "
+        "variabilele de mediu pentru import USDA."
+    ),
+    "Search for USDA food (in English)": "Caută aliment USDA (în engleză)",
+    "E.g. banana, chicken breast, oats": "Ex: banana, chicken breast, oats",
+    "USDA sources": "Surse USDA",
+    "Branded is not included in this version to avoid commercial duplicates.": (
+        "Branded nu este inclus în această versiune pentru a evita duplicatele comerciale."
+    ),
+    "Search USDA": "Caută în USDA",
+    "Enter a search term.": "Introdu un termen de căutare.",
+    "Select at least one USDA source.": "Selectează cel puțin o sursă USDA.",
+    "Found {count} relevant importable results.": (
+        "Am găsit {count} rezultate relevante importabile."
+    ),
+    "No results with complete calorie and macronutrient values were found.": (
+        "Nu am găsit rezultate cu valori complete pentru calorii și macronutrienți."
+    ),
+    "USDA query error: {error}": "Eroare la interogarea USDA: {error}",
+    'The search criteria changed. Select "Search USDA" again to refresh the results.': (
+        "Ai modificat criteriile de căutare. Apasă din nou „Caută în USDA” "
+        "pentru rezultate actualizate."
+    ),
+    "USDA result": "Rezultat USDA",
+    "Review the food before importing": "Verifică alimentul înainte de import",
+    "Open source in FoodData Central": "Deschide sursa în FoodData Central",
+    "Name in the application": "Denumire în aplicație",
+    "Suggested category: {category}": "Categorie sugerată: {category}",
+    "This USDA food is already imported into the catalog.": (
+        "Acest aliment USDA este deja importat în catalog."
+    ),
+    "Import food": "Importă alimentul",
+    "The imported food does not satisfy the validation rules.": (
+        "Alimentul importat nu respectă regulile de validare."
+    ),
+    'Food "{name}" was imported.': "Alimentul „{name}” a fost importat.",
+    "Import failed. Check whether the food already exists in the catalog.": (
+        "Eroare la import. Verifică dacă alimentul nu există deja în catalog."
+    ),
+    "Activity catalog management": "Gestiune Catalog Activități",
+    "Add a new activity": "Adaugă o activitate nouă",
+    "Activity name": "Denumire activitate",
+    "MET coefficient": "Coeficient MET",
+    "The minimum accepted value is {minimum:.1f}. E.g. Running = 8.0": (
+        "Valoarea minimă acceptată este {minimum:.1f}. Ex: Alergat = 8.0"
+    ),
+    "Save activity": "Salvează activitatea",
+    "Activity name is required.": "Denumirea activității este obligatorie.",
+    "Activity name cannot contain HTML-like characters.": (
+        "Denumirea activității nu poate conține caractere de tip HTML."
+    ),
+    "Activity name must contain at least one letter.": (
+        "Denumirea activității trebuie să conțină cel puțin o literă."
+    ),
+    "An activity with this name already exists.": (
+        "Există deja o activitate cu această denumire."
+    ),
+    "The MET coefficient must be at least {minimum:.1f}.": (
+        "Coeficientul MET trebuie să fie cel puțin {minimum:.1f}."
+    ),
+    "Activity category is required.": "Categoria activității este obligatorie.",
+    'Activity "{name}" was added successfully!': (
+        "Activitatea „{name}” a fost adăugată cu succes!"
+    ),
+    "Could not add the activity.": "Eroare la adăugarea activității.",
+    "The activity does not satisfy the validation rules.": (
+        "Activitatea nu respectă regulile de validare."
+    ),
+    "The activity catalog is empty.": "Catalogul de activități este gol.",
     "Calories consumed": "Calorii consumate",
     "Activity calories": "Calorii activități",
     "Estimated TDEE": "TDEE estimat",

@@ -1,12 +1,38 @@
+import ast
+import inspect
 import unittest
 from unittest.mock import patch
 
 from ui import language
 from ui.pages import admin_routes
-from ui.pages.admin_routes import ADMIN_MENU_OPTIONS, ADMIN_PAGES, build_admin_identity_html
+from ui.pages.admin_routes import (
+    ADMIN_MENU_OPTIONS,
+    ADMIN_PAGES,
+    build_admin_identity_html,
+)
+from ui.translations_ro import ROMANIAN_TRANSLATIONS
 
 
 class AdminRoutesTests(unittest.TestCase):
+    def test_admin_route_english_source_text_has_romanian_translations(self):
+        source_tree = ast.parse(inspect.getsource(admin_routes))
+        source_keys = {
+            node.args[0].value
+            for node in ast.walk(source_tree)
+            if (
+                isinstance(node, ast.Call)
+                and isinstance(node.func, ast.Name)
+                and node.func.id == "translate"
+                and node.args
+                and isinstance(node.args[0], ast.Constant)
+                and isinstance(node.args[0].value, str)
+            )
+        }
+
+        for source_key in source_keys:
+            with self.subTest(source_key=source_key):
+                self.assertIn(source_key, ROMANIAN_TRANSLATIONS)
+
     def test_admin_menu_uses_stable_page_ids(self):
         self.assertEqual(ADMIN_MENU_OPTIONS, ("food_catalog", "activity_catalog"))
         self.assertEqual(ADMIN_PAGES["food_catalog"]["label"], "Food management")
@@ -34,6 +60,15 @@ class AdminRoutesTests(unittest.TestCase):
         self.assertIn("admin@test.com", html)
         self.assertNotIn("<a", html.lower())
         self.assertNotIn("mailto:", html.lower())
+
+    def test_admin_identity_label_uses_the_active_session_language(self):
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            romanian_html = build_admin_identity_html("admin@test.com")
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            english_html = build_admin_identity_html("admin@test.com")
+
+        self.assertIn("Autentificat ca:", romanian_html)
+        self.assertIn("Logged in as:", english_html)
 
     def test_admin_identity_email_is_escaped(self):
         html = build_admin_identity_html("<admin>@test.com")
