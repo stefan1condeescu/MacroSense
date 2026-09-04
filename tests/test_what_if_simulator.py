@@ -180,7 +180,11 @@ class WhatIfSimulatorTests(unittest.TestCase):
         self.assertIsNone(comparison.real.estimated_balance)
         self.assertEqual(comparison.simulated.estimated_balance, 300.0)
         self.assertIsNone(comparison.difference.estimated_balance)
-        self.assertIn("nu poate fi comparată", describe_balance_delta(None))
+        self.assertEqual(
+            describe_balance_delta(None),
+            "The estimated balance cannot be compared because food data is missing "
+            "from the real day or the scenario.",
+        )
 
     def test_totals_round_after_summing_raw_food_values(self):
         food_entries = [
@@ -256,7 +260,24 @@ class WhatIfSimulatorTests(unittest.TestCase):
         )
 
         self.assertTrue(scenario_matches_real_day(comparison))
-        self.assertIn("neschimbată", describe_balance_delta(comparison.difference.estimated_balance))
+        self.assertEqual(
+            describe_balance_delta(comparison.difference.estimated_balance),
+            "The estimated balance remains unchanged compared with the real values.",
+        )
+
+    def test_balance_description_covers_each_non_neutral_direction(self):
+        self.assertEqual(
+            describe_balance_delta(-100),
+            "The scenario lowers the estimated balance and moves further toward a deficit.",
+        )
+        self.assertEqual(
+            describe_balance_delta(100),
+            "The scenario raises the estimated balance and moves further toward a surplus.",
+        )
+        self.assertEqual(
+            describe_balance_delta(50),
+            "The scenario changes the estimated balance only slightly compared with the real values.",
+        )
 
     def test_repeated_daily_impact_uses_7700_kcal_reference(self):
         self.assertEqual(calculate_repeated_daily_weight_impact(-550, 14), -1.0)
