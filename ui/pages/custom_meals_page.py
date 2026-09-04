@@ -3,12 +3,23 @@ from decimal import Decimal, ROUND_HALF_UP
 import pandas as pd
 import streamlit as st
 from models.tracking import CustomMeal, FoodItem
-from ui.food_selection import build_food_selection_dataframe, build_food_selection_state_key, get_food_category_filter_options
-from ui.quantity_validation import quantity_range_help, validate_quantity_g
+from ui.food_selection import (
+    build_food_selection_dataframe,
+    build_food_selection_display_dataframe,
+    build_food_selection_state_key,
+    format_food_category_for_display,
+    get_food_category_filter_options,
+)
+from ui.language import translate
+from ui.quantity_validation import quantity_range_help_for_ui, validate_quantity_g_for_ui
 from ui.tables import get_table_height
 
 
 DISPLAY_DECIMAL_PLACES = 1
+CUSTOM_MEAL_STATUS_SOURCE_TEXT = {
+    CustomMeal.ACTIVE_STATUS: "Saved",
+    CustomMeal.ARCHIVED_STATUS: "Archived",
+}
 
 
 def escape_html_text(value) -> str:
@@ -24,6 +35,14 @@ def format_display_number(value: float, decimal_places: int) -> str:
 
 def round_display_number(value: float, decimal_places: int = DISPLAY_DECIMAL_PLACES) -> float:
     return float(format_display_number(value, decimal_places))
+
+
+def format_custom_meal_status(value) -> str:
+    """Return a translated label without changing the stored status value."""
+    source_text = CUSTOM_MEAL_STATUS_SOURCE_TEXT.get(value)
+    if source_text is None:
+        return str(value)
+    return translate(source_text)
 
 
 def build_custom_meal_display_rows_and_totals(ingredients: list[dict]) -> tuple[list[list], dict[str, float]]:
@@ -70,11 +89,11 @@ def build_custom_meal_summary_cards_html(
     total_fats: float,
 ) -> str:
     cards = [
-        ("Cantitate totală", f"{format_display_number(total_quantity, 0)} g"),
-        ("Calorii totale", f"{format_display_number(total_calories, 0)} kcal"),
-        ("Proteine", f"{format_display_number(total_protein, 1)} g"),
-        ("Carbohidrați", f"{format_display_number(total_carbs, 1)} g"),
-        ("Grăsimi", f"{format_display_number(total_fats, 1)} g"),
+        (translate("Total quantity"), f"{format_display_number(total_quantity, 0)} g"),
+        (translate("Total calories"), f"{format_display_number(total_calories, 0)} kcal"),
+        (translate("Protein"), f"{format_display_number(total_protein, 1)} g"),
+        (translate("Carbohydrates"), f"{format_display_number(total_carbs, 1)} g"),
+        (translate("Fats"), f"{format_display_number(total_fats, 1)} g"),
     ]
     cards_html = "".join(
         (
@@ -99,11 +118,11 @@ def get_edit_quantity_widget_keys_to_reset(session_keys, meal_id) -> list[str]:
 
 
 def render_custom_meals_page() -> None:
-    st.header("🥗 Mese Personalizate")
+    st.header(f"🥗 {translate('Custom meals')}")
     
     user_id = st.session_state.get('user_id')
     if not user_id:
-        st.error("Sesiune invalidă. Te rugăm să te reautentifici.")
+        st.error(translate("Invalid session. Please log in again."))
         st.stop()
     
     if "custom_meal_ingredients" not in st.session_state:
@@ -175,23 +194,23 @@ def render_custom_meals_page() -> None:
     food_options = FoodItem.get_catalog_options()
     
     ingredient_table_config = {
-        "Ingredient": st.column_config.TextColumn("Ingredient", width="medium"),
-        "Sursă": st.column_config.TextColumn("Sursă", width="small"),
-        "Cantitate (g)": st.column_config.NumberColumn("Cantitate", format="%.1f g", width="small"),
-        "Calorii": st.column_config.NumberColumn("Calorii", format="%.1f kcal", width="small"),
-        "Proteine (g)": st.column_config.NumberColumn("Proteine", format="%.1f g", width="small"),
-        "Carbohidrați (g)": st.column_config.NumberColumn("Carbohidrați", format="%.1f g", width="small"),
-        "Grăsimi (g)": st.column_config.NumberColumn("Grăsimi", format="%.1f g", width="small"),
+        "Ingredient": st.column_config.TextColumn(translate("Ingredient"), width="medium"),
+        "Sursă": st.column_config.TextColumn(translate("Source"), width="small"),
+        "Cantitate (g)": st.column_config.NumberColumn(translate("Quantity"), format="%.1f g", width="small"),
+        "Calorii": st.column_config.NumberColumn(translate("Calories"), format="%.1f kcal", width="small"),
+        "Proteine (g)": st.column_config.NumberColumn(translate("Protein"), format="%.1f g", width="small"),
+        "Carbohidrați (g)": st.column_config.NumberColumn(translate("Carbohydrates"), format="%.1f g", width="small"),
+        "Grăsimi (g)": st.column_config.NumberColumn(translate("Fats"), format="%.1f g", width="small"),
     }
 
     food_selection_table_config = {
-        "Denumire": st.column_config.TextColumn("Denumire", width="medium"),
-        "Categorie": st.column_config.TextColumn("Categorie", width="small"),
-        "Sursă": st.column_config.TextColumn("Sursă", width="small"),
+        "Denumire": st.column_config.TextColumn(translate("Name"), width="medium"),
+        "Categorie": st.column_config.TextColumn(translate("Category"), width="small"),
+        "Sursă": st.column_config.TextColumn(translate("Source"), width="small"),
         "Kcal/100g": st.column_config.NumberColumn("Kcal/100g", format="%.1f kcal", width="small"),
-        "Proteine": st.column_config.NumberColumn("Proteine", format="%.1f g", width="small"),
-        "Carbohidrați": st.column_config.NumberColumn("Carbohidrați", format="%.1f g", width="small"),
-        "Grăsimi": st.column_config.NumberColumn("Grăsimi", format="%.1f g", width="small"),
+        "Proteine": st.column_config.NumberColumn(translate("Protein"), format="%.1f g", width="small"),
+        "Carbohidrați": st.column_config.NumberColumn(translate("Carbohydrates"), format="%.1f g", width="small"),
+        "Grăsimi": st.column_config.NumberColumn(translate("Fats"), format="%.1f g", width="small"),
     }
     
     def render_ingredient_table(dataframe):
@@ -208,14 +227,15 @@ def render_custom_meals_page() -> None:
         filter_col, category_col = st.columns([2, 1])
         with filter_col:
             search_text = st.text_input(
-                "Caută ingredient",
-                placeholder="Ex: banane, broccoli, capsuni",
+                translate("Search for ingredient"),
+                placeholder=translate("E.g. bananas, broccoli, strawberries"),
                 key=search_key
             )
         with category_col:
             category_filter = st.selectbox(
-                "Categorie",
+                translate("Category"),
                 get_food_category_filter_options(food_options),
+                format_func=format_food_category_for_display,
                 key=category_key
             )
 
@@ -225,12 +245,15 @@ def render_custom_meals_page() -> None:
             category_filter
         )
         if food_selection_df.empty:
-            st.info("Nu există ingrediente pentru căutarea și categoria selectate.")
+            st.info(translate("No ingredients match the selected search and category."))
             return None
 
         st.caption(caption)
+        food_selection_display_df = build_food_selection_display_dataframe(
+            food_selection_df
+        )
         food_selection_state = st.dataframe(
-            food_selection_df,
+            food_selection_display_df,
             width="stretch",
             height=get_table_height(food_selection_df, max_rows=6),
             hide_index=True,
@@ -252,7 +275,7 @@ def render_custom_meals_page() -> None:
             card_class = "custom-meal-card archived" if is_archived else "custom-meal-card active"
             status_class = "status-badge archived" if is_archived else "status-badge active"
             safe_recipe_name = escape_html_text(meal["recipe_name"])
-            safe_status = escape_html_text(meal["status"])
+            safe_status = escape_html_text(format_custom_meal_status(meal["status"]))
             display_ingredients = CustomMeal.get_ingredients(meal["id"], user_id)
             if display_ingredients:
                 _, display_totals = build_custom_meal_display_rows_and_totals(display_ingredients)
@@ -264,6 +287,11 @@ def render_custom_meals_page() -> None:
                     "carbs_g": meal["carbs_g"],
                     "fats_g": meal["fats_g"],
                 }
+            quantity_label = escape_html_text(translate("Quantity"))
+            calories_label = escape_html_text(translate("Calories"))
+            protein_label = escape_html_text(translate("Protein"))
+            carbohydrates_label = escape_html_text(translate("Carbohydrates"))
+            fats_label = escape_html_text(translate("Fats"))
             st.markdown(
                 f"""
                 <div class="{card_class}">
@@ -272,57 +300,71 @@ def render_custom_meals_page() -> None:
                         <span class="{status_class}">{safe_status}</span>
                     </div>
                     <div class="custom-meal-card-grid">
-                        <div><span>Cantitate</span><strong>{format_display_number(display_totals['quantity_g'], 0)} g</strong></div>
-                        <div><span>Calorii</span><strong>{format_display_number(display_totals['calories'], 0)} kcal</strong></div>
-                        <div><span>Proteine</span><strong>{format_display_number(display_totals['protein_g'], 1)} g</strong></div>
-                        <div><span>Carbohidrați</span><strong>{format_display_number(display_totals['carbs_g'], 1)} g</strong></div>
-                        <div><span>Grăsimi</span><strong>{format_display_number(display_totals['fats_g'], 1)} g</strong></div>
+                        <div><span>{quantity_label}</span><strong>{format_display_number(display_totals['quantity_g'], 0)} g</strong></div>
+                        <div><span>{calories_label}</span><strong>{format_display_number(display_totals['calories'], 0)} kcal</strong></div>
+                        <div><span>{protein_label}</span><strong>{format_display_number(display_totals['protein_g'], 1)} g</strong></div>
+                        <div><span>{carbohydrates_label}</span><strong>{format_display_number(display_totals['carbs_g'], 1)} g</strong></div>
+                        <div><span>{fats_label}</span><strong>{format_display_number(display_totals['fats_g'], 1)} g</strong></div>
                     </div>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
     
-    st.subheader("➕ Creează o masă personalizată")
-    recipe_name = st.text_input("Denumire masă", key="custom_meal_name")
+    st.subheader(f"➕ {translate('Create a custom meal')}")
+    recipe_name = st.text_input(translate("Meal name"), key="custom_meal_name")
     
     if not food_options:
-        st.warning("Catalogul de alimente este gol. Administratorul trebuie să adauge alimente mai întâi.")
+        st.warning(
+            translate(
+                "The food catalog is empty. The administrator must add foods first."
+            )
+        )
     else:
         custom_meal_widget_version = st.session_state["custom_meal_widget_version"]
         selected_ingredient_id = render_food_picker(
             search_key=f"custom_meal_ingredient_search_{custom_meal_widget_version}",
             category_key=f"custom_meal_ingredient_category_{custom_meal_widget_version}",
             table_key_prefix=f"custom_meal_ingredient_table_{custom_meal_widget_version}",
-            caption="Selectează ingredientul din tabel. Coloana Sursă ajută la diferențierea alimentelor duplicate."
+            caption=translate(
+                "Select the ingredient from the table. The Source column helps distinguish duplicate foods."
+            )
         )
         ingredient_quantity = st.number_input(
-            "Cantitate ingredient (g)",
+            translate("Ingredient quantity (g)"),
             value=100.0,
             step=1.0,
             key="custom_meal_ingredient_quantity",
-            help=quantity_range_help()
+            help=quantity_range_help_for_ui()
         )
     
         selected_ingredient = food_options.get(selected_ingredient_id) if selected_ingredient_id else None
-        ingredient_quantity_error = validate_quantity_g(ingredient_quantity, "Cantitatea ingredientului")
+        ingredient_quantity_error = validate_quantity_g_for_ui(
+            ingredient_quantity,
+            "Ingredient quantity",
+        )
         if selected_ingredient:
             if ingredient_quantity_error:
                 st.error(ingredient_quantity_error)
             else:
                 ingredient_calories = round(selected_ingredient["calories_100g"] * float(ingredient_quantity) / 100.0, 2)
                 st.caption(
-                    f"🔥 Ingredient selectat: **{selected_ingredient['name']}** "
-                    f"({selected_ingredient.get('source_label', 'MacroSense')}) · "
-                    f"Calorii estimate: **{ingredient_calories} kcal**"
+                    translate(
+                        "🔥 Selected ingredient: **{name}** ({source}) · Estimated calories: **{calories} kcal**",
+                        name=selected_ingredient["name"],
+                        source=selected_ingredient.get("source_label", "MacroSense"),
+                        calories=ingredient_calories,
+                    )
                 )
         else:
-            st.caption("Selectează un ingredient pentru a calcula estimarea calorică.")
+            st.caption(
+                translate("Select an ingredient to calculate the calorie estimate.")
+            )
     
         col_add, col_clear = st.columns(2)
         with col_add:
             if st.button(
-                "Adaugă ingredient",
+                translate("Add ingredient"),
                 width="stretch",
                 key="btn_add_custom_meal_ingredient",
                 type="primary",
@@ -340,7 +382,12 @@ def render_custom_meals_page() -> None:
                 })
                 st.rerun()
         with col_clear:
-            if st.button("Golește lista", width="stretch", key="btn_clear_custom_meal_ingredients", type="tertiary"):
+            if st.button(
+                translate("Clear list"),
+                width="stretch",
+                key="btn_clear_custom_meal_ingredients",
+                type="tertiary",
+            ):
                 st.session_state["custom_meal_ingredients"] = []
                 st.rerun()
     
@@ -364,11 +411,20 @@ def render_custom_meals_page() -> None:
             unsafe_allow_html=True,
         )
     
-        if st.button("Salvează masa personalizată", width="stretch", key="btn_save_custom_meal", type="primary"):
+        if st.button(
+            translate("Save custom meal"),
+            width="stretch",
+            key="btn_save_custom_meal",
+            type="primary",
+        ):
             if not recipe_name.strip():
-                st.warning("Introdu o denumire pentru masa personalizată.")
+                st.warning(translate("Enter a name for the custom meal."))
             elif not CustomMeal.is_valid_recipe_name(recipe_name):
-                st.warning("Denumirea mesei trebuie să înceapă cu o literă și nu poate conține caractere de tip HTML.")
+                st.warning(
+                    translate(
+                        "The custom meal name must start with a letter and cannot contain HTML characters."
+                    )
+                )
             else:
                 saved_meal = CustomMeal.create_with_ingredients(
                     user_id=user_id,
@@ -380,16 +436,24 @@ def render_custom_meals_page() -> None:
                     st.session_state["custom_meal_details_selected_id"] = int(saved_meal.id)
                     st.session_state["custom_meal_edit_selected_id"] = int(saved_meal.id)
                     st.session_state["custom_meal_edit_loaded_id"] = None
-                    st.session_state["custom_meal_msg"] = ("success", f"Masa personalizată „{saved_meal.recipe_name}” a fost salvată.")
+                    st.session_state["custom_meal_msg"] = (
+                        "success",
+                        translate(
+                            'Custom meal "{name}" was saved.',
+                            name=saved_meal.recipe_name,
+                        ),
+                    )
                     st.session_state["custom_meal_reset_widgets"] = True
                     st.rerun()
                 else:
-                    st.error("Eroare la salvarea mesei personalizate.")
+                    st.error(translate("Error saving the custom meal."))
     else:
-        st.info("Adaugă cel puțin un ingredient pentru a salva o masă personalizată.")
+        st.info(
+            translate("Add at least one ingredient to save a custom meal.")
+        )
     
     st.divider()
-    st.subheader("📋 Mesele tale personalizate")
+    st.subheader(f"📋 {translate('Your custom meals')}")
     custom_meal_options = CustomMeal.get_user_meal_options(user_id, include_archived=True)
     if custom_meal_options:
         render_custom_meal_cards(custom_meal_options)
@@ -409,54 +473,74 @@ def render_custom_meals_page() -> None:
         custom_meal_name_widget_version = st.session_state["custom_meal_name_widget_version"]
     
         with st.container(border=True):
-            st.markdown("#### Arhivă mese personalizate")
+            st.markdown(f"#### {translate('Custom meal archive')}")
             archive_col, restore_col = st.columns(2)
     
             with archive_col:
-                st.caption("Scoate o masă activă din lista de folosire viitoare.")
+                st.caption(
+                    translate("Remove an active meal from future use.")
+                )
                 if active_meal_options:
                     active_meal_ids = list(active_meal_options.keys())
                     selected_archive_meal_id = st.selectbox(
-                        "Masă activă",
+                        translate("Active meal"),
                         options=active_meal_ids,
                         format_func=lambda meal_id: active_meal_options[meal_id]["recipe_name"],
                         key=f"custom_meal_archive_select_{custom_meal_name_widget_version}"
                     )
-                    if st.button("Arhivează masa", width="stretch", key="btn_archive_custom_meal", type="tertiary"):
+                    if st.button(
+                        translate("Archive meal"),
+                        width="stretch",
+                        key="btn_archive_custom_meal",
+                        type="tertiary",
+                    ):
                         if CustomMeal.archive(selected_archive_meal_id, user_id):
                             st.session_state["custom_meal_msg"] = (
                                 "success",
-                                f"Masa „{active_meal_options[selected_archive_meal_id]['recipe_name']}” a fost arhivată."
+                                translate(
+                                    'Meal "{name}" was archived.',
+                                    name=active_meal_options[selected_archive_meal_id]["recipe_name"],
+                                ),
                             )
                             st.session_state["custom_meal_reset_widgets"] = True
                             st.rerun()
                         else:
-                            st.error("Eroare la arhivarea mesei personalizate.")
+                            st.error(translate("Error archiving the custom meal."))
                 else:
-                    st.info("Nu ai mese active de arhivat.")
+                    st.info(translate("You have no active meals to archive."))
     
             with restore_col:
-                st.caption("Readuce o masă arhivată în Jurnal Alimentar.")
+                st.caption(
+                    translate("Restore an archived meal to the Food journal.")
+                )
                 if archived_meal_options:
                     archived_meal_ids = list(archived_meal_options.keys())
                     selected_restore_meal_id = st.selectbox(
-                        "Masă arhivată",
+                        translate("Archived meal"),
                         options=archived_meal_ids,
                         format_func=lambda meal_id: archived_meal_options[meal_id]["recipe_name"],
                         key=f"custom_meal_restore_select_{custom_meal_name_widget_version}"
                     )
-                    if st.button("Reactivează masa", width="stretch", key="btn_restore_custom_meal", type="primary"):
+                    if st.button(
+                        translate("Restore meal"),
+                        width="stretch",
+                        key="btn_restore_custom_meal",
+                        type="primary",
+                    ):
                         if CustomMeal.restore(selected_restore_meal_id, user_id):
                             st.session_state["custom_meal_msg"] = (
                                 "success",
-                                f"Masa „{archived_meal_options[selected_restore_meal_id]['recipe_name']}” a fost reactivată."
+                                translate(
+                                    'Meal "{name}" was restored.',
+                                    name=archived_meal_options[selected_restore_meal_id]["recipe_name"],
+                                ),
                             )
                             st.session_state["custom_meal_reset_widgets"] = True
                             st.rerun()
                         else:
-                            st.error("Eroare la reactivarea mesei personalizate.")
+                            st.error(translate("Error restoring the custom meal."))
                 else:
-                    st.info("Nu ai mese arhivate.")
+                    st.info(translate("You have no archived meals."))
     
         details_select_key = f"custom_meal_details_select_{custom_meal_name_widget_version}"
         saved_details_meal_id = st.session_state.get("custom_meal_details_selected_id")
@@ -464,9 +548,9 @@ def render_custom_meals_page() -> None:
             st.session_state.pop("custom_meal_details_selected_id", None)
             saved_details_meal_id = None
         details_select_index = custom_meal_ids.index(saved_details_meal_id) if saved_details_meal_id in custom_meal_ids else 0
-        st.markdown("#### Vezi ingredientele pentru")
+        st.markdown(f"#### {translate('View ingredients for')}")
         selected_saved_meal_id = st.selectbox(
-            "Alege masa pentru detalii",
+            translate("Choose meal for details"),
             options=custom_meal_ids,
             format_func=lambda meal_id: custom_meal_options[meal_id]["recipe_name"],
             index=details_select_index,
@@ -480,7 +564,7 @@ def render_custom_meals_page() -> None:
             render_ingredient_table(df_ingredients)
     
         st.divider()
-        st.subheader("✏️ Editează o masă personalizată")
+        st.subheader(f"✏️ {translate('Edit a custom meal')}")
         edit_select_key = f"custom_meal_edit_select_{custom_meal_name_widget_version}"
         saved_edit_meal_id = st.session_state.get("custom_meal_edit_selected_id")
         if saved_edit_meal_id not in custom_meal_ids:
@@ -488,7 +572,7 @@ def render_custom_meals_page() -> None:
             saved_edit_meal_id = None
         edit_select_index = custom_meal_ids.index(saved_edit_meal_id) if saved_edit_meal_id in custom_meal_ids else 0
         selected_edit_meal_id = st.selectbox(
-            "Masă de editat",
+            translate("Meal to edit"),
             options=custom_meal_ids,
             format_func=lambda meal_id: custom_meal_options[meal_id]["recipe_name"],
             index=edit_select_index,
@@ -501,7 +585,7 @@ def render_custom_meals_page() -> None:
     
         edit_name_key = f"custom_meal_edit_name_{selected_edit_meal_id}_{custom_meal_name_widget_version}"
         edited_recipe_name = st.text_input(
-            "Denumire nouă masă",
+            translate("New meal name"),
             value=custom_meal_options[selected_edit_meal_id]["recipe_name"],
             key=edit_name_key
         )
@@ -512,24 +596,26 @@ def render_custom_meals_page() -> None:
                 search_key=f"custom_meal_edit_ingredient_search_{selected_edit_meal_id}_{custom_meal_widget_version}",
                 category_key=f"custom_meal_edit_ingredient_category_{selected_edit_meal_id}_{custom_meal_widget_version}",
                 table_key_prefix=f"custom_meal_edit_ingredient_table_{selected_edit_meal_id}_{custom_meal_widget_version}",
-                caption="Selectează ingredientul de adăugat. Pentru liste mari, caută după nume sau filtrează categoria."
+                caption=translate(
+                    "Select the ingredient to add. For large lists, search by name or filter the category."
+                )
             )
             edit_ingredient_quantity = st.number_input(
-                "Cantitate ingredient nou (g)",
+                translate("New ingredient quantity (g)"),
                 value=100.0,
                 step=1.0,
                 key=f"custom_meal_edit_add_quantity_{selected_edit_meal_id}",
-                help=quantity_range_help()
+                help=quantity_range_help_for_ui()
             )
-            edit_ingredient_quantity_error = validate_quantity_g(
+            edit_ingredient_quantity_error = validate_quantity_g_for_ui(
                 edit_ingredient_quantity,
-                "Cantitatea ingredientului nou"
+                "New ingredient quantity",
             )
             if selected_edit_ingredient_id is not None and edit_ingredient_quantity_error:
                 st.error(edit_ingredient_quantity_error)
 
             if st.button(
-                "Adaugă ingredient în rețetă",
+                translate("Add ingredient to recipe"),
                 width="stretch",
                 key="btn_add_custom_meal_edit_ingredient",
                 type="primary",
@@ -551,10 +637,14 @@ def render_custom_meals_page() -> None:
                 })
                 st.rerun()
         else:
-            st.warning("Catalogul de alimente este gol. Nu poți adăuga ingrediente noi momentan.")
+            st.warning(
+                translate(
+                    "The food catalog is empty. You cannot add new ingredients right now."
+                )
+            )
 
         if edit_ingredients:
-            st.caption("Ingrediente curente")
+            st.caption(translate("Current ingredients"))
             edit_quantity_errors = []
             for ingredient_index, ingredient in enumerate(list(edit_ingredients)):
                 row_key = ingredient["row_key"]
@@ -564,16 +654,16 @@ def render_custom_meals_page() -> None:
                         st.markdown(f"**{ingredient['name']}**")
                     with col_quantity:
                         updated_quantity = st.number_input(
-                            "Cantitate (g)",
+                            translate("Quantity (g)"),
                             value=float(ingredient["quantity_g"]),
                             step=1.0,
                             key=f"custom_meal_edit_qty_{selected_edit_meal_id}_{row_key}",
                             label_visibility="collapsed",
-                            help=quantity_range_help()
+                            help=quantity_range_help_for_ui()
                         )
                     with col_remove:
                         if st.button(
-                            "Elimină",
+                            translate("Remove"),
                             key=f"btn_remove_custom_meal_edit_{selected_edit_meal_id}_{row_key}",
                             type="tertiary",
                             width="stretch"
@@ -581,7 +671,10 @@ def render_custom_meals_page() -> None:
                             edit_ingredients.pop(ingredient_index)
                             st.rerun()
 
-                quantity_error = validate_quantity_g(updated_quantity, f"Cantitatea pentru {ingredient['name']}")
+                quantity_error = validate_quantity_g_for_ui(
+                    updated_quantity,
+                    translate("Quantity for {name}", name=ingredient["name"]),
+                )
                 if quantity_error:
                     edit_quantity_errors.append(quantity_error)
                 else:
@@ -611,23 +704,29 @@ def render_custom_meals_page() -> None:
             edit_quantity_errors = []
     
         if st.button(
-            "Salvează modificările mesei",
+            translate("Save meal changes"),
             width="stretch",
             key="btn_update_custom_meal",
             type="primary",
             disabled=bool(edit_quantity_errors)
         ):
             if not edited_recipe_name.strip():
-                st.warning("Introdu o denumire pentru masa personalizată.")
+                st.warning(translate("Enter a name for the custom meal."))
             elif not CustomMeal.is_valid_recipe_name(edited_recipe_name):
-                st.warning("Denumirea mesei trebuie să înceapă cu o literă și nu poate conține caractere de tip HTML.")
+                st.warning(
+                    translate(
+                        "The custom meal name must start with a letter and cannot contain HTML characters."
+                    )
+                )
             elif not edit_ingredients:
-                st.warning("Masa personalizată trebuie să conțină cel puțin un ingredient.")
+                st.warning(
+                    translate("The custom meal must contain at least one ingredient.")
+                )
             else:
                 for ingredient in edit_ingredients:
-                    quantity_error = validate_quantity_g(
+                    quantity_error = validate_quantity_g_for_ui(
                         ingredient["quantity_g"],
-                        f"Cantitatea pentru {ingredient['name']}"
+                        translate("Quantity for {name}", name=ingredient["name"]),
                     )
                     if quantity_error:
                         st.error(quantity_error)
@@ -644,12 +743,15 @@ def render_custom_meals_page() -> None:
                     st.session_state["custom_meal_edit_loaded_id"] = None
                     st.session_state["custom_meal_msg"] = (
                         "success",
-                        f"Masa personalizată „{edited_recipe_name.strip()}” a fost actualizată. Intrările deja salvate în jurnal rămân neschimbate."
+                        translate(
+                            'Custom meal "{name}" was updated. Entries already saved in the journal remain unchanged.',
+                            name=edited_recipe_name.strip(),
+                        ),
                     )
                     st.session_state["custom_meal_name_widget_version"] += 1
                     st.session_state["custom_meal_reset_edit_quantity_widgets"] = int(selected_edit_meal_id)
                     st.rerun()
                 else:
-                    st.error("Eroare la actualizarea mesei personalizate.")
+                    st.error(translate("Error updating the custom meal."))
     else:
-        st.info("Nu ai încă mese personalizate salvate.")
+        st.info(translate("You do not have any saved custom meals yet."))

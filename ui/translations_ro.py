@@ -749,4 +749,100 @@ ROMANIAN_TRANSLATIONS = {
     "The full history is scrollable to keep the page compact.": (
         "Istoricul complet este derulabil pentru a păstra pagina compactă."
     ),
+    "Ingredient": "Ingredient",
+    "Total quantity": "Cantitate totală",
+    "Total calories": "Calorii totale",
+    "Saved": "Salvată",
+    "Archived": "Arhivată",
+    "Search for ingredient": "Caută ingredient",
+    "E.g. bananas, broccoli, strawberries": "Ex: banane, broccoli, capsuni",
+    "No ingredients match the selected search and category.": (
+        "Nu există ingrediente pentru căutarea și categoria selectate."
+    ),
+    "Create a custom meal": "Creează o masă personalizată",
+    "Meal name": "Denumire masă",
+    "Select the ingredient from the table. The Source column helps distinguish duplicate foods.": (
+        "Selectează ingredientul din tabel. Coloana Sursă ajută la "
+        "diferențierea alimentelor duplicate."
+    ),
+    "Ingredient quantity (g)": "Cantitate ingredient (g)",
+    "Ingredient quantity": "Cantitatea ingredientului",
+    "🔥 Selected ingredient: **{name}** ({source}) · Estimated calories: **{calories} kcal**": (
+        "🔥 Ingredient selectat: **{name}** ({source}) · Calorii estimate: "
+        "**{calories} kcal**"
+    ),
+    "Select an ingredient to calculate the calorie estimate.": (
+        "Selectează un ingredient pentru a calcula estimarea calorică."
+    ),
+    "Add ingredient": "Adaugă ingredient",
+    "Clear list": "Golește lista",
+    "Save custom meal": "Salvează masa personalizată",
+    "Enter a name for the custom meal.": (
+        "Introdu o denumire pentru masa personalizată."
+    ),
+    "The custom meal name must start with a letter and cannot contain HTML characters.": (
+        "Denumirea mesei trebuie să înceapă cu o literă și nu poate conține "
+        "caractere de tip HTML."
+    ),
+    'Custom meal "{name}" was saved.': (
+        "Masa personalizată „{name}” a fost salvată."
+    ),
+    "Add at least one ingredient to save a custom meal.": (
+        "Adaugă cel puțin un ingredient pentru a salva o masă personalizată."
+    ),
+    "Your custom meals": "Mesele tale personalizate",
+    "Custom meal archive": "Arhivă mese personalizate",
+    "Remove an active meal from future use.": (
+        "Scoate o masă activă din lista de folosire viitoare."
+    ),
+    "Active meal": "Masă activă",
+    "Archive meal": "Arhivează masa",
+    'Meal "{name}" was archived.': "Masa „{name}” a fost arhivată.",
+    "Error archiving the custom meal.": (
+        "Eroare la arhivarea mesei personalizate."
+    ),
+    "You have no active meals to archive.": "Nu ai mese active de arhivat.",
+    "Restore an archived meal to the Food journal.": (
+        "Readuce o masă arhivată în Jurnal Alimentar."
+    ),
+    "Archived meal": "Masă arhivată",
+    "Restore meal": "Reactivează masa",
+    'Meal "{name}" was restored.': "Masa „{name}” a fost reactivată.",
+    "Error restoring the custom meal.": (
+        "Eroare la reactivarea mesei personalizate."
+    ),
+    "You have no archived meals.": "Nu ai mese arhivate.",
+    "View ingredients for": "Vezi ingredientele pentru",
+    "Choose meal for details": "Alege masa pentru detalii",
+    "Edit a custom meal": "Editează o masă personalizată",
+    "Meal to edit": "Masă de editat",
+    "New meal name": "Denumire nouă masă",
+    "Select the ingredient to add. For large lists, search by name or filter the category.": (
+        "Selectează ingredientul de adăugat. Pentru liste mari, caută după "
+        "nume sau filtrează categoria."
+    ),
+    "New ingredient quantity (g)": "Cantitate ingredient nou (g)",
+    "New ingredient quantity": "Cantitatea ingredientului nou",
+    "Add ingredient to recipe": "Adaugă ingredient în rețetă",
+    "The food catalog is empty. You cannot add new ingredients right now.": (
+        "Catalogul de alimente este gol. Nu poți adăuga ingrediente noi "
+        "momentan."
+    ),
+    "Current ingredients": "Ingrediente curente",
+    "Remove": "Elimină",
+    "Quantity for {name}": "Cantitatea pentru {name}",
+    "Save meal changes": "Salvează modificările mesei",
+    "The custom meal must contain at least one ingredient.": (
+        "Masa personalizată trebuie să conțină cel puțin un ingredient."
+    ),
+    'Custom meal "{name}" was updated. Entries already saved in the journal remain unchanged.': (
+        "Masa personalizată „{name}” a fost actualizată. Intrările deja "
+        "salvate în jurnal rămân neschimbate."
+    ),
+    "Error updating the custom meal.": (
+        "Eroare la actualizarea mesei personalizate."
+    ),
+    "You do not have any saved custom meals yet.": (
+        "Nu ai încă mese personalizate salvate."
+    ),
 }
