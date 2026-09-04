@@ -845,4 +845,38 @@ ROMANIAN_TRANSLATIONS = {
     "You do not have any saved custom meals yet.": (
         "Nu ai încă mese personalizate salvate."
     ),
+    "Nutrition database": "Baza de date nutrițională",
+    "The catalog is currently empty. The administrator will add data soon.": (
+        "Catalogul este gol în acest moment. Administratorul va adăuga date "
+        "în curând."
+    ),
+    "Physical activity catalog": "Catalog Activități Fizice",
+    "Available activities": "Lista activităților disponibile",
+    "The activity catalog is currently empty.": (
+        "Catalogul de activități este gol în acest moment."
+    ),
+    "{count} foods in the catalog. Use search or filters for large lists.": (
+        "{count} alimente în catalog. Folosește căutarea sau filtrele pentru "
+        "liste mari."
+    ),
+    "E.g. bananas, broccoli, chicken": "Ex: banane, broccoli, pui",
+    "No foods match the selected filters.": (
+        "Nu există alimente pentru filtrele selectate."
+    ),
+    "Scrollable table: scroll inside the table to see the remaining foods.": (
+        "Tabel scrollabil: derulează în interiorul tabelului pentru restul "
+        "alimentelor."
+    ),
+    "{count} activities in the catalog. Use search or filters for large lists.": (
+        "{count} activități în catalog. Folosește căutarea sau filtrele pentru "
+        "liste mari."
+    ),
+    "E.g. running, push-ups, cycling": "Ex: alergare, flotări, bicicletă",
+    "No activities match the selected filters.": (
+        "Nu există activități pentru filtrele selectate."
+    ),
+    "Scrollable table: scroll inside the table to see the remaining activities.": (
+        "Tabel scrollabil: derulează în interiorul tabelului pentru restul "
+        "activităților."
+    ),
 }

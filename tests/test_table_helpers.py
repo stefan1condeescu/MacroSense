@@ -1,10 +1,11 @@
 import unittest
+from contextlib import nullcontext
 from unittest.mock import patch
 
 import pandas as pd
 from pandas.testing import assert_frame_equal
 
-from ui import language
+from ui import language, tables
 from ui.activity_selection import (
     build_activity_selection_dataframe,
     build_activity_selection_state_key,
@@ -12,13 +13,19 @@ from ui.activity_selection import (
 )
 from ui.activity_validation import validate_duration_minutes, validate_reps, validate_sets
 from ui.tables import (
+    build_activity_catalog_table_config,
+    build_food_catalog_table_config,
     build_food_log_cards_html,
     build_log_entry_card_html,
     build_weight_log_cards_html,
     escape_display_text,
     filter_activity_catalog_dataframe,
     filter_food_catalog_dataframe,
+    format_activity_method_filter_option,
+    format_catalog_filter_option,
     get_food_log_card_style,
+    render_activity_catalog_table,
+    render_food_catalog_table,
 )
 
 
@@ -189,6 +196,275 @@ class TableHelperTests(unittest.TestCase):
         )
 
         self.assertEqual(filtered["Denumire"].tolist(), ["Flotări moderate"])
+
+    def test_catalog_filter_labels_translate_without_changing_raw_values(self):
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            self.assertEqual(format_catalog_filter_option("Toate"), "All")
+            self.assertEqual(format_catalog_filter_option("USDA Foundation"), "USDA Foundation")
+            self.assertEqual(
+                format_activity_method_filter_option("Mapare MacroSense"),
+                "MacroSense mapping",
+            )
+
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            self.assertEqual(format_catalog_filter_option("Toate"), "Toate")
+            self.assertEqual(
+                format_activity_method_filter_option("Mapare MacroSense"),
+                "Mapare MacroSense",
+            )
+
+    def test_catalog_column_configs_are_built_for_the_current_language(self):
+        def build_column(column_type, label, **options):
+            return {"type": column_type, "label": label, **options}
+
+        expected_labels = {
+            "en": {
+                "food": ("Name", "Category", "Source"),
+                "activity": ("Name", "Category", "MET method"),
+            },
+            "ro": {
+                "food": ("Nume", "Categorie", "Sursă"),
+                "activity": ("Nume", "Categorie", "Metodă MET"),
+            },
+        }
+
+        with (
+            patch.object(
+                tables.st.column_config,
+                "TextColumn",
+                side_effect=lambda label, **options: build_column(
+                    "text", label, **options
+                ),
+            ),
+            patch.object(
+                tables.st.column_config,
+                "NumberColumn",
+                side_effect=lambda label, **options: build_column(
+                    "number", label, **options
+                ),
+            ),
+        ):
+            for language_code, labels in expected_labels.items():
+                with self.subTest(language_code=language_code):
+                    with patch.object(
+                        language.st,
+                        "session_state",
+                        {"language": language_code},
+                    ):
+                        food_config = build_food_catalog_table_config()
+                        activity_config = build_activity_catalog_table_config()
+
+                    self.assertEqual(
+                        list(food_config),
+                        [
+                            "Denumire",
+                            "Calorii/100g",
+                            "Proteine (g)",
+                            "Carbohidrați (g)",
+                            "Grăsimi (g)",
+                            "Categorie",
+                            "Sursă",
+                        ],
+                    )
+                    self.assertEqual(
+                        (
+                            food_config["Denumire"]["label"],
+                            food_config["Categorie"]["label"],
+                            food_config["Sursă"]["label"],
+                        ),
+                        labels["food"],
+                    )
+                    self.assertEqual(
+                        list(activity_config),
+                        [
+                            "Denumire",
+                            "Coeficient MET",
+                            "Categorie",
+                            "Sursă",
+                            "Metodă MET",
+                        ],
+                    )
+                    self.assertEqual(
+                        (
+                            activity_config["Denumire"]["label"],
+                            activity_config["Categorie"]["label"],
+                            activity_config["Metodă MET"]["label"],
+                        ),
+                        labels["activity"],
+                    )
+
+    def test_food_catalog_renders_a_translated_copy_after_raw_filtering(self):
+        original_dataframe = self.foods.copy(deep=True)
+
+        expected_copy = {
+            "en": ("Fruits", "Search for food", "Category", "Source"),
+            "ro": ("Fructe", "Caută aliment", "Categorie", "Sursă"),
+        }
+        for language_code, copy in expected_copy.items():
+            with self.subTest(language_code=language_code):
+                expected_category, search_label, category_label, source_label = copy
+                selectbox_calls = {}
+
+                def selectbox(label, options, **kwargs):
+                    selectbox_calls[kwargs["key"]] = (label, list(options), kwargs)
+                    if kwargs["key"].endswith("_food_category_filter"):
+                        return "Fructe"
+                    return "Toate"
+
+                with (
+                    patch.object(
+                        language.st,
+                        "session_state",
+                        {"language": language_code},
+                    ),
+                    patch.object(
+                        tables.st,
+                        "columns",
+                        return_value=[nullcontext(), nullcontext(), nullcontext()],
+                    ),
+                    patch.object(tables.st, "caption") as caption_mock,
+                    patch.object(
+                        tables.st,
+                        "text_input",
+                        return_value="",
+                    ) as text_input_mock,
+                    patch.object(tables.st, "selectbox", side_effect=selectbox),
+                    patch.object(tables, "build_food_catalog_table_config", return_value={}) as build_config,
+                    patch.object(tables, "render_table") as render_table_mock,
+                ):
+                    render_food_catalog_table(self.foods, key_prefix="test")
+
+                displayed_dataframe = render_table_mock.call_args.args[0]
+                self.assertEqual(displayed_dataframe["Denumire"].tolist(), ["Căpșuni, crude"])
+                self.assertEqual(displayed_dataframe["Categorie"].tolist(), [expected_category])
+                assert_frame_equal(self.foods, original_dataframe)
+                build_config.assert_called_once_with()
+                self.assertIn(
+                    "foods in the catalog" if language_code == "en" else "alimente în catalog",
+                    caption_mock.call_args_list[0].args[0],
+                )
+                self.assertEqual(text_input_mock.call_args.args[0], search_label)
+
+                category_call = selectbox_calls["test_food_category_filter"]
+                source_call = selectbox_calls["test_food_source_filter"]
+                self.assertEqual(category_call[0], category_label)
+                self.assertEqual(source_call[0], source_label)
+                self.assertIn("Fructe", category_call[1])
+                with patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ):
+                    self.assertEqual(
+                        category_call[2]["format_func"]("Fructe"),
+                        expected_category,
+                    )
+
+    def test_activity_catalog_renders_a_translated_copy_after_raw_filtering(self):
+        original_dataframe = self.activities.copy(deep=True)
+
+        expected_copy = {
+            "en": (
+                "Strength",
+                "MacroSense mapping",
+                "Search for activity",
+                "Category",
+                "Source",
+                "MET method",
+            ),
+            "ro": (
+                "Forță",
+                "Mapare MacroSense",
+                "Caută activitate",
+                "Categorie",
+                "Sursă",
+                "Metodă MET",
+            ),
+        }
+        for language_code, copy in expected_copy.items():
+            with self.subTest(language_code=language_code):
+                (
+                    expected_category,
+                    expected_method,
+                    search_label,
+                    category_label,
+                    source_label,
+                    method_label,
+                ) = copy
+                selectbox_calls = {}
+
+                def selectbox(label, options, **kwargs):
+                    selectbox_calls[kwargs["key"]] = (label, list(options), kwargs)
+                    key = kwargs["key"]
+                    if key.endswith("_activity_category_filter"):
+                        return "Forță"
+                    if key.endswith("_activity_method_filter"):
+                        return "Mapare MacroSense"
+                    return "Toate"
+
+                with (
+                    patch.object(
+                        language.st,
+                        "session_state",
+                        {"language": language_code},
+                    ),
+                    patch.object(
+                        tables.st,
+                        "columns",
+                        return_value=[
+                            nullcontext(),
+                            nullcontext(),
+                            nullcontext(),
+                            nullcontext(),
+                        ],
+                    ),
+                    patch.object(tables.st, "caption") as caption_mock,
+                    patch.object(
+                        tables.st,
+                        "text_input",
+                        return_value="",
+                    ) as text_input_mock,
+                    patch.object(tables.st, "selectbox", side_effect=selectbox),
+                    patch.object(tables, "build_activity_catalog_table_config", return_value={}) as build_config,
+                    patch.object(tables, "render_table") as render_table_mock,
+                ):
+                    render_activity_catalog_table(self.activities, key_prefix="test")
+
+                displayed_dataframe = render_table_mock.call_args.args[0]
+                self.assertEqual(displayed_dataframe["Denumire"].tolist(), ["Flotări moderate"])
+                self.assertEqual(displayed_dataframe["Categorie"].tolist(), [expected_category])
+                self.assertEqual(displayed_dataframe["Metodă MET"].tolist(), [expected_method])
+                assert_frame_equal(self.activities, original_dataframe)
+                build_config.assert_called_once_with()
+                self.assertIn(
+                    "activities in the catalog"
+                    if language_code == "en"
+                    else "activități în catalog",
+                    caption_mock.call_args_list[0].args[0],
+                )
+                self.assertEqual(text_input_mock.call_args.args[0], search_label)
+
+                category_call = selectbox_calls["test_activity_category_filter"]
+                source_call = selectbox_calls["test_activity_source_filter"]
+                method_call = selectbox_calls["test_activity_method_filter"]
+                self.assertEqual(category_call[0], category_label)
+                self.assertEqual(source_call[0], source_label)
+                self.assertEqual(method_call[0], method_label)
+                self.assertIn("Forță", category_call[1])
+                self.assertIn("Mapare MacroSense", method_call[1])
+                with patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ):
+                    self.assertEqual(
+                        category_call[2]["format_func"]("Forță"),
+                        expected_category,
+                    )
+                    self.assertEqual(
+                        method_call[2]["format_func"]("Mapare MacroSense"),
+                        expected_method,
+                    )
 
     def test_activity_selection_filters_without_diacritics(self):
         activity_options = {
