@@ -35,8 +35,8 @@ class JournalEnergyMetricTests(unittest.TestCase):
     def test_what_if_uses_estimated_balance_not_activity_only_journal_balance(self):
         source = inspect.getsource(what_if_page)
 
-        self.assertIn("TDEE estimat", source)
-        self.assertIn("Balanță estimată", source)
+        self.assertIn('translate("Estimated TDEE")', source)
+        self.assertIn('translate("Estimated balance")', source)
         self.assertIn("estimated_balance", source)
         self.assertNotIn("journal_balance", source)
 

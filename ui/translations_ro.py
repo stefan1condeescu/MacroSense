@@ -879,4 +879,135 @@ ROMANIAN_TRANSLATIONS = {
         "Tabel scrollabil: derulează în interiorul tabelului pentru restul "
         "activităților."
     ),
+    "Simulate changes for one day without modifying the real journal. For real changes, use the Food journal or Activity journal.": (
+        "Simulează schimbări pentru o zi fără să modifici jurnalul real. "
+        "Pentru schimbări reale, folosește Jurnal Alimentar sau Jurnal Activități."
+    ),
+    "Log in to use the simulator.": "Autentifică-te pentru a folosi simulatorul.",
+    "There is not enough profile and weight data to calculate the day's TDEE.": (
+        "Nu există suficiente date de profil și greutate pentru a calcula "
+        "TDEE-ul zilei."
+    ),
+    "Build the scenario": "Construiește scenariul",
+    "One more invalid value remains in the scenario.": (
+        "Încă o valoare invalidă în scenariu."
+    ),
+    "{count} more invalid values remain in the scenario.": (
+        "Încă {count} valori invalide în scenariu."
+    ),
+    "Correct the invalid values to see the What-if result.": (
+        "Corectează valorile invalide pentru a vedea rezultatul What-if."
+    ),
+    "The result below remains the last valid calculation; invalid values are not included.": (
+        "Rezultatul de mai jos rămâne ultimul calcul valid; valorile invalide "
+        "nu sunt incluse."
+    ),
+    "The scenario starts from the day's real foods and activities.": (
+        "Scenariul pornește de la alimentele și activitățile reale ale zilei."
+    ),
+    "There is no real journal for this day. The scenario starts from zero.": (
+        "Nu există jurnal real pentru această zi. Scenariul pornește de la zero."
+    ),
+    "Weight used": "Greutate folosită",
+    "Reset scenario": "Resetează scenariul",
+    "Restore the selected day's real values and clear the add fields.": (
+        "Revine la valorile reale ale zilei selectate și golește câmpurile "
+        "de adăugare."
+    ),
+    "Activity calories are calculated using the reference weight from {date}.": (
+        "Caloriile activităților sunt calculate cu greutatea de referință "
+        "din {date}."
+    ),
+    "There are no saved weigh-ins; the simulator uses the 70 kg fallback.": (
+        "Nu există cântăriri salvate; simulatorul folosește fallback-ul de 70 kg."
+    ),
+    "Foods and meals in the scenario": "Alimente și mese în scenariu",
+    "The scenario contains no foods or meals.": (
+        "Scenariul nu conține alimente sau mese."
+    ),
+    "Add food or a meal only to the scenario": (
+        "Adaugă aliment sau masă doar în scenariu"
+    ),
+    "There are no foods in the catalog.": "Nu există alimente în catalog.",
+    "The quantity": "Cantitatea",
+    "Added quantity (g)": "Cantitate adăugată (g)",
+    "Added quantity": "Cantitatea adăugată",
+    "Add food to scenario": "Adaugă aliment în scenariu",
+    "Select a food from the table.": "Selectează un aliment din tabel.",
+    "There are no active custom meals.": "Nu există mese personalizate active.",
+    "Add meal to scenario": "Adaugă masa în scenariu",
+    "The selected meal cannot be simulated with the entered values.": (
+        "Masa selectată nu poate fi simulată cu valorile introduse."
+    ),
+    "Activities in the scenario": "Activități în scenariu",
+    "The scenario contains no activities.": "Scenariul nu conține activități.",
+    "Duration (min)": "Durată (min)",
+    "The duration": "Durata",
+    "Manual calories": "Calorii manuale",
+    "Calories burned": "Calorii arse",
+    "Add activity only to the scenario": "Adaugă activitate doar în scenariu",
+    "There are no activities in the catalog.": (
+        "Nu există activități în catalog."
+    ),
+    "Sets and repetitions apply only to strength exercises.": (
+        "Seturile și repetările se aplică doar la exerciții de Forță."
+    ),
+    "Added duration": "Durata adăugată",
+    "Estimated calories burned": "Calorii estimate consumate",
+    "The selected activity cannot be simulated with the entered values.": (
+        "Activitatea selectată nu poate fi simulată cu valorile introduse."
+    ),
+    "The manual value will replace the MET/TUT estimate only in the simulated scenario.": (
+        "Valoarea manuală va înlocui estimarea MET/TUT doar în scenariul simulat."
+    ),
+    "The manual value will be used: **{calories:.1f} kcal**": (
+        "Se va folosi valoarea manuală: **{calories:.1f} kcal**"
+    ),
+    "Add activity to scenario": "Adaugă activitatea în scenariu",
+    "Activity": "Activitate",
+    "{label}: nutritional values cannot be simulated.": (
+        "{label}: valorile nutriționale nu pot fi simulate."
+    ),
+    "{label}: activity values cannot be simulated.": (
+        "{label}: valorile activității nu pot fi simulate."
+    ),
+    "What-if result": "Rezultat What-if",
+    "Metric": "Metrică",
+    "Real values": "Valori reale",
+    "Simulated scenario": "Scenariu simulat",
+    "Difference": "Diferență",
+    "The scenario is identical to the real day. There are no simulated changes.": (
+        "Scenariul este identic cu ziua reală. Nu există modificări simulate."
+    ),
+    "The estimated balance cannot be compared because food data is missing from the real day or the scenario.": (
+        "Balanța estimată nu poate fi comparată deoarece lipsește alimentația "
+        "din ziua reală sau din scenariu."
+    ),
+    "The estimated balance remains unchanged compared with the real values.": (
+        "Balanța estimată rămâne neschimbată față de valorile reale."
+    ),
+    "The scenario lowers the estimated balance and moves further toward a deficit.": (
+        "Scenariul scade balanța estimată și merge mai mult spre deficit."
+    ),
+    "The scenario raises the estimated balance and moves further toward a surplus.": (
+        "Scenariul crește balanța estimată și merge mai mult spre surplus."
+    ),
+    "The scenario changes the estimated balance only slightly compared with the real values.": (
+        "Scenariul schimbă puțin balanța estimată față de valorile reale."
+    ),
+    "Theoretical impact if the same difference from the real day repeated daily: {impact_14:+.2f} kg over 14 days and {impact_30:+.2f} kg over 30 days. This is a deterministic formula, separate from the ML prediction.": (
+        "Impact teoretic dacă aceeași diferență față de ziua reală s-ar repeta "
+        "zilnic: {impact_14:+.2f} kg în 14 zile și {impact_30:+.2f} kg în 30 "
+        "zile. Aceasta este o formulă deterministă, separată de predicția ML."
+    ),
+    "Scenario": "Scenariu",
+    "Manual calories must be a valid number.": (
+        "Caloriile manuale trebuie să fie un număr valid."
+    ),
+    "Manual calories must be at least {minimum:.0f} kcal.": (
+        "Caloriile manuale trebuie să fie cel puțin {minimum:.0f} kcal."
+    ),
+    "Manual calories must be at most {maximum:.0f} kcal.": (
+        "Caloriile manuale trebuie să fie cel mult {maximum:.0f} kcal."
+    ),
 }
