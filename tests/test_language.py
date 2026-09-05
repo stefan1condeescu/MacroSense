@@ -118,7 +118,7 @@ if st.session_state.get("role") and st.button("Log out", key="logout"):
             self.assertFalse(app.exception)
             self.assertEqual(app.caption[0].value, "Food journal")
 
-            app.button_group(key="language").set_value("ro").run()
+            app.button(key="language_ro").click().run()
             self.assertFalse(app.exception)
             self.assertEqual(app.session_state["language"], "ro")
             self.assertEqual(app.caption[0].value, "Jurnal Alimentar")
@@ -129,7 +129,7 @@ if st.session_state.get("role") and st.button("Log out", key="logout"):
             self.assertNotIn("role", app.session_state)
             self.assertNotIn("user_id", app.session_state)
 
-            app.button_group(key="language").set_value("en").run()
+            app.button(key="language_en").click().run()
             self.assertFalse(app.exception)
             self.assertEqual(app.caption[0].value, "Food journal")
 
@@ -145,6 +145,114 @@ if st.session_state.get("role") and st.button("Log out", key="logout"):
             language.clear_session_preserving_language()
 
         self.assertEqual(session_state, {"language": "ro"})
+
+    def test_change_language_resends_only_registered_selections(self):
+        class RecordingState(dict):
+            def __setitem__(self, key, value):
+                writes.append((key, value))
+                super().__setitem__(key, value)
+
+        writes = []
+        state = RecordingState(language="en", category="Forță", save=False, draft="Keep me")
+        with patch.object(language.st, "session_state", state):
+            self.assertEqual(language.translated_selection_key("category"), "category")
+            language.translated_selection_key("missing_widget")
+            language.translated_selection_key("category")
+            language.change_language("ro")
+        self.assertEqual(writes, [("category", "Forță"), ("language", "ro")])
+        self.assertEqual(state["draft"], "Keep me")
+
+    def test_change_language_rejects_unsupported_language(self):
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            with self.assertRaises(ValueError):
+                language.change_language("invalid")
+            self.assertEqual(language.st.session_state["language"], "en")
+
+    def test_replacing_old_selector_keeps_language_on_later_reruns(self):
+        app = AppTest.from_string('''
+import streamlit as st
+from ui.language import render_language_selector
+if st.session_state.get("legacy_selector", True):
+    st.segmented_control("Language", ["en", "ro"], default="en", key="language")
+else:
+    render_language_selector()
+st.button("Refresh", key="refresh")
+''')
+        with patch.dict(language.os.environ, {language.DEFAULT_LANGUAGE_ENV_VAR: "ro"}):
+            app.run()
+            app.session_state["legacy_selector"] = False
+            app.run()
+            for _ in range(3):
+                app.button(key="refresh").click().run()
+                self.assertFalse(app.exception)
+                self.assertEqual(app.session_state["language"], "en")
+
+    def test_navigation_recovers_labels_without_changing_valid_ids(self):
+        for pages in (
+            {"food_catalog": {"label": "Food management"}, "activity_catalog": {"label": "Activity management"}},
+            {"food_catalog": "Food management", "activity_catalog": "Activity management"},
+        ):
+            for selected, expected in (
+                ("Activity management", "activity_catalog"),
+                (language.ROMANIAN_TRANSLATIONS["Activity management"], "activity_catalog"),
+                ("activity_catalog", "activity_catalog"),
+                ("unknown", "food_catalog"),
+            ):
+                with self.subTest(selected=selected, pages=pages):
+                    state = {"menu": selected}
+                    with patch.object(language.st, "session_state", state):
+                        language.normalize_navigation_selection("menu", pages)
+                    self.assertEqual(state["menu"], expected)
+
+    def test_switch_resends_new_labels_but_keeps_canonical_values(self):
+        app = AppTest.from_string('''
+import streamlit as st
+from ui.language import render_language_selector, translate, translated_selection_key
+render_language_selector()
+pages = {"food_catalog": "Food management", "activity_catalog": "Activity management"}
+st.selectbox("Admin menu", options=list(pages),
+    format_func=lambda page: translate(pages[page]),
+    key=translated_selection_key("admin_menu"))
+st.radio("Main menu", options=list(pages),
+    format_func=lambda page: translate(pages[page]),
+    key=translated_selection_key("user_menu"))
+st.selectbox("Category", options=["Cardio", "Forță"],
+    format_func=lambda category: translate("Strength") if category == "Forță" else "Cardio",
+    key=translated_selection_key("category"))
+st.selectbox("Entry", options=[1, 7],
+    format_func=lambda entry: f"{translate('Food journal')} {entry}",
+    key=translated_selection_key("entry"))
+st.button("Refresh", key="refresh")
+''')
+        app.session_state["language"] = "en"
+        app.session_state["admin_menu"] = "activity_catalog"
+        app.session_state["user_menu"] = "activity_catalog"
+        app.session_state["category"] = "Forță"
+        app.session_state["entry"] = 7
+        # AppTest also calls format_func on its test thread, outside the app context.
+        with patch(
+            "streamlit.runtime.state.session_state_proxy.get_session_state",
+            return_value=app.session_state,
+        ):
+            app.run()
+            for language_code in ("ro", "en", "ro", "en"):
+                app.button(key=f"language_{language_code}").click().run()
+                self.assertFalse(app.exception)
+                expected_label = (
+                    language.ROMANIAN_TRANSLATIONS["Activity management"]
+                    if language_code == "ro" else "Activity management"
+                )
+                for widget in (app.selectbox(key="admin_menu"), app.radio(key="user_menu")):
+                    self.assertEqual(widget.value, "activity_catalog")
+                    # Verify the browser receives a refreshed label, not just the Python ID.
+                    self.assertTrue(widget.proto.set_value)
+                    self.assertEqual(widget.proto.raw_value, expected_label)
+                self.assertEqual(app.selectbox(key="category").value, "Forță")
+                self.assertEqual(app.selectbox(key="entry").value, 7)
+                app.button(key="refresh").click().run()
+                self.assertFalse(app.exception)
+                self.assertEqual(app.selectbox(key="admin_menu").value, "activity_catalog")
+                self.assertEqual(app.radio(key="user_menu").value, "activity_catalog")
 
 
 if __name__ == "__main__":

@@ -10,7 +10,7 @@ from ui.food_selection import (
     format_food_category_for_display,
     get_food_category_filter_options,
 )
-from ui.language import translate
+from ui.language import translate, translated_selection_key
 from ui.quantity_validation import quantity_range_help_for_ui, validate_quantity_g_for_ui
 from ui.tables import get_table_height
 
@@ -236,7 +236,7 @@ def render_custom_meals_page() -> None:
                 translate("Category"),
                 get_food_category_filter_options(food_options),
                 format_func=format_food_category_for_display,
-                key=category_key
+                key=translated_selection_key(category_key)
             )
 
         food_selection_df = build_food_selection_dataframe(

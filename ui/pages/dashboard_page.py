@@ -23,7 +23,7 @@ from services.recommendations.simple_recommendations import (
     RecommendationCard,
     build_dashboard_recommendation_cards,
 )
-from ui.language import translate
+from ui.language import translate, translated_selection_key
 
 
 INTERVAL_OPTIONS = (7, 30, 90)
@@ -152,7 +152,7 @@ def render_dashboard_page() -> None:
         list(INTERVAL_OPTIONS),
         format_func=_display_interval_name,
         horizontal=True,
-        key=DASHBOARD_INTERVAL_KEY,
+        key=translated_selection_key(DASHBOARD_INTERVAL_KEY),
         **_interval_radio_kwargs(days),
     )
 

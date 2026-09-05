@@ -3,6 +3,8 @@ import inspect
 import unittest
 from unittest.mock import patch
 
+from streamlit.testing.v1 import AppTest
+
 from ui import language
 from ui.pages import admin_routes
 from ui.pages.admin_routes import (
@@ -14,6 +16,38 @@ from ui.translations_ro import ROMANIAN_TRANSLATIONS
 
 
 class AdminRoutesTests(unittest.TestCase):
+    def test_admin_routes_recover_stale_label_and_survive_language_roundtrip(self):
+        app = AppTest.from_string('''
+import streamlit as st
+from ui.language import render_language_selector
+from ui.pages.admin_routes import render_admin_routes
+render_language_selector()
+render_admin_routes()
+st.button("Refresh", key="refresh")
+''')
+        app.session_state["language"] = "en"
+        app.session_state["admin_main_menu"] = "Activity management"
+        rendered_pages = []
+        with (
+            patch.dict(ADMIN_PAGES["activity_catalog"], {
+                "render": lambda: rendered_pages.append("activity_catalog"),
+            }),
+            patch.dict(ADMIN_PAGES["food_catalog"], {
+                "render": lambda: rendered_pages.append("food_catalog"),
+            }),
+            patch("streamlit.runtime.state.session_state_proxy.get_session_state",
+                  return_value=app.session_state),
+        ):
+            app.run()
+            for language_code in ("ro", "en"):
+                self.assertFalse(app.exception)
+                self.assertEqual(app.selectbox(key="admin_main_menu").value, "activity_catalog")
+                app.button(key=f"language_{language_code}").click().run()
+                app.button(key="refresh").click().run()
+            self.assertFalse(app.exception)
+            self.assertEqual(app.session_state["admin_main_menu"], "activity_catalog")
+            self.assertEqual(rendered_pages, ["activity_catalog"] * 5)
+
     def test_admin_route_english_source_text_has_romanian_translations(self):
         source_tree = ast.parse(inspect.getsource(admin_routes))
         source_keys = {

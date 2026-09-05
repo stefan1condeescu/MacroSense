@@ -13,7 +13,7 @@ from ui.food_selection import (
 )
 from ui.formatters import format_food_entries_for_display, format_time_for_display
 from ui.journal_energy_summary import render_daily_energy_summary
-from ui.language import translate
+from ui.language import translate, translated_selection_key
 from ui.quantity_validation import (
     quantity_range_help_for_ui,
     validate_quantity_g_for_ui,
@@ -129,7 +129,7 @@ def render_food_journal_page() -> None:
             FOOD_ENTRY_TYPES,
             format_func=format_food_entry_type,
             horizontal=True,
-            key="food_entry_type"
+            key=translated_selection_key("food_entry_type")
         )
     
         if entry_type == "Aliment din catalog":
@@ -152,7 +152,7 @@ def render_food_journal_page() -> None:
                         translate("Category"),
                         get_food_category_filter_options(food_options),
                         format_func=format_food_category_for_display,
-                        key="food_log_food_category_filter"
+                        key=translated_selection_key("food_log_food_category_filter")
                     )
 
                 food_selection_df = build_food_selection_dataframe(
@@ -220,7 +220,7 @@ def render_food_journal_page() -> None:
                     MEAL_TYPES,
                     format_func=format_meal_type,
                     horizontal=True,
-                    key="food_log_food_meal_type",
+                    key=translated_selection_key("food_log_food_meal_type"),
                 )
 
                 selected_food = food_options.get(selected_food_id) if selected_food_id else None
@@ -325,7 +325,7 @@ def render_food_journal_page() -> None:
                     MEAL_TYPES,
                     format_func=format_meal_type,
                     horizontal=True,
-                    key="food_log_custom_meal_type",
+                    key=translated_selection_key("food_log_custom_meal_type"),
                 )
     
                 selected_custom_meal = custom_meal_options[selected_meal_id]
@@ -431,7 +431,7 @@ def render_food_journal_page() -> None:
                     options=food_log_ids,
                     format_func=lambda log_entry_id: format_food_log_option(current_entries, log_entry_id),
                     index=edit_select_index,
-                    key=edit_select_key
+                    key=translated_selection_key(edit_select_key)
                 )
                 st.session_state["food_log_edit_selected_id"] = int(selected_edit_food_log_id)
     
@@ -460,7 +460,7 @@ def render_food_journal_page() -> None:
                         options=meal_options,
                         format_func=format_meal_type,
                         index=meal_type_index,
-                        key=f"food_log_edit_meal_type_{selected_edit_food_log_id}"
+                        key=translated_selection_key(f"food_log_edit_meal_type_{selected_edit_food_log_id}")
                     )
                 with col_edit2:
                     edited_meal_time = st.time_input(
@@ -529,7 +529,7 @@ def render_food_journal_page() -> None:
                     options=food_log_ids,
                     format_func=lambda log_entry_id: format_food_log_option(current_entries, log_entry_id),
                     index=delete_select_index,
-                    key=delete_select_key
+                    key=translated_selection_key(delete_select_key)
                 )
                 st.session_state["food_log_delete_selected_id"] = int(selected_food_log_id)
                 confirm_food_delete = st.checkbox(
