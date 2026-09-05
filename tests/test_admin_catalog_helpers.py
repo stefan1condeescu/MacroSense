@@ -3,6 +3,9 @@ import inspect
 import unittest
 from unittest.mock import patch
 
+import pandas as pd
+from streamlit.testing.v1 import AppTest
+
 from ui import language
 from ui.catalog_constants import (
     ACTIVITY_CATEGORIES,
@@ -161,6 +164,21 @@ class AdminFoodCatalogHelperTests(unittest.TestCase):
         self.assertEqual(displayed_food_category, "Fish")
         self.assertEqual(displayed_activity_category, "Strength")
 
+    def test_admin_add_panels_are_reactive_and_submit_explicitly(self):
+        for render_page, container_key, submit_key, category_key in (
+            (admin_catalog_pages.render_admin_food_catalog_page,
+             "add_food_form", "admin_food_submit", "admin_food_category"),
+            (admin_catalog_pages.render_admin_activity_catalog_page,
+             "add_activity_form", "admin_activity_submit", "admin_activity_category"),
+        ):
+            with self.subTest(container=container_key):
+                source = inspect.getsource(render_page)
+                self.assertNotIn("st.form(", source)
+                self.assertNotIn("st.form_submit_button(", source)
+                self.assertIn(f'st.container(border=True, key="{container_key}")', source)
+                self.assertIn(f'key="{submit_key}"', source)
+                self.assertIn(f'key=translated_selection_key("{category_key}")', source)
+
     def test_usda_preview_metric_uses_compact_escaped_html(self):
         html = build_usda_preview_metric_html("Calorii", '519.0 <kcal>')
 
@@ -198,6 +216,74 @@ class AdminFoodCatalogHelperTests(unittest.TestCase):
         errors = validate_activity_input("Alergare", 8.0, "Cardio", check_duplicate=True)
 
         self.assertIn("Există deja o activitate cu această denumire.", errors)
+
+
+class AdminCatalogDraftTests(unittest.TestCase):
+    def test_food_draft_survives_language_roundtrip_without_saving(self):
+        app = AppTest.from_string('''
+from ui.language import render_language_selector
+from ui.pages.admin_catalog_pages import render_admin_food_catalog_page
+render_language_selector()
+render_admin_food_catalog_page()
+''')
+        app.session_state["language"] = "en"
+
+        with (
+            # AppTest serializes translated choices outside the script thread too.
+            patch("streamlit.runtime.state.session_state_proxy.get_session_state", return_value=app.session_state),
+            patch.object(admin_catalog_pages, "get_usda_api_key", return_value=None),
+            patch.object(admin_catalog_pages.FoodItem, "get_all_as_dataframe", return_value=pd.DataFrame()),
+            patch.object(admin_catalog_pages.FoodItem, "save") as save,
+        ):
+            app.run()
+            self.assertFalse(app.exception)
+            app.text_input(key="admin_food_name").input("Draft food")
+            app.selectbox(key="admin_food_category").select("Pește")
+            app.number_input(key="admin_food_calories").set_value(125.0)
+            app.number_input(key="admin_food_protein").set_value(20.0)
+            app.number_input(key="admin_food_carbs").set_value(4.0)
+            app.number_input(key="admin_food_fats").set_value(3.0).run()
+
+            for language_code in ("ro", "en"):
+                with self.subTest(language=language_code):
+                    app.button(key=f"language_{language_code}").click().run()
+                    self.assertFalse(app.exception)
+                    self.assertEqual(app.text_input(key="admin_food_name").value, "Draft food")
+                    self.assertEqual(app.selectbox(key="admin_food_category").value, "Pește")
+                    self.assertEqual(app.number_input(key="admin_food_calories").value, 125.0)
+                    self.assertEqual(app.number_input(key="admin_food_protein").value, 20.0)
+                    self.assertEqual(app.number_input(key="admin_food_carbs").value, 4.0)
+                    self.assertEqual(app.number_input(key="admin_food_fats").value, 3.0)
+                    save.assert_not_called()
+
+    def test_activity_draft_survives_language_roundtrip_without_saving(self):
+        app = AppTest.from_string('''
+from ui.language import render_language_selector
+from ui.pages.admin_catalog_pages import render_admin_activity_catalog_page
+render_language_selector()
+render_admin_activity_catalog_page()
+''')
+        app.session_state["language"] = "en"
+
+        with (
+            patch("streamlit.runtime.state.session_state_proxy.get_session_state", return_value=app.session_state),
+            patch.object(admin_catalog_pages.Activity, "get_all_as_dataframe", return_value=pd.DataFrame()),
+            patch.object(admin_catalog_pages.Activity, "save") as save,
+        ):
+            app.run()
+            self.assertFalse(app.exception)
+            app.text_input(key="admin_activity_name").input("Draft activity")
+            app.selectbox(key="admin_activity_category").select("Forță")
+            app.number_input(key="admin_activity_met").set_value(3.5).run()
+
+            for language_code in ("ro", "en"):
+                with self.subTest(language=language_code):
+                    app.button(key=f"language_{language_code}").click().run()
+                    self.assertFalse(app.exception)
+                    self.assertEqual(app.text_input(key="admin_activity_name").value, "Draft activity")
+                    self.assertEqual(app.selectbox(key="admin_activity_category").value, "Forță")
+                    self.assertEqual(app.number_input(key="admin_activity_met").value, 3.5)
+                    save.assert_not_called()
 
 
 if __name__ == "__main__":

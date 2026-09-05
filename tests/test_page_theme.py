@@ -101,7 +101,7 @@ class PageThemeTests(unittest.TestCase):
         self.assertIn(".auth-login-copy", css_text)
         self.assertIn(".auth-login-note", css_text)
         self.assertIn("text-align: center", css_text)
-        self.assertIn('.stApp:has(.auth-login-panel) div[data-testid="stForm"]', css_text)
+        self.assertIn('.stApp:has(.auth-login-panel) .st-key-login_form', css_text)
         self.assertIn("border-radius: 12px", css_text)
         self.assertIn("box-shadow: 0 16px 34px", css_text)
 

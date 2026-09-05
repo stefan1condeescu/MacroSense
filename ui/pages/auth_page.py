@@ -4,7 +4,7 @@ import streamlit as st
 from models.authentication import Admin, User
 from models.text_validation import has_obvious_html_chars, is_valid_person_name
 from models.tracking import WeightLog
-from ui.language import translate
+from ui.language import translate, translated_selection_key
 from ui.page_theme import apply_page_theme
 
 
@@ -20,6 +20,8 @@ AUTH_PAGES = {
 LEGACY_AUTH_PAGE_IDS = {
     "Autentificare": AUTH_LOGIN_PAGE_ID,
     "Creare Cont": AUTH_REGISTER_PAGE_ID,
+    "Login": AUTH_LOGIN_PAGE_ID,
+    "Create account": AUTH_REGISTER_PAGE_ID,
 }
 AUTH_GOAL_LABELS = {
     "Slabire": "Weight loss",
@@ -103,22 +105,25 @@ def render_auth_page() -> None:
         translate("Navigation"),
         options=list(AUTH_PAGES),
         format_func=display_auth_page_name,
-        key=AUTH_NAVIGATION_KEY,
+        key=translated_selection_key(AUTH_NAVIGATION_KEY),
     )
     apply_page_theme("auth")
     
     if selected_page == AUTH_REGISTER_PAGE_ID:
         st.subheader(translate("Create a new profile"))
-        with st.form("register_form"):
-            email = st.text_input(translate("Email address"))
-            password = st.text_input(translate("Password"), type="password")
-            full_name = st.text_input(translate("Full name"))
+        with st.container(border=True, key="register_form"):
+            email = st.text_input(translate("Email address"), key="auth_register_email")
+            password = st.text_input(
+                translate("Password"), type="password", key="auth_register_password"
+            )
+            full_name = st.text_input(translate("Full name"), key="auth_register_full_name")
             col1, col2 = st.columns(2)
             with col1:
                 height = st.number_input(
                     translate("Height (cm)"),
                     value=170.0,
                     step=0.1,
+                    key="auth_register_height",
                     help=translate(
                         "Height must be between {minimum:.0f} and {maximum:.0f} cm.",
                         minimum=User.MIN_HEIGHT_CM,
@@ -129,6 +134,7 @@ def render_auth_page() -> None:
                     translate("Current weight (kg)"),
                     value=70.0,
                     step=0.1,
+                    key="auth_register_weight",
                     help=translate(
                         "Weight must be between {minimum:.0f} and {maximum:.0f} kg.",
                         minimum=WeightLog.MIN_WEIGHT_KG,
@@ -139,6 +145,7 @@ def render_auth_page() -> None:
                     translate("Age"),
                     value=25,
                     step=1,
+                    key="auth_register_age",
                     help=translate(
                         "Age must be between {minimum} and {maximum} years.",
                         minimum=User.MIN_AGE,
@@ -146,16 +153,21 @@ def render_auth_page() -> None:
                     ),
                 )
             with col2:
-                gender = st.selectbox(translate("Gender"), ["M", "F"])
+                gender = st.selectbox(
+                    translate("Gender"), ["M", "F"],
+                    key="auth_register_gender",
+                )
                 goal = st.selectbox(
                     translate("Goal"),
                     list(User.VALID_GOALS),
                     format_func=display_auth_goal_name,
+                    key=translated_selection_key("auth_register_goal"),
                 )
-            submit_register = st.form_submit_button(
+            submit_register = st.button(
                 translate("Register"),
                 width="stretch",
                 type="primary",
+                key="auth_register_submit",
             )
     
         if submit_register:
@@ -214,13 +226,16 @@ def render_auth_page() -> None:
                     """,
                     unsafe_allow_html=True,
                 )
-                with st.form("login_form"):
-                    email = st.text_input(translate("Email"))
-                    password = st.text_input(translate("Password"), type="password")
-                    submit_login = st.form_submit_button(
+                with st.container(border=True, key="login_form"):
+                    email = st.text_input(translate("Email"), key="auth_login_email")
+                    password = st.text_input(
+                        translate("Password"), type="password", key="auth_login_password"
+                    )
+                    submit_login = st.button(
                         translate("Log in"),
                         width="stretch",
                         type="primary",
+                        key="auth_login_submit",
                     )
 
                     if submit_login:

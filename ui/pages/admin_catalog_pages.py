@@ -8,7 +8,7 @@ from services.usda_food_data import USDAFoodDataClient
 from ui.activity_selection import format_activity_category_for_display
 from ui.catalog_constants import ACTIVITY_CATEGORIES, FOOD_CATEGORIES, USDA_DATA_TYPES
 from ui.food_selection import format_food_category_for_display
-from ui.language import translate
+from ui.language import translate, translated_selection_key
 from ui.tables import render_activity_catalog_table, render_food_catalog_table
 
 
@@ -298,7 +298,7 @@ def render_usda_food_import_panel() -> None:
                 selection_mode="single",
                 required=True,
                 format_func=format_food_category_for_display,
-                key=f"usda_food_import_category_{selected_fdc_id}"
+                key=translated_selection_key(f"usda_food_import_category_{selected_fdc_id}")
             )
 
             already_imported = FoodItem.external_reference_exists("USDA", selected_food["fdc_id"])
@@ -376,7 +376,7 @@ def render_admin_food_catalog_page() -> None:
             st.session_state.pop(key, None)
 
     with st.expander(f"➕ {translate('Add a new food')}", expanded=True):
-        with st.form("add_food_form", clear_on_submit=False):
+        with st.container(border=True, key="add_food_form"):
             col1, col2 = st.columns(2)
             with col1:
                 name = st.text_input(translate("Food name"), key="admin_food_name")
@@ -384,7 +384,7 @@ def render_admin_food_catalog_page() -> None:
                     translate("Category"),
                     FOOD_CATEGORIES,
                     format_func=format_food_category_for_display,
-                    key="admin_food_category",
+                    key=translated_selection_key("admin_food_category"),
                 )
                 calories = st.number_input(
                     translate("Calories (per 100g)"),
@@ -408,7 +408,9 @@ def render_admin_food_catalog_page() -> None:
                     key="admin_food_fats",
                 )
 
-            submit_food = st.form_submit_button(translate("Save food"), type="primary")
+            submit_food = st.button(
+                translate("Save food"), type="primary", key="admin_food_submit"
+            )
 
             if submit_food:
                 validation_errors = validate_food_item_input(name, calories, protein, carbs, fats)
@@ -454,7 +456,7 @@ def render_admin_activity_catalog_page() -> None:
             st.session_state.pop(key, None)
 
     with st.expander(f"➕ {translate('Add a new activity')}", expanded=True):
-        with st.form("add_activity_form", clear_on_submit=False):
+        with st.container(border=True, key="add_activity_form"):
             col1, col2 = st.columns(2)
             with col1:
                 name = st.text_input(translate("Activity name"), key="admin_activity_name")
@@ -462,7 +464,7 @@ def render_admin_activity_catalog_page() -> None:
                     translate("Category"),
                     ACTIVITY_CATEGORIES,
                     format_func=format_activity_category_for_display,
-                    key="admin_activity_category",
+                    key=translated_selection_key("admin_activity_category"),
                 )
             with col2:
                 met = st.number_input(
@@ -476,7 +478,9 @@ def render_admin_activity_catalog_page() -> None:
                     ),
                 )
 
-            submit_act = st.form_submit_button(translate("Save activity"), type="primary")
+            submit_act = st.button(
+                translate("Save activity"), type="primary", key="admin_activity_submit"
+            )
 
             if submit_act:
                 validation_errors = validate_activity_input(name, met, category, check_duplicate=True)

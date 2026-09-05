@@ -5,7 +5,12 @@ from typing import Any
 import streamlit as st
 from database import get_connection
 from services.analytics.energy import calculate_bmi
-from ui.language import clear_session_preserving_language, translate
+from ui.language import (
+    clear_session_preserving_language,
+    normalize_navigation_selection,
+    translate,
+    translated_selection_key,
+)
 from ui.page_theme import apply_page_theme, get_user_page_theme
 from ui.pages.activity_journal_page import (
     ACTIVITY_JOURNAL_DATE_KEY,
@@ -80,11 +85,12 @@ def render_user_routes() -> None:
     )
     _render_sidebar_profile_summary()
 
+    normalize_navigation_selection("user_main_menu", USER_PAGES)
     selected_page = st.sidebar.radio(
         translate("Main menu"),
         options=list(USER_PAGES),
         format_func=display_page_name,
-        key="user_main_menu",
+        key=translated_selection_key("user_main_menu"),
     )
 
     last_rendered_page = st.session_state.get(USER_LAST_RENDERED_PAGE_KEY)
@@ -103,6 +109,7 @@ def render_user_routes() -> None:
     st.sidebar.divider()
     if st.sidebar.button(
         translate("Log out"),
+        key="user_logout",
         width="stretch",
         type="tertiary",
     ):

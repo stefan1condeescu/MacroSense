@@ -16,7 +16,7 @@ from ui.food_selection import (
     format_meal_type,
     normalize_search_text,
 )
-from ui.language import translate
+from ui.language import translate, translated_selection_key
 
 
 def get_table_height(dataframe: pd.DataFrame, max_rows: int = 6, row_height: int = 32) -> int:
@@ -137,7 +137,7 @@ def render_food_catalog_table(dataframe: pd.DataFrame, key_prefix: str, max_rows
             translate("Category"),
             categories,
             format_func=format_food_category_for_display,
-            key=f"{key_prefix}_food_category_filter"
+            key=translated_selection_key(f"{key_prefix}_food_category_filter")
         )
     with source_col:
         sources = ["Toate"] + sorted(dataframe["Sursă"].dropna().unique().tolist())
@@ -145,7 +145,7 @@ def render_food_catalog_table(dataframe: pd.DataFrame, key_prefix: str, max_rows
             translate("Source"),
             sources,
             format_func=format_catalog_filter_option,
-            key=f"{key_prefix}_food_source_filter"
+            key=translated_selection_key(f"{key_prefix}_food_source_filter")
         )
 
     filtered = filter_food_catalog_dataframe(
@@ -250,7 +250,7 @@ def render_activity_catalog_table(dataframe: pd.DataFrame, key_prefix: str, max_
             translate("Category"),
             categories,
             format_func=format_activity_category_for_display,
-            key=f"{key_prefix}_activity_category_filter"
+            key=translated_selection_key(f"{key_prefix}_activity_category_filter")
         )
     with source_col:
         sources = ["Toate"] + sorted(dataframe.get("Sursă", pd.Series(dtype=str)).dropna().unique().tolist())
@@ -258,7 +258,7 @@ def render_activity_catalog_table(dataframe: pd.DataFrame, key_prefix: str, max_
             translate("Source"),
             sources,
             format_func=format_catalog_filter_option,
-            key=f"{key_prefix}_activity_source_filter"
+            key=translated_selection_key(f"{key_prefix}_activity_source_filter")
         )
     with method_col:
         methods = ["Toate"] + sorted(dataframe.get("Metodă MET", pd.Series(dtype=str)).dropna().unique().tolist())
@@ -266,7 +266,7 @@ def render_activity_catalog_table(dataframe: pd.DataFrame, key_prefix: str, max_
             translate("MET method"),
             methods,
             format_func=format_activity_method_filter_option,
-            key=f"{key_prefix}_activity_method_filter"
+            key=translated_selection_key(f"{key_prefix}_activity_method_filter")
         )
 
     filtered = filter_activity_catalog_dataframe(

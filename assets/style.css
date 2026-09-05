@@ -198,7 +198,7 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
     text-decoration: none;
 }
 
-.stApp:has(.auth-login-panel) div[data-testid="stForm"] {
+.stApp:has(.auth-login-panel) .st-key-login_form {
     background: rgba(255, 255, 255, 0.88);
     border: 1px solid #d9e1ec;
     border-radius: 12px;
@@ -235,8 +235,34 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
     text-align: center;
 }
 
-.stApp:has(.auth-login-panel) div[data-testid="stFormSubmitButton"] button {
+.stApp:has(.auth-login-panel) .st-key-auth_login_submit button {
     min-height: 44px;
+}
+
+/* Native Streamlit buttons keep keyboard access and image alternative text. */
+.st-key-language_selector button {
+    min-height: 34px;
+    width: 44px;
+    padding: 6px 8px;
+    border-radius: 8px;
+}
+
+.st-key-language_selector button img {
+    width: 26px;
+    height: 18px;
+    max-height: 18px;
+    border-radius: 2px;
+    object-fit: cover;
+}
+
+.st-key-language_selector button[kind="primary"] {
+    background: var(--ms-accent-soft);
+    border: 2px solid var(--ms-accent);
+}
+
+.st-key-language_selector button:focus-visible {
+    outline: 2px solid var(--ms-accent);
+    outline-offset: 3px;
 }
 
 .stDataFrame,

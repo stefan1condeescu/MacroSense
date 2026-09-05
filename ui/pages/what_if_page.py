@@ -52,7 +52,7 @@ from ui.food_selection import (
     get_food_category_filter_options,
 )
 from ui.formatters import format_kcal_for_display, format_time_for_display
-from ui.language import translate
+from ui.language import translate, translated_selection_key
 from ui.quantity_validation import quantity_range_help_for_ui, validate_quantity_g_for_ui
 from ui.tables import get_table_height
 
@@ -603,7 +603,7 @@ def _render_add_catalog_food() -> None:
             translate("Category"),
             get_food_category_filter_options(food_options),
             format_func=format_food_category_for_display,
-            key=_versioned_widget_key("what_if_food_category_filter"),
+            key=translated_selection_key(_versioned_widget_key("what_if_food_category_filter")),
         )
 
     selection_df = build_food_selection_dataframe(food_options, search_text, category_filter)
@@ -883,7 +883,7 @@ def _render_add_activity_section(reference_weight: float) -> None:
                 translate("Category"),
                 get_activity_category_filter_options(activity_options),
                 format_func=format_activity_category_for_display,
-                key=_versioned_widget_key("what_if_activity_category_filter"),
+                key=translated_selection_key(_versioned_widget_key("what_if_activity_category_filter")),
             )
 
         selection_df = build_activity_selection_dataframe(

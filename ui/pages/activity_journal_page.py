@@ -19,7 +19,7 @@ from ui.activity_validation import (
     validate_sets_for_ui,
 )
 from ui.journal_energy_summary import render_daily_energy_summary
-from ui.language import translate
+from ui.language import translate, translated_selection_key
 from ui.tables import get_table_height, render_activity_log_cards
 
 
@@ -190,7 +190,7 @@ def render_activity_journal_page() -> None:
                 translate("Category"),
                 get_activity_category_filter_options(activity_options),
                 format_func=format_activity_category_for_display,
-                key=f"{key_prefix}_activity_category"
+                key=translated_selection_key(f"{key_prefix}_activity_category")
             )
 
         activity_selection_df = build_activity_selection_dataframe(
@@ -478,7 +478,7 @@ def render_activity_journal_page() -> None:
                     options=activity_log_ids,
                     format_func=lambda log_entry_id: format_activity_log_option(current_entries, log_entry_id),
                     index=edit_select_index,
-                    key=edit_select_key
+                    key=translated_selection_key(edit_select_key)
                 )
                 st.session_state["activity_log_edit_selected_id"] = int(selected_edit_activity_log_id)
     
@@ -671,7 +671,7 @@ def render_activity_journal_page() -> None:
                     options=activity_log_ids,
                     format_func=lambda log_entry_id: format_activity_log_option(current_entries, log_entry_id),
                     index=delete_select_index,
-                    key=delete_select_key
+                    key=translated_selection_key(delete_select_key)
                 )
                 st.session_state["activity_log_delete_selected_id"] = int(selected_activity_log_id)
                 confirm_activity_delete = st.checkbox(
