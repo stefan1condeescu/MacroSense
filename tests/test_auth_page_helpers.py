@@ -211,6 +211,45 @@ render_auth_page()
             admin_auth.assert_called_once_with("test-password")
             user_auth.assert_called_once_with("test-password")
 
+    def test_welcome_decoration_is_login_only_in_both_languages_without_authentication(self):
+        for language_code in ("en", "ro"):
+            for page_id in ("login", "register"):
+                with self.subTest(language=language_code, page=page_id):
+                    app = AppTest.from_string('''
+from ui.pages.auth_page import render_auth_page
+render_auth_page()
+''')
+                    app.session_state["language"] = language_code
+                    app.session_state[auth_page.AUTH_NAVIGATION_KEY] = page_id
+
+                    with (
+                        patch("streamlit.runtime.state.session_state_proxy.get_session_state", return_value=app.session_state),
+                        patch("models.authentication.get_connection") as get_connection,
+                        patch.object(auth_page.Admin, "authenticate") as admin_auth,
+                        patch.object(auth_page.User, "authenticate") as user_auth,
+                        patch.object(auth_page.User, "register") as register,
+                    ):
+                        app.run()
+                        self.assertFalse(app.exception)
+                        markdown = "\n".join(element.value for element in app.markdown)
+                        self.assertIn('class="auth-brand"', markdown)
+                        if page_id == "login":
+                            self.assertIn('class="auth-welcome-art"', markdown)
+                            self.assertIn('class="auth-login-panel"', markdown)
+                            self.assertEqual(app.text_input(key="auth_login_email").value, "")
+                            self.assertEqual(app.text_input(key="auth_login_password").value, "")
+                            self.assertEqual(app.button(key="auth_login_submit").value, False)
+                        else:
+                            self.assertNotIn('class="auth-welcome-art"', markdown)
+                            self.assertNotIn('class="auth-login-panel"', markdown)
+                            self.assertEqual(app.text_input(key="auth_register_email").value, "")
+                            self.assertEqual(app.text_input(key="auth_register_password").value, "")
+                            self.assertEqual(app.button(key="auth_register_submit").value, False)
+                        get_connection.assert_not_called()
+                        admin_auth.assert_not_called()
+                        user_auth.assert_not_called()
+                        register.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

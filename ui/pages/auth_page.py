@@ -4,6 +4,7 @@ import streamlit as st
 from models.authentication import Admin, User
 from models.text_validation import has_obvious_html_chars, is_valid_person_name
 from models.tracking import WeightLog
+from ui.branding import brand_wordmark_html, welcome_background_html
 from ui.language import translate, translated_selection_key
 from ui.page_theme import apply_page_theme
 
@@ -94,7 +95,7 @@ def normalize_auth_page_id(page_id: str | None) -> str:
 
 
 def render_auth_page() -> None:
-    st.sidebar.title("MacroSense")
+    st.sidebar.markdown(brand_wordmark_html(), unsafe_allow_html=True)
     if st.session_state.pop(AUTH_REDIRECT_TO_LOGIN_KEY, False):
         st.session_state[AUTH_NAVIGATION_KEY] = AUTH_LOGIN_PAGE_ID
     current_page = st.session_state.get(AUTH_NAVIGATION_KEY)
@@ -210,7 +211,10 @@ def render_auth_page() -> None:
             st.success(translate(registration_success_message))
         login_slot = st.empty()
         with login_slot.container():
-            st.markdown('<div class="auth-login-panel"></div>', unsafe_allow_html=True)
+            st.markdown(
+                '<div class="auth-login-panel"></div>' + welcome_background_html(),
+                unsafe_allow_html=True,
+            )
             _, login_col, _ = st.columns([0.2, 1, 0.2])
             with login_col:
                 welcome_title = escape(translate("Welcome back"))

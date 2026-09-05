@@ -197,6 +197,47 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
     text-decoration: none;
 }
 
+.auth-brand {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    margin: 20px 0 24px;
+    color: var(--ms-text);
+    font-size: 1.16rem;
+    font-weight: 650;
+    letter-spacing: -0.045em;
+    white-space: nowrap;
+}
+
+.auth-brand img {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+}
+
+.stApp:has(.auth-login-panel) [data-testid="stMain"] {
+    position: relative;
+    isolation: isolate;
+}
+
+.stApp:has(.auth-login-panel) [data-testid="stElementContainer"]:has(.auth-welcome-art) {
+    position: static;
+}
+
+.auth-welcome-art {
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+    opacity: 0.24;
+    filter: saturate(0.7);
+    pointer-events: none;
+    user-select: none;
+}
+
 .stApp:has(.auth-login-panel) .st-key-login_form {
     background: var(--ms-surface);
     border: 1px solid var(--ms-border);
@@ -236,6 +277,16 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
 
 .stApp:has(.auth-login-panel) .st-key-auth_login_submit button {
     min-height: 44px;
+}
+
+@media (max-width: 700px) {
+    .auth-welcome-art {
+        opacity: 0.14;
+    }
+
+    .stApp:has(.auth-login-panel) .st-key-login_form {
+        padding: 20px;
+    }
 }
 
 /* Native Streamlit buttons keep keyboard access and image alternative text. */
