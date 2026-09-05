@@ -1,12 +1,18 @@
 # MacroSense — AGENTS.md
 
 ## Stack tehnic
+
 - Backend/UI: Python 3.x + Streamlit
 - Baza de date: PostgreSQL via psycopg2 (niciodată ORM)
+- Arhitectură: monolit modular; paginile UI apelează modelele și serviciile
+  din același proces Streamlit.
 - Structura fișierelor:
   - app.py — entrypoint Streamlit: configurează aplicația și rutează pe roluri
   - assets/style.css — stiluri CSS locale pentru polish UI
   - ui/config.py — configurare Streamlit și încărcare CSS local
+  - ui/language.py — limba sesiunii, selector EN/RO și `translate()`
+  - ui/translations_ro.py — traduceri din textele sursă engleze în română
+  - ui/page_theme.py — tema vizuală asociată fiecărei pagini
   - ui/catalog_constants.py — categoriile locale MacroSense folosite în
     Admin UI și în testele de seed
   - ui/activity_selection.py — helper-e comune pentru selecție activități cu
@@ -19,6 +25,7 @@
     fără clamp automat Streamlit
   - ui/tables.py — randare tabele și `column_config`-uri comune
   - ui/formatters.py — helper-e de formatare pentru afișare
+  - ui/journal_energy_summary.py — carduri energetice comune celor două jurnale
   - ui/pages/ — paginile Streamlit separate pe flux:
     - auth_page.py — autentificare și creare cont
     - admin_routes.py — rutare meniu Administrator
@@ -27,14 +34,21 @@
     - dashboard_page.py — pagina Acasă
     - food_journal_page.py — Jurnal Alimentar
     - activity_journal_page.py — Jurnal Activități
+    - weight_journal_page.py — Jurnal Greutate
     - custom_meals_page.py — Mese Personalizate
+    - what_if_page.py — scenarii calorice păstrate doar în sesiune
     - user_catalog_pages.py — cataloage vizibile utilizatorului
   - services/ — integrări externe controlate și analytics:
     - usda_food_data.py — client USDA FoodData Central pentru import alimente
     - analytics/energy.py — formule pure pentru BMI, BMR, TDEE estimat și
       balanță calorică estimată
-    - analytics/dashboard_data.py — agregări read-only pentru Dashboard v1,
+    - analytics/dashboard_data.py — agregări read-only pentru dashboard și jurnale,
       fără creare de `daily_logs`
+    - ml/ — date sintetice, feature engineering, training, evaluare și
+      predicții de greutate la 14/30 zile; artefacte locale în `artifacts/ml/`
+    - recommendations/simple_recommendations.py — reguli explicabile pentru
+      alimentație, proteine, activitate și progres, afișate în dashboard
+    - what_if/ — încărcări read-only și calcule pure pentru scenarii
   - models/profile_constants.py — valorile canonice pentru câmpurile de profil
     persistate, inclusiv `USER_GOALS`
   - models/text_validation.py — helper-e comune pentru validarea textelor persistente
@@ -52,36 +66,42 @@
   - database.py — get_connection()
   - schema.sql — schema completă a bazei de date
   - database/seeds/ — scripturi SQL opționale pentru populare catalog
-  - tests/ — teste automate `unittest` pentru validări OOP și importuri arhitecturale
+  - tests/ — teste `unittest` pentru modele, servicii, UI, traduceri și schema SQL
   - STATUS.md — starea curentă a proiectului (ce e gata, ce e în progres, backlog)
-  - docs/DiagramaClase_UPDATED.png — diagrama UML de clase (actualizată)
-  - docs/ERD_UPDATED.png — diagrama ERD a bazei de date (actualizată)
-  - docs/LICENTA_faranumev12.docx — lucrarea de licență completă
-  - docs/STRUCTURA LUCRĂRII DE LICENŢĂ.docx — structura impusă de profesor
+  - README.md — instalare, utilizare și diagrama arhitecturii curente
+- Referințe istorice ale licenței: `docs/DiagramaClase_UPDATED.png`,
+  `docs/ERD_UPDATED.png`, `docs/LICENTA_faranumev12.docx` și
+  `docs/STRUCTURA LUCRĂRII DE LICENŢĂ.docx`. Directorul `docs/` nu este
+  disponibil în acest checkout; conformitatea acestor fișiere nu este verificată.
 
 ## Reguli stricte
+
 - Tot codul (variabile, clase, metode, comentarii) exclusiv în ENGLEZĂ
-- Textul din interfața Streamlit (labels, mesaje, titluri) exclusiv în ROMÂNĂ
+- Textele sursă din interfața Streamlit sunt în ENGLEZĂ și se afișează prin
+  `ui.language.translate()`. Traducerile românești se păstrează în
+  `ui/translations_ro.py`; interfața suportă EN și RO.
 - Pattern DB obligatoriu: try/except/finally cu conn.close() în finally
 - Nu folosi st.form() în Jurnal Alimentar sau Jurnal Activități
 - Folosește st.button() cu key explicit pentru submit
 - Niciodată cod parțial sau pseudocod — doar cod funcțional complet
 - Testele automate din `tests/` se păstrează în proiect și se extind la fiecare
   funcționalitate importantă; nu se șterg după validare.
-- Comandă standard teste: `.\venv\Scripts\python.exe -m unittest discover -s tests -v`
-- Developerul folosește terminal Bash în VS Code; când îi oferim comenzi de
-  rulat manual, folosim format Bash, de exemplu
-  `./venv/Scripts/python.exe -m unittest discover -s tests -v`, nu PowerShell.
+- Comandă teste pe macOS/Linux: `./.venv/bin/python -m unittest discover -s tests -v`.
+- Comenzile oferite pentru rulare manuală folosesc sintaxă Bash. Pentru mediul
+  Windows existent: `./venv/Scripts/python.exe -m unittest discover -s tests -v`.
 - Commit-urile sunt făcute MANUAL de developer după fiecare modificare
   aprobată; AI-ul nu face niciodată commit sau push automat.
   Excepție: AI-ul poate face commit doar când developerul cere explicit acest lucru.
 
 ## Regula de Aur
-Verifică mereu conformitatea dintre documentația din docs/
-(UML, fluxuri, diagrame) și codul efectiv. Orice discrepanță
-arhitecturală trebuie semnalată înainte de a scrie cod.
+
+Verifică documentația arhitecturală față de cod și `schema.sql` înainte de
+modificări de arhitectură. Semnalează discrepanțele înainte de a scrie cod.
+Când fișierele licenței din `docs/` sunt disponibile, verifică și UML/ERD;
+dacă lipsesc, menționează limita fără a declara documentația sincronizată.
 
 ## Arhitectură OOP
+
 - DailyLog: get_or_create, get_for_date, recalculate_totals, get_food_entries,
   get_activity_entries, calculate_hybrid_calories (static),
   get_latest_weight (static), get_by_id, delete_if_empty,
@@ -91,7 +111,7 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   `log_id` ajunge accidental într-un context greșit; `log_date` nu poate fi
   în viitor față de ziua curentă)
 - FoodLog: save(), update(), delete()
-  (`meal_type` trebuie să fie una dintre valorile UI/DB: `Mic dejun`,
+  (`meal_type` trebuie să fie una dintre valorile canonice DB: `Mic dejun`,
   `Prânz`, `Cină`, `Gustare`; `meal_time` trebuie să fie un `datetime.time`
   valid, nu `None`; `quantity_g` trebuie să rămână în intervalul 1-5000g;
   pentru `custom_meal_id`, `save()` salvează snapshot nutrițional per 100g
@@ -154,9 +174,23 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   diferența majuscule/minuscule.
 
 ## Convenții UI
-- Metrici Jurnal Activități: layout 3+2 piramidă
-  (rând 1: Calorii Forță, Cardio & Altele, Total Arse)
-  (rând 2 centrat [0.5,1,1,0.5]: Calorii Consumate, Balanță)
+
+- Limba se păstrează în `st.session_state["language"]` (`en`/`ro`), inclusiv
+  după logout. Valoarea implicită este `en`; `MACROSENSE_DEFAULT_LANGUAGE=ro`
+  poate schimba limba inițială. Selectorul folosește steaguri SVG locale.
+- Navigarea Auth/User/Admin folosește ID-uri stabile, iar `format_func`
+  traduce numai eticheta. Selecțiile cu etichete traduse se înregistrează prin
+  `translated_selection_key()` pentru resincronizare la schimbarea limbii;
+  sesiunile vechi cu etichete în loc de ID se normalizează înainte de randare.
+- Schimbarea limbii păstrează selecțiile și valorile nesalvate din pagina
+  curentă. Auth și formularele manuale Admin folosesc containere reactive;
+  validarea și salvarea rulează doar după apăsarea butonului explicit.
+- Traducerea schimbă afișarea, nu valorile persistate: obiectivele, tipurile
+  de masă, categoriile și statusurile își păstrează valorile canonice.
+  Denumirile din catalog și textele introduse de utilizator nu se traduc automat.
+- Jurnal Alimentar și Jurnal Activități folosesc `ui.journal_energy_summary`
+  pentru patru carduri: calorii consumate, calorii din activități, TDEE estimat
+  și balanță estimată. Zilele fără alimente afișează lipsa datelor.
 - Navigarea principală pentru Utilizator se afișează ca listă radio în sidebar,
   astfel încât `Acasă` și celelalte pagini să rămână vizibile permanent.
 - hide_index=True pe toate st.dataframe()
@@ -168,7 +202,8 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   raportate de ceas/aparat cardio; această valoare se salvează în
   `activity_logs.manual_calories_burned` și înlocuiește estimarea MET/TUT doar
   pentru înregistrarea respectivă.
-- Dashboard-ul `Acasă` este read-only și consumă `services.analytics`; nu
+- Dashboard-ul `Acasă` este read-only și consumă `services.analytics`,
+  `services.ml` și `services.recommendations`; nu
   folosește `DailyLog.get_or_create()` și nu creează/modifică date. În
   dashboard, `daily_logs.total_calories_burned` se interpretează ca total
   calorii arse prin activități logate, iar TDEE-ul estimat este derivat prin
@@ -184,6 +219,13 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
 - Dashboard-ul raportează separat consistența alimentelor, activităților,
   greutății și consistența generală; aceste valori devin baza pentru feature
   engineering și nu trebuie recombinate implicit în ML fără justificare.
+- Predicțiile de greutate folosesc artefacte locale pentru 14/30 zile și
+  semnalează datele insuficiente sau folosirea unei date istorice. Recomandările
+  din dashboard sunt reguli explicabile, fără generare de meniuri sau programe
+  de antrenament.
+- Simulatorul What-if încarcă ziua reală read-only și păstrează scenariul în
+  sesiune. Calculul impactului 14/30 zile este determinist; nu salvează în DB
+  și nu reprezintă o nouă predicție ML.
 - În Jurnal Activități, alegerea activității din catalog nu folosește selectbox
   pentru liste mari; se face prin căutare, filtru de categorie și tabel
   selectabil, păstrând ID-ul activității doar intern.
@@ -235,6 +277,7 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   evidente (`<` sau `>`) dacă sunt folosite ca titluri/carduri în UI.
 
 ## Baza de date
+
 - PostgreSQL local via pgAdmin 4 (localhost:5432)
 - Nu executa comenzi psql direct — generează fișiere .sql pentru rulare manuală
 - schema.sql este sursa de adevăr pentru structura DB
@@ -283,6 +326,7 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   căutarea `ice cream`.
 
 ## Constrângeri speciale DB
+
 - FoodLog folosește o constrângere XOR: are fie food_id,
   fie custom_meal_id (nu ambele simultan)
 - Mesele personalizate nu se șterg fizic din UI; se arhivează prin
@@ -307,7 +351,6 @@ arhitecturală trebuie semnalată înainte de a scrie cod.
   care blochează `daily_logs.log_date` și `weight_logs.log_date` din viitor.
 
 ## Ce NU este implementat încă
+
 - Recomandări personalizate de mese
 - Recomandări personalizate de antrenamente
-- Dashboard v2 cu recomandări ML integrate
-- Simulator What-if (scenarii calorice)

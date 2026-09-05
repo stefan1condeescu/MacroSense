@@ -1,10 +1,12 @@
 # MacroSense
 
-MacroSense is a Python and Streamlit web application for nutrition tracking, physical activity tracking, body weight monitoring, dashboard analytics, and machine-learning-assisted fitness insight.
+MacroSense is a nutrition, activity and weight journal built with Python, Streamlit and PostgreSQL. It includes dashboard analytics, experimental weight predictions and a What-if simulator.
 
-It was developed as a bachelor's degree project and is designed to show how a daily health journal can become more than a place where users enter numbers. The application connects food intake, exercise, body weight history, user goals, data validation, analytics, and prediction into one coherent local system.
+Developed as a bachelor's degree project. It runs locally with synthetic demo data; public deployment and security hardening are still pending.
 
-The interface is written in Romanian for the target users, while the codebase, database objects, and project structure use English names.
+The interface supports English and Romanian. English is the default. Stored category, goal and meal-type values remain unchanged; translations apply only to their display.
+
+[Architecture](#architecture) · [Local setup](#local-setup) · [Tests](#running-tests) · [Demo walkthrough](#suggested-presentation-flow)
 
 ## What The Application Does
 
@@ -24,7 +26,6 @@ The application includes:
 - A read-only What-if simulator that compares the real day with a simulated food and activity scenario.
 - Admin catalog pages for foods and activities, with search, filters, source metadata, validation, and USDA import.
 - PostgreSQL data integrity rules, constraints, triggers, and seed scripts.
-- A structured OOP codebase with separate models, services, UI pages, analytics helpers, ML helpers, and tests.
 
 ## Tech Stack
 
@@ -39,18 +40,53 @@ The application includes:
 - pgAdmin for optional database inspection and SQL script execution.
 - USDA FoodData Central API for optional live food import.
 
+## Architecture
+
+MacroSense is a modular monolith running as one Streamlit application. Pages call models for authentication and journal operations, and services for analytics, predictions and scenarios.
+
+```mermaid
+flowchart LR
+    subgraph App["One Streamlit application"]
+        UI["app.py + ui/<br/>Pages and role-based navigation"] --> Models["models/<br/>Validation and journal operations"]
+        UI --> Services["services/<br/>Analytics, ML and What-if"]
+        Models --> Connection["database.py<br/>psycopg2"]
+        Services -->|Read queries| Connection
+        UI -->|Profile read| Connection
+    end
+    Connection --> DB[(PostgreSQL)]
+    UI -->|Admin import| USDA["USDA FoodData Central"]
+```
+
+The profile sidebar and service loaders also read through `database.py`; this is not a strict three-layer architecture. Dashboard and What-if do not write to the database. ML training runs separately and saves local artifacts that prediction code loads.
+
+| Start here | Responsibility |
+| --- | --- |
+| [app.py](app.py) | Page configuration, session initialization and role routing. |
+| [ui/pages/](ui/pages/) | Auth, User and Admin routes; dashboard, journals, catalogs and What-if pages. |
+| [ui/language.py](ui/language.py), [ui/translations_ro.py](ui/translations_ro.py) | Language selection and the local English-to-Romanian dictionary. |
+| [ui/](ui/), [assets/](assets/) | Shared inputs, validation messages, tables, formatting, CSS and flag images. |
+| [models/](models/), [models/tracking_models/](models/tracking_models/) | Authentication, domain validation and persistence. `models/tracking.py` re-exports the tracking classes. |
+| [services/analytics/](services/analytics/), [services/recommendations/](services/recommendations/) | Dashboard calculations, read queries and rule-based recommendation cards. |
+| [services/ml/](services/ml/), [services/what_if/](services/what_if/) | Weight prediction pipeline and separate, session-only scenario calculations. |
+| [services/usda_food_data.py](services/usda_food_data.py) | USDA search and import client, used only by Admin. |
+| [database.py](database.py), [schema.sql](schema.sql), [database/seeds/](database/seeds/) | Connection helper, schema constraints and optional demo/catalog data. |
+| [tests/](tests/) | Automated validation and regression tests. |
+
+### Language handling
+
+UI code uses English source text, for example `translate("Food journal")`. The Romanian dictionary supplies `Jurnal Alimentar`; missing translations fall back to English. No translation API is called.
+
+The flag buttons update `st.session_state["language"]`. Menus keep stable IDs such as `food_journal`; `format_func` only changes the label. Translated selections are synchronized on a language change so the chosen page, filters and draft inputs stay consistent.
+
 ## Main User Workflows
 
 ### Authentication And Roles
-
-MacroSense separates regular users from administrators.
 
 Administrators can:
 
 - Add and inspect food catalog items.
 - Add and inspect activity catalog items.
 - Import food items from USDA FoodData Central when an API key is configured.
-- Manage catalog data used by the user-facing journals.
 
 Users can:
 
@@ -61,13 +97,10 @@ Users can:
 
 ### Food Journal
 
-The food journal allows users to record daily intake from either individual catalog foods or saved custom meals.
-
-Implemented behavior includes:
+Record daily intake from catalog foods or saved custom meals:
 
 - Quantity-based calorie and macronutrient calculation.
-- Meal type selection.
-- Time of consumption.
+- Meal type and time of consumption.
 - Live preview before saving.
 - Edit and delete operations.
 - Automatic recalculation of daily totals after every change.
@@ -77,14 +110,12 @@ Implemented behavior includes:
 
 ### Activity Journal
 
-The activity journal tracks workouts and daily movement.
-
-The application supports:
+Track workouts and daily movement:
 
 - Activity selection from a catalog with category, source, and MET-method filters.
 - MET-based calorie estimation for cardio, flexibility, sports, and general activities.
 - TUT-style estimation for strength activities using sets and repetitions.
-- Optional manual calorie input when the user wants to use a value from a watch, treadmill, bike, or other device.
+- Optional manual calories from a watch or exercise machine, overriding the estimate for that entry.
 - Decimal durations for short activity segments.
 - Edit and delete flows.
 - Automatic daily total recalculation.
@@ -92,22 +123,11 @@ The application supports:
 
 ### Weight Journal
 
-The weight journal records the user's body weight over time.
-
-It is used by:
-
-- Dashboard progress charts.
-- Activity calorie calculations.
-- ML feature engineering.
-- Future weight prediction.
-
-When a weight entry changes, MacroSense recalculates only the affected daily logs instead of blindly recalculating everything.
+Weight history feeds dashboard charts, activity calorie estimates and ML features. When an entry changes, only activity days whose reference weight changed are recalculated; manual calorie entries are unaffected.
 
 ### Custom Meals
 
-Users can build reusable meals from catalog ingredients.
-
-Custom meal functionality includes:
+Build reusable meals from catalog ingredients:
 
 - Ingredient selection from the food catalog.
 - Quantity per ingredient.
@@ -116,7 +136,7 @@ Custom meal functionality includes:
 - Archive and reactivate support.
 - Historical snapshots, so editing a recipe later does not rewrite old food journal entries.
 
-This is important because a meal logged last month should keep the nutrition values it had when it was consumed, even if the saved recipe changes later.
+Logged meals keep the nutrition values they had when consumed, even if the recipe changes later.
 
 ### Dashboard
 
@@ -124,9 +144,7 @@ The dashboard is read-only. It analyzes existing data without creating empty dai
 
 It includes:
 
-- BMI calculation.
-- BMR calculation.
-- Estimated TDEE.
+- BMI, BMR and estimated TDEE.
 - Daily and interval calorie balance.
 - Weight evolution.
 - Calories consumed versus estimated expenditure.
@@ -134,16 +152,14 @@ It includes:
 - Activity summaries.
 - Food, activity, weight, and general consistency indicators.
 - Protein per kilogram body weight.
-- Recommendation cards based on the user's goal and recent behavior.
+- Rule-based recommendation cards using the user's goal, recent logs and available prediction data.
 - ML-based weight predictions for 14 and 30 days.
 
-The dashboard treats missing food data as missing data, not as zero calories. This avoids misleading analytics when a user simply did not log food for a day.
+Missing food logs are treated as missing data, not zero calories.
 
 ### Machine Learning Weight Prediction
 
-MacroSense includes a local ML pipeline for future weight-change prediction.
-
-The ML module contains:
+The local weight-prediction pipeline includes:
 
 - Synthetic history generation for training and validation.
 - Leakage-safe feature engineering, using only data available up to the analysis date.
@@ -159,13 +175,13 @@ The locally generated artifacts are saved in:
 artifacts/ml/
 ```
 
-The training command used for the current local setup was:
+Generate artifacts from the repository root:
 
 ```bash
 .venv/bin/python -m services.ml.train_models --user-count 50 --history-days 150
 ```
 
-This generated:
+Output files:
 
 ```text
 artifacts/ml/weight_prediction_14d.joblib
@@ -174,29 +190,24 @@ artifacts/ml/weight_prediction_30d.joblib
 artifacts/ml/weight_prediction_30d_metadata.json
 ```
 
+Artifacts are not tracked in Git. Without them, or with insufficient user history, the dashboard shows that a prediction is unavailable. Training and evaluation use synthetic histories; these results do not establish real-world forecasting accuracy.
+
 ### What-if Simulator
 
-The What-if simulator lets the user compare the real selected day with a temporary simulated scenario.
+Compare a logged day with a temporary scenario:
 
-It supports:
+- Add foods and activities or change their simulated quantities and durations.
+- Compare real totals with simulated totals.
+- Estimate a theoretical 14/30-day impact from repeated calorie differences.
+- Keep all changes in session state only.
 
-- Editing simulated food quantities.
-- Adding simulated foods.
-- Editing simulated activities.
-- Adding simulated activities.
-- Comparing real totals with simulated totals.
-- Estimating a theoretical 14/30-day impact from repeated calorie differences.
-- Keeping all changes in session state only.
-
-The simulator is intentionally read-only at the database level. It does not write simulated values to PostgreSQL.
+The simulator does not write to PostgreSQL. Its theoretical weight impact uses `daily calorie difference × days / 7700`; it is separate from the dashboard's ML prediction.
 
 ## Administrator Features
 
 ### Food Catalog
 
-The administrator can manage foods manually and import foods from USDA FoodData Central.
-
-Food items store:
+Add foods manually or import them from USDA FoodData Central. Each item stores:
 
 - Name.
 - Category.
@@ -205,41 +216,20 @@ Food items store:
 - Source metadata.
 - External USDA id and source URL when imported.
 
-The USDA import supports the following non-branded data types:
-
-- SR Legacy.
-- Foundation.
-- Survey (FNDDS).
+Supported non-branded USDA data types: SR Legacy, Foundation and Survey (FNDDS).
 
 The import panel searches in English, filters unsupported USDA data types, removes duplicate imports, rejects incomplete nutrition data, and suggests a local MacroSense category.
 
-To enable USDA import, create:
-
-```text
-.streamlit/secrets.toml
-```
-
-with:
-
-```toml
-FDC_API_KEY = "your_usda_fooddata_central_key"
-```
-
-The secrets file is intentionally ignored by git.
+Import requires an API key; see [Local setup](#4-optional-usda-api-key). The local catalog and starter seeds work without one.
 
 ### Activity Catalog
 
-The administrator can manage activity definitions used by the activity journal.
-
-Activity items include:
+Activity definitions store:
 
 - Name.
 - Category.
 - MET value.
-- Source.
-- Source type.
-- External id.
-- Source URL.
+- Source, source type, external ID and source URL.
 - Compendium code and description when applicable.
 - MET estimation method.
 
@@ -249,21 +239,16 @@ The project includes seed data from the 2024 Adult Compendium and additional Mac
 
 MacroSense uses PostgreSQL directly through `psycopg2`, without an ORM.
 
-The main database is:
-
-```text
-macrosense_db
-```
-
-The default local connection used by `database.py` is:
+The local database is `macrosense_db`. Connection settings are currently defined in [database.py](database.py):
 
 ```text
 Host: localhost
 Port: 5432
 Database: macrosense_db
 User: postgres
-Password: 9999
 ```
+
+Match those settings to your local PostgreSQL instance. Do not commit real credentials. Moving connection settings out of source code is part of the pending deployment work.
 
 Main tables:
 
@@ -282,7 +267,7 @@ food_logs
 
 The schema includes constraints for:
 
-- Valid email and text input.
+- Email trimming and text constraints.
 - Supported gender and goal values.
 - Food nutrition rules.
 - Activity duration and MET rules.
@@ -295,7 +280,7 @@ The schema includes constraints for:
 
 ## Seed Data
 
-The project includes SQL seed files that make the application presentation-ready.
+Optional seed files provide catalogs and synthetic history for local demos.
 
 Recommended order:
 
@@ -319,9 +304,11 @@ The seed data adds:
 - Activity logs.
 - Custom meals and historical snapshots.
 
+Run `schema.sql` on an empty database. Back up an existing database before changing its schema or reseeding: `seed_demo_users.sql` replaces the five demo users and their associated history.
+
 ## Demo Accounts
 
-After running the schema and seed files, the following accounts are available.
+The schema and demo seed create these local test accounts. Their passwords are public defaults: do not expose them in a public deployment.
 
 Administrator:
 
@@ -348,7 +335,7 @@ Password: test123
 
 ## Local Setup
 
-The commands below are written for macOS/Linux-style terminals.
+Run these Bash commands from the repository root. Python 3.12 and a local PostgreSQL instance are required.
 
 ### 1. Create A Virtual Environment
 
@@ -373,7 +360,7 @@ Create a PostgreSQL database named:
 macrosense_db
 ```
 
-Then run the SQL files in the seed order shown above. This can be done from pgAdmin Query Tool or from `psql`.
+Run the SQL files in the [seed order](#seed-data) using pgAdmin Query Tool. Use a fresh database and check the local connection settings in `database.py` first.
 
 ### 4. Optional USDA API Key
 
@@ -389,13 +376,11 @@ and add:
 FDC_API_KEY = "your_usda_fooddata_central_key"
 ```
 
+Alternatively, supply `FDC_API_KEY` as an environment variable. Never commit an API key or `.streamlit/secrets.toml`.
+
 ### 5. Optional ML Artifact Generation
 
-If `artifacts/ml/` is missing, generate the local model artifacts:
-
-```bash
-.venv/bin/python -m services.ml.train_models --user-count 50 --history-days 150
-```
+If `artifacts/ml/` is missing, run the [training command](#machine-learning-weight-prediction). The rest of the application works without prediction artifacts.
 
 ### 6. Start The Application
 
@@ -403,15 +388,19 @@ If `artifacts/ml/` is missing, generate the local model artifacts:
 .venv/bin/python -m streamlit run app.py --server.address 127.0.0.1 --server.port 8501
 ```
 
-Open:
+Open [http://127.0.0.1:8501](http://127.0.0.1:8501).
 
-```text
-http://127.0.0.1:8501
+English is the default. To start locally in Romanian:
+
+```bash
+MACROSENSE_DEFAULT_LANGUAGE=ro .venv/bin/python -m streamlit run app.py
 ```
+
+Users can switch languages with the sidebar flags. The choice lasts for the current Streamlit session, including logout; it is not stored in the database or cookies.
 
 ## pgAdmin Configuration
 
-pgAdmin is optional, but useful for presenting the database and showing the SQL seed files.
+Use pgAdmin to inspect tables and run the SQL files manually.
 
 Create a new server with:
 
@@ -421,7 +410,7 @@ Host name/address: 127.0.0.1
 Port: 5432
 Maintenance database: postgres
 Username: postgres
-Password: 9999
+Password: your local PostgreSQL password
 ```
 
 Then open:
@@ -455,30 +444,13 @@ The test suite covers:
 - USDA client parsing and filtering.
 - UI helper functions and routing behavior.
 - SQL seed consistency.
+- Streamlit language switching, stable navigation and draft preservation.
 
-The local setup used for presentation passed 304 automated tests.
-
-## Project Structure
-
-```text
-app.py                      Streamlit entrypoint and role-based routing
-database.py                 PostgreSQL connection helper
-schema.sql                  Main PostgreSQL schema
-assets/style.css            Shared local UI styling
-ui/                         Streamlit pages, routes, UI helpers, tables, formatting
-models/                     Authentication and domain models
-models/tracking_models/     Food, activity, daily log, custom meal, and weight classes
-services/analytics/         BMI, BMR, TDEE, dashboard aggregation, and summary logic
-services/ml/                Synthetic data, feature engineering, training, artifacts, prediction
-services/what_if/           Read-only What-if simulation and loaders
-services/recommendations/   Explainable dashboard recommendation cards
-database/seeds/             SQL seed files for foods, activities, and demo users
-tests/                      Automated unittest suite
-```
+Database and HTTP calls are mocked; SQL tests inspect schema and seed text. These tests do not prove live PostgreSQL transactions or USDA connectivity. Test those separately with a disposable database and a configured API key.
 
 ## Engineering Highlights
 
-MacroSense was built with several implementation goals in mind:
+Key implementation choices:
 
 - Keep domain logic in Python model and service layers, not only inside Streamlit pages.
 - Keep database writes explicit and controlled.
@@ -488,14 +460,14 @@ MacroSense was built with several implementation goals in mind:
 - Keep dashboard and What-if pages read-only.
 - Avoid ML leakage by using only historical data available at the analysis date.
 - Keep external USDA imports traceable through source metadata.
-- Make seed data realistic enough for a live academic presentation.
+- Use synthetic accounts for local demos.
 
 ## Suggested Presentation Flow
 
-One possible walkthrough for a thesis presentation:
+For a local presentation, use a synthetic demo account:
 
 1. Open pgAdmin and show `macrosense_db`, the schema tables, and the seed files.
-2. Start MacroSense and log in as the administrator.
+2. Start MacroSense, demonstrate the EN/RO flags and log in as the administrator.
 3. Show the food and activity catalogs, including source labels and USDA import.
 4. Log in as a demo user.
 5. Open the dashboard and explain BMI, BMR, TDEE, calorie balance, charts, recommendations, and ML predictions.
@@ -506,9 +478,11 @@ One possible walkthrough for a thesis presentation:
 10. Open the What-if simulator and compare a real day with a simulated scenario.
 11. Mention the automated test suite and validation layers.
 
+Use a disposable demo database for save/edit/delete demonstrations. Catalog browsing, dashboard inspection and What-if scenarios do not require changing saved records.
+
 ## Privacy And Publishing Notes
 
-Before making the repository public, make sure the following files or data are not included:
+Keep the following out of Git:
 
 - `.streamlit/secrets.toml`
 - `.env`
@@ -517,20 +491,10 @@ Before making the repository public, make sure the following files or data are n
 - real personal user data
 - private thesis documents, unless intentionally published
 
-The included demo data is synthetic and intended for local presentation and testing.
+The included demo data is synthetic. Before public deployment, replace default credentials, harden password storage, move database settings to secrets/environment configuration and restrict Admin/registration access. The current local setup is not hardened for public use.
 
 ## Current Status
 
-MacroSense is a functional academic prototype with complete local workflows for:
+The local workflows described above are implemented, including EN/RO UI, dashboard recommendations, weight predictions and What-if. Next steps are public-demo security and deployment; see [STATUS.md](STATUS.md) for project history and remaining work.
 
-- User and administrator authentication.
-- Food, activity, weight, and custom meal tracking.
-- Admin catalog management.
-- USDA-backed food import.
-- Dashboard analytics.
-- ML-based weight prediction.
-- Read-only What-if simulation.
-- PostgreSQL-backed persistence.
-- Automated validation and regression tests.
-
-It is ready to be demonstrated locally with seeded data, pgAdmin, and Streamlit.
+The original thesis UML/ERD files are not included in this checkout. This architecture section documents the current code.
