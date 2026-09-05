@@ -75,6 +75,12 @@ class AdminRoutesTests(unittest.TestCase):
 
         self.assertIn("&lt;admin&gt;@test.com", html)
 
+    def test_admin_logout_preserves_selected_language(self):
+        source = inspect.getsource(admin_routes.render_admin_routes)
+
+        self.assertIn("clear_session_preserving_language()", source)
+        self.assertNotIn("st.session_state.clear()", source)
+
 
 if __name__ == "__main__":
     unittest.main()

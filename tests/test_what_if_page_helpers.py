@@ -20,6 +20,10 @@ from ui.pages.what_if_page import (
     _clear_scenario_widget_state,
     _get_last_valid_comparison,
     _comparison_row,
+    _format_activity_row_error,
+    _format_activity_row_label,
+    _format_food_row_error,
+    _format_food_row_label,
     _format_remaining_error_count,
     _format_source_context,
     _format_signed_value,
@@ -191,6 +195,80 @@ class WhatIfPageHelperTests(unittest.TestCase):
 
         self.assertEqual(row, original_row)
 
+    def test_custom_meal_snapshot_source_follows_selected_language(self):
+        row = {
+            "entry_type": "Masă personalizată",
+            "source_label": "Meal snapshot",
+            "meal_type": "Prânz",
+            "meal_time": time(13, 30),
+        }
+
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            self.assertEqual(
+                _format_source_context(row),
+                "Custom meal | Meal snapshot | Lunch, 13:30",
+            )
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            self.assertEqual(
+                _format_source_context(row),
+                "Masă personalizată | Snapshot masă | Prânz, 13:30",
+            )
+
+    def test_row_validation_uses_natural_labels_in_both_languages(self):
+        expectations = {
+            "en": (
+                "Food: The quantity must be at least 1 g.",
+                "Activity: The duration must be at least 0.1 minutes.",
+            ),
+            "ro": (
+                "Aliment: Cantitatea trebuie să fie cel puțin 1 g.",
+                "Activitate: Durata trebuie să fie cel puțin 0.1 minute.",
+            ),
+        }
+
+        for language_code, expected in expectations.items():
+            with self.subTest(language_code=language_code):
+                with patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ):
+                    self.assertEqual(
+                        _format_food_row_error({"label": "", "quantity_g": 0}),
+                        expected[0],
+                    )
+                    self.assertEqual(
+                        _format_activity_row_error(
+                            {
+                                "label": "",
+                                "duration_min": 0,
+                                "manual_calories_burned": None,
+                            }
+                        ),
+                        expected[1],
+                    )
+
+    def test_missing_row_names_follow_language_without_changing_named_entries(self):
+        for language_code, expected in (
+            ("en", ("Food", "Custom meal", "Activity")),
+            ("ro", ("Aliment", "Masă personalizată", "Activitate")),
+        ):
+            with self.subTest(language_code=language_code):
+                with patch.object(language.st, "session_state", {"language": language_code}):
+                    self.assertEqual(_format_food_row_label({"label": ""}), expected[0])
+                    self.assertEqual(
+                        _format_food_row_label(
+                            {"label": "", "entry_type": "Masă personalizată"}
+                        ),
+                        expected[1],
+                    )
+                    self.assertEqual(_format_activity_row_label({"label": None}), expected[2])
+                    for name in ("Food", "Custom meal", "Activity", "Prânzul meu"):
+                        row = {"label": name, "entry_type": "Masă personalizată"}
+                        self.assertEqual(_format_food_row_label(row), name)
+                        self.assertEqual(_format_activity_row_label(row), name)
+                        self.assertEqual(row["label"], name)
+
     def test_manual_calorie_validation_follows_selected_language(self):
         expectations = {
             "en": (
@@ -226,22 +304,51 @@ class WhatIfPageHelperTests(unittest.TestCase):
         )
 
         expectations = {
-            None: (
-                "Balanța estimată nu poate fi comparată deoarece lipsește "
-                "alimentația din ziua reală sau din scenariu."
-            ),
-            0: "Balanța estimată rămâne neschimbată față de valorile reale.",
-            -100: "Scenariul scade balanța estimată și merge mai mult spre deficit.",
-            100: "Scenariul crește balanța estimată și merge mai mult spre surplus.",
-            50: "Scenariul schimbă puțin balanța estimată față de valorile reale.",
+            "en": {
+                None: (
+                    "The estimated balance cannot be compared because food data is "
+                    "missing from the real day or the scenario."
+                ),
+                0: "The estimated balance remains unchanged compared with the real values.",
+                -100: (
+                    "The scenario lowers the estimated balance and moves further "
+                    "toward a deficit."
+                ),
+                100: (
+                    "The scenario raises the estimated balance and moves further "
+                    "toward a surplus."
+                ),
+                50: (
+                    "The scenario changes the estimated balance only slightly "
+                    "compared with the real values."
+                ),
+            },
+            "ro": {
+                None: (
+                    "Balanța estimată nu poate fi comparată deoarece lipsește "
+                    "alimentația din ziua reală sau din scenariu."
+                ),
+                0: "Balanța estimată rămâne neschimbată față de valorile reale.",
+                -100: "Scenariul scade balanța estimată și merge mai mult spre deficit.",
+                100: "Scenariul crește balanța estimată și merge mai mult spre surplus.",
+                50: "Scenariul schimbă puțin balanța estimată față de valorile reale.",
+            },
         }
-        with patch.object(language.st, "session_state", {"language": "ro"}):
-            for balance_delta, expected in expectations.items():
-                with self.subTest(balance_delta=balance_delta):
-                    self.assertEqual(
-                        language.translate(describe_balance_delta(balance_delta)),
-                        expected,
-                    )
+        for language_code, language_expectations in expectations.items():
+            with patch.object(
+                language.st,
+                "session_state",
+                {"language": language_code},
+            ):
+                for balance_delta, expected in language_expectations.items():
+                    with self.subTest(
+                        language_code=language_code,
+                        balance_delta=balance_delta,
+                    ):
+                        self.assertEqual(
+                            language.translate(describe_balance_delta(balance_delta)),
+                            expected,
+                        )
 
     def test_add_food_buttons_use_primary_what_if_style(self):
         catalog_source = inspect.getsource(what_if_page._render_add_catalog_food)

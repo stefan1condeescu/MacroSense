@@ -5,7 +5,7 @@ from typing import Any
 import streamlit as st
 from database import get_connection
 from services.analytics.energy import calculate_bmi
-from ui.language import translate
+from ui.language import clear_session_preserving_language, translate
 from ui.page_theme import apply_page_theme, get_user_page_theme
 from ui.pages.activity_journal_page import (
     ACTIVITY_JOURNAL_DATE_KEY,
@@ -106,7 +106,7 @@ def render_user_routes() -> None:
         width="stretch",
         type="tertiary",
     ):
-        st.session_state.clear()
+        clear_session_preserving_language()
         st.rerun()
 
 
