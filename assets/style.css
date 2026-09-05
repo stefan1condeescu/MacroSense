@@ -1,30 +1,36 @@
 /* MacroSense UI polish.
-   Keep selectors stable: no generated Streamlit emotion-cache classes. */
+   Keep selectors stable: no generated Streamlit emotion-cache classes.
+   light-dark() follows Streamlit's native color-scheme, including manual switches.
+   Do not override color-scheme here: the active theme belongs to Streamlit. */
 
 :root,
 .stApp {
-    --ms-page-bg: #f7f9fc;
-    --ms-sidebar-bg: #eaf0f7;
-    --ms-sidebar-bg-soft: #f3f7fb;
+    --ms-page-bg: light-dark(#f7f9fc, #10151f);
+    --ms-sidebar-bg: light-dark(#eaf0f7, #171e2b);
+    --ms-sidebar-bg-soft: light-dark(#f3f7fb, #131b27);
     --ms-accent: #2563eb;
     --ms-accent-hover: #1d4ed8;
-    --ms-accent-soft: #eff6ff;
+    --ms-accent-soft: light-dark(#eff6ff, #17263a);
     --ms-food-accent: #16a34a;
-    --ms-food-bg: #f0fdf4;
+    --ms-food-bg: light-dark(#f0fdf4, #172d20);
     --ms-meal-accent: #0d9488;
-    --ms-meal-bg: #f0fdfa;
+    --ms-meal-bg: light-dark(#f0fdfa, #142d2a);
     --ms-activity-accent: #6d5dfc;
-    --ms-activity-bg: #f5f3ff;
+    --ms-activity-bg: light-dark(#f5f3ff, #25203b);
     --ms-weight-accent: #0284c7;
-    --ms-weight-bg: #eff6ff;
+    --ms-weight-bg: light-dark(#eff6ff, #17263a);
     --ms-energy-accent: #f59e0b;
-    --ms-energy-bg: #fffbeb;
+    --ms-energy-bg: light-dark(#fffbeb, #332b18);
     --ms-what-if-accent: #d97706;
-    --ms-what-if-bg: #fff7ed;
+    --ms-what-if-bg: light-dark(#fff7ed, #342619);
     --ms-balance-accent: #dc2626;
-    --ms-balance-bg: #fff1f2;
-    --ms-surface: #ffffff;
-    --ms-border: #d9e1ec;
+    --ms-balance-bg: light-dark(#fff1f2, #351e27);
+    --ms-surface: light-dark(#ffffff, #171e2b);
+    --ms-border: light-dark(#d9e1ec, #374151);
+    --ms-text: light-dark(#172033, #f1f5f9);
+    --ms-heading: light-dark(#0f172a, #f1f5f9);
+    --ms-muted: light-dark(#64748b, #a9b7ca);
+    --ms-secondary: light-dark(#475569, #c3cede);
 }
 
 .page-theme-marker {
@@ -37,59 +43,59 @@
 
 .stApp:has(.page-theme-dashboard),
 .stApp:has(.page-theme-auth) {
-    --ms-page-bg: #f7f9fc;
-    --ms-sidebar-bg: #eaf0f7;
-    --ms-sidebar-bg-soft: #f3f7fb;
+    --ms-page-bg: light-dark(#f7f9fc, #10151f);
+    --ms-sidebar-bg: light-dark(#eaf0f7, #171e2b);
+    --ms-sidebar-bg-soft: light-dark(#f3f7fb, #131b27);
     --ms-accent: #2563eb;
     --ms-accent-hover: #1d4ed8;
-    --ms-accent-soft: #eff6ff;
+    --ms-accent-soft: light-dark(#eff6ff, #17263a);
 }
 
 .stApp:has(.page-theme-food),
 .stApp:has(.page-theme-catalog-food) {
-    --ms-page-bg: #f6fbf7;
-    --ms-sidebar-bg: #e7f5eb;
-    --ms-sidebar-bg-soft: #f3fbf5;
+    --ms-page-bg: light-dark(#f6fbf7, #101914);
+    --ms-sidebar-bg: light-dark(#e7f5eb, #16271c);
+    --ms-sidebar-bg-soft: light-dark(#f3fbf5, #122017);
     --ms-accent: #16a34a;
     --ms-accent-hover: #15803d;
-    --ms-accent-soft: #f0fdf4;
+    --ms-accent-soft: light-dark(#f0fdf4, #172d20);
 }
 
 .stApp:has(.page-theme-activity),
 .stApp:has(.page-theme-catalog-activity) {
-    --ms-page-bg: #f8f6ff;
-    --ms-sidebar-bg: #eeeafd;
-    --ms-sidebar-bg-soft: #f7f5ff;
+    --ms-page-bg: light-dark(#f8f6ff, #161422);
+    --ms-sidebar-bg: light-dark(#eeeafd, #231e35);
+    --ms-sidebar-bg-soft: light-dark(#f7f5ff, #1b182b);
     --ms-accent: #6d5dfc;
     --ms-accent-hover: #5747d9;
-    --ms-accent-soft: #f5f3ff;
+    --ms-accent-soft: light-dark(#f5f3ff, #25203b);
 }
 
 .stApp:has(.page-theme-weight) {
-    --ms-page-bg: #f4f9ff;
-    --ms-sidebar-bg: #e8f3fb;
-    --ms-sidebar-bg-soft: #f3f9fe;
+    --ms-page-bg: light-dark(#f4f9ff, #101923);
+    --ms-sidebar-bg: light-dark(#e8f3fb, #182839);
+    --ms-sidebar-bg-soft: light-dark(#f3f9fe, #142130);
     --ms-accent: #0284c7;
     --ms-accent-hover: #0369a1;
-    --ms-accent-soft: #eff6ff;
+    --ms-accent-soft: light-dark(#eff6ff, #17263a);
 }
 
 .stApp:has(.page-theme-meals) {
-    --ms-page-bg: #f4fbf8;
-    --ms-sidebar-bg: #e3f6f0;
-    --ms-sidebar-bg-soft: #f1faf6;
+    --ms-page-bg: light-dark(#f4fbf8, #101b19);
+    --ms-sidebar-bg: light-dark(#e3f6f0, #162c26);
+    --ms-sidebar-bg-soft: light-dark(#f1faf6, #13231f);
     --ms-accent: #0d9488;
     --ms-accent-hover: #0f766e;
-    --ms-accent-soft: #f0fdfa;
+    --ms-accent-soft: light-dark(#f0fdfa, #142d2a);
 }
 
 .stApp:has(.page-theme-what-if) {
-    --ms-page-bg: #fff9ed;
-    --ms-sidebar-bg: #fff0d7;
-    --ms-sidebar-bg-soft: #fff8ed;
+    --ms-page-bg: light-dark(#fff9ed, #1c1811);
+    --ms-sidebar-bg: light-dark(#fff0d7, #302517);
+    --ms-sidebar-bg-soft: light-dark(#fff8ed, #241e15);
     --ms-accent: #d97706;
     --ms-accent-hover: #b45309;
-    --ms-accent-soft: #fffbeb;
+    --ms-accent-soft: light-dark(#fffbeb, #332b18);
 }
 
 .stApp,
@@ -98,7 +104,7 @@ main[data-testid="stAppViewContainer"] {
     background: var(--ms-page-bg);
 }
 
-div[data-testid="stHeader"] {
+[data-testid="stHeader"] {
     background: transparent;
 }
 
@@ -109,43 +115,36 @@ section[data-testid="stSidebar"] > div {
 
 section[data-testid="stSidebar"] h1,
 section[data-testid="stSidebar"] h2,
-section[data-testid="stSidebar"] h3,
-section[data-testid="stSidebar"] p,
-section[data-testid="stSidebar"] label,
-section[data-testid="stSidebar"] span {
-    color: #172033;
+section[data-testid="stSidebar"] h3 {
+    color: var(--ms-text);
 }
 
 section[data-testid="stSidebar"] input[type="radio"] {
     accent-color: var(--ms-accent);
 }
 
-section[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] {
-    color: #172033;
-}
-
 section[data-testid="stSidebar"] [data-testid="stExpander"] details {
     border: 1px solid rgba(37, 99, 235, 0.28);
     border-radius: 8px;
-    background: rgba(239, 246, 255, 0.72);
+    background: light-dark(rgba(239, 246, 255, 0.72), #17263a);
     overflow: hidden;
 }
 
 section[data-testid="stSidebar"] [data-testid="stExpander"] summary {
-    background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
-    color: #1d4ed8;
+    background: linear-gradient(135deg, light-dark(#eff6ff, #17263a) 0%, light-dark(#dbeafe, #203550) 100%);
+    color: light-dark(#1d4ed8, #bfdbfe);
     font-weight: 600;
 }
 
 section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
-    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+    background: linear-gradient(135deg, light-dark(#dbeafe, #203550) 0%, light-dark(#bfdbfe, #294366) 100%);
 }
 
 .user-profile-card {
     border: 1px solid rgba(148, 163, 184, 0.45);
     border-left: 4px solid var(--ms-accent);
     border-radius: 8px;
-    background: rgba(255, 255, 255, 0.72);
+    background: light-dark(rgba(255, 255, 255, 0.72), #171e2b);
     padding: 10px 12px;
     margin-top: 4px;
 }
@@ -164,12 +163,12 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
 }
 
 .user-profile-row span {
-    color: #64748b !important;
+    color: var(--ms-muted) !important;
     font-size: 0.78rem;
 }
 
 .user-profile-row strong {
-    color: #0f172a;
+    color: var(--ms-heading);
     font-size: 0.84rem;
     text-align: right;
     line-height: 1.25;
@@ -177,9 +176,9 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
 }
 
 .admin-auth-card {
-    background: #dceff6;
+    background: light-dark(#dceff6, #193140);
     border-radius: 8px;
-    color: #172033;
+    color: var(--ms-text);
     margin: 12px 0 18px;
     padding: 14px 16px;
 }
@@ -199,8 +198,8 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
 }
 
 .stApp:has(.auth-login-panel) .st-key-login_form {
-    background: rgba(255, 255, 255, 0.88);
-    border: 1px solid #d9e1ec;
+    background: var(--ms-surface);
+    border: 1px solid var(--ms-border);
     border-radius: 12px;
     box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
     padding: 24px 26px 22px;
@@ -213,7 +212,7 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
 }
 
 .auth-login-copy h2 {
-    color: #172033;
+    color: var(--ms-text);
     font-size: 1.75rem;
     line-height: 1.2;
     margin: 0 0 8px;
@@ -221,7 +220,7 @@ section[data-testid="stSidebar"] [data-testid="stExpander"] summary:hover {
 
 .auth-login-copy p,
 .auth-login-note {
-    color: #64748b;
+    color: var(--ms-muted);
     font-size: 0.92rem;
     line-height: 1.45;
 }
@@ -279,10 +278,10 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 }
 
 .dashboard-card {
-    border: 1px solid #dbe3ef;
+    border: 1px solid var(--ms-border);
     border-left: 4px solid #64748b;
     border-radius: 8px;
-    background: #ffffff;
+    background: var(--ms-surface);
     padding: 12px 14px;
     margin: 6px 0 12px;
     min-height: 112px;
@@ -291,12 +290,12 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 
 .dashboard-card.profile {
     border-left-color: #2563eb;
-    background: #f8fbff;
+    background: light-dark(#f8fbff, #18273b);
 }
 
 .dashboard-card.goal {
     border-left-color: #7c3aed;
-    background: #fbf8ff;
+    background: light-dark(#fbf8ff, #29213b);
 }
 
 .dashboard-card.weight {
@@ -306,7 +305,7 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 
 .dashboard-card.health {
     border-left-color: #0d9488;
-    background: #f7fffd;
+    background: light-dark(#f7fffd, #142d2a);
 }
 
 .dashboard-card.energy {
@@ -331,19 +330,19 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 
 .dashboard-card.prediction {
     border-left-color: #0891b2;
-    background: #f5fdff;
+    background: light-dark(#f5fdff, #162c35);
 }
 
 .dashboard-card.quality {
-    border-left-color: #475569;
-    background: #f8fafc;
+    border-left-color: var(--ms-secondary);
+    background: light-dark(#f8fafc, #1e2633);
 }
 
 .dashboard-card-label {
     display: flex;
     align-items: center;
     gap: 6px;
-    color: #64748b;
+    color: var(--ms-muted);
     font-size: 0.82rem;
     font-weight: 600;
     line-height: 1.25;
@@ -358,7 +357,7 @@ div[data-testid="stDataFrame"] div[role="grid"] {
     height: 16px;
     border: 1px solid #94a3b8;
     border-radius: 999px;
-    color: #64748b;
+    color: var(--ms-muted);
     font-size: 0.68rem;
     line-height: 1;
     cursor: help;
@@ -366,7 +365,7 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 }
 
 .dashboard-card-value {
-    color: #0f172a;
+    color: var(--ms-heading);
     font-size: 1.55rem;
     font-weight: 700;
     line-height: 1.12;
@@ -394,16 +393,16 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 }
 
 .dashboard-card-caption {
-    color: #64748b;
+    color: var(--ms-muted);
     font-size: 0.8rem;
     margin-top: 8px;
 }
 
 .recommendation-card {
-    border: 1px solid #dbe3ef;
+    border: 1px solid var(--ms-border);
     border-left: 4px solid #64748b;
     border-radius: 8px;
-    background: #ffffff;
+    background: var(--ms-surface);
     box-sizing: border-box;
     display: flex;
     flex-direction: column;
@@ -422,7 +421,7 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 
 .recommendation-card.health {
     border-left-color: #0d9488;
-    background: #f7fffd;
+    background: light-dark(#f7fffd, #142d2a);
 }
 
 .recommendation-card.activity {
@@ -446,12 +445,12 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 }
 
 .recommendation-card.quality {
-    border-left-color: #475569;
-    background: #f8fafc;
+    border-left-color: var(--ms-secondary);
+    background: light-dark(#f8fafc, #1e2633);
 }
 
 .recommendation-card-category {
-    color: #64748b;
+    color: var(--ms-muted);
     font-size: 0.8rem;
     font-weight: 700;
     line-height: 1.2;
@@ -459,7 +458,7 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 }
 
 .recommendation-card-status {
-    color: #0f172a;
+    color: var(--ms-heading);
     font-size: 1.08rem;
     font-weight: 800;
     line-height: 1.2;
@@ -467,13 +466,13 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 }
 
 .recommendation-card-message {
-    color: #475569;
+    color: var(--ms-secondary);
     font-size: 0.88rem;
     line-height: 1.35;
 }
 
 .inline-validation-message {
-    color: #b91c1c;
+    color: light-dark(#b91c1c, #fca5a5);
     font-size: 0.82rem;
     line-height: 1.35;
     margin-top: 6px;
@@ -487,10 +486,10 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 }
 
 .journal-energy-card {
-    border: 1px solid #dbe3ef;
+    border: 1px solid var(--ms-border);
     border-left: 4px solid #64748b;
     border-radius: 8px;
-    background: #ffffff;
+    background: var(--ms-surface);
     padding: 10px 12px;
     min-height: 78px;
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
@@ -519,7 +518,7 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 
 .journal-energy-card span {
     display: block;
-    color: #64748b;
+    color: var(--ms-muted);
     font-size: 0.78rem;
     font-weight: 700;
     line-height: 1.2;
@@ -527,46 +526,13 @@ div[data-testid="stDataFrame"] div[role="grid"] {
 }
 
 .journal-energy-card strong {
-    color: #0f172a;
+    color: var(--ms-heading);
     font-size: 1.1rem;
     font-weight: 800;
     line-height: 1.15;
 }
 
-div[data-baseweb="popover"] div[role="listbox"] {
-    background: #ffffff !important;
-    border: 1px solid #d9e1ec !important;
-    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16) !important;
-    filter: none !important;
-    backdrop-filter: none !important;
-}
-
-div[data-baseweb="select"] > div,
-div[data-baseweb="select"] div {
-    color: #0f172a !important;
-    opacity: 1 !important;
-    filter: none !important;
-    text-shadow: none !important;
-}
-
-div[data-baseweb="popover"] div[role="option"],
-div[data-baseweb="popover"] div[role="option"] *,
-div[data-baseweb="menu"] div[role="option"],
-div[data-baseweb="menu"] div[role="option"] *,
-div[role="listbox"] div[role="option"],
-div[role="listbox"] div[role="option"] * {
-    color: #0f172a !important;
-    opacity: 1 !important;
-    filter: none !important;
-    font-weight: 500 !important;
-    text-shadow: none !important;
-}
-
-div[data-baseweb="popover"] div[role="option"][aria-selected="true"],
-div[data-baseweb="menu"] div[role="option"][aria-selected="true"] {
-    background: #eef2ff !important;
-}
-
+/* Native selects and popup menus retain Streamlit's theme and interaction states. */
 .stButton button[kind="primary"],
 .stFormSubmitButton button[kind="primary"],
 div[data-testid="stFormSubmitButton"] button,
@@ -602,11 +568,11 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 }
 
 .custom-meal-card {
-    border: 1px solid #d7dee8;
+    border: 1px solid var(--ms-border);
     border-radius: 8px;
     padding: 14px 16px;
     margin: 10px 0;
-    background: #ffffff;
+    background: var(--ms-surface);
     transition: border-color 120ms ease, box-shadow 120ms ease, opacity 120ms ease;
 }
 
@@ -617,7 +583,7 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 
 .custom-meal-card.archived {
     border-left: 4px solid #dc2626;
-    background: #f8fafc;
+    background: light-dark(#f8fafc, #1e2633);
     opacity: 0.68;
     filter: grayscale(0.18);
 }
@@ -657,19 +623,19 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 
 .custom-meal-card-grid span {
     display: block;
-    color: #64748b;
+    color: var(--ms-muted);
     font-size: 0.78rem;
     margin-bottom: 5px;
 }
 
 .custom-meal-card-grid strong {
-    color: #0f172a;
+    color: var(--ms-heading);
     font-size: 0.92rem;
 }
 
 .custom-meal-card.archived .custom-meal-card-grid strong,
 .custom-meal-card.archived .custom-meal-card-header strong {
-    color: #475569;
+    color: var(--ms-secondary);
 }
 
 .custom-meal-summary-grid {
@@ -681,7 +647,7 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 
 .custom-meal-summary-card {
     background: var(--ms-meal-bg);
-    border: 1px solid #cbe8e3;
+    border: 1px solid var(--ms-border);
     border-left: 4px solid var(--ms-meal-accent);
     border-radius: 8px;
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
@@ -691,7 +657,7 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 }
 
 .custom-meal-summary-card span {
-    color: #64748b;
+    color: var(--ms-muted);
     display: block;
     font-size: 0.78rem;
     font-weight: 700;
@@ -700,7 +666,7 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 }
 
 .custom-meal-summary-card strong {
-    color: #0f172a;
+    color: var(--ms-heading);
     display: block;
     font-size: 1.14rem;
     font-weight: 800;
@@ -714,7 +680,7 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 
 .usda-preview-metric span {
     display: block;
-    color: #172033;
+    color: var(--ms-text);
     font-size: 0.86rem;
     line-height: 1.25;
     margin-bottom: 4px;
@@ -722,7 +688,7 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 
 .usda-preview-metric strong {
     display: block;
-    color: #172033;
+    color: var(--ms-text);
     font-size: 1.85rem;
     font-weight: 400;
     line-height: 1.12;
@@ -752,17 +718,17 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 }
 
 .weight-history-list.is-scrollable::-webkit-scrollbar-thumb {
-    background: color-mix(in srgb, var(--ms-weight-accent) 42%, #ffffff);
+    background: color-mix(in srgb, var(--ms-weight-accent) 42%, var(--ms-surface));
     border-radius: 999px;
 }
 
 .log-entry-card {
-    border: 1px solid #d7dee8;
+    border: 1px solid var(--ms-border);
     border-left: 4px solid #2563eb;
     border-radius: 8px;
     padding: 12px 14px;
     margin: 8px 0;
-    background: #ffffff;
+    background: var(--ms-surface);
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.05);
 }
 
@@ -795,7 +761,7 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 }
 
 .log-entry-card-header strong {
-    color: #0f172a;
+    color: var(--ms-heading);
     font-size: 0.96rem;
 }
 
@@ -853,13 +819,13 @@ button[data-testid="stBaseButton-tertiary"]:hover {
 
 .log-entry-card-grid span {
     display: block;
-    color: #64748b;
+    color: var(--ms-muted);
     font-size: 0.74rem;
     margin-bottom: 4px;
 }
 
 .log-entry-card-grid strong {
-    color: #0f172a;
+    color: var(--ms-heading);
     font-size: 0.88rem;
 }
 

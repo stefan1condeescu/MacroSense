@@ -1,4 +1,5 @@
 from pathlib import Path
+import re
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
@@ -104,6 +105,66 @@ class PageThemeTests(unittest.TestCase):
         self.assertIn('.stApp:has(.auth-login-panel) .st-key-login_form', css_text)
         self.assertIn("border-radius: 12px", css_text)
         self.assertIn("box-shadow: 0 16px 34px", css_text)
+
+    def test_css_defines_light_and_dark_semantic_colors(self):
+        """Check the stylesheet contract, not browser-rendered contrast."""
+        css_text = Path("assets/style.css").read_text(encoding="utf-8")
+        colors = {
+            "text": ("#172033", "#f1f5f9"),
+            "heading": ("#0f172a", "#f1f5f9"),
+            "muted": ("#64748b", "#a9b7ca"),
+            "secondary": ("#475569", "#c3cede"),
+            "surface": ("#ffffff", "#171e2b"),
+            "border": ("#d9e1ec", "#374151"),
+        }
+
+        for name, (light, dark) in colors.items():
+            with self.subTest(token=name):
+                self.assertRegex(
+                    css_text,
+                    rf"--ms-{name}\s*:\s*light-dark\(\s*{light}\s*,\s*{dark}\s*\)",
+                )
+
+    def test_css_background_tokens_support_both_color_schemes(self):
+        css_text = Path("assets/style.css").read_text(encoding="utf-8")
+        backgrounds = re.findall(
+            r"(--ms-[\w-]*bg(?:-soft)?)\s*:\s*([^;]+);", css_text
+        )
+
+        self.assertTrue(backgrounds, "Expected page and domain background tokens")
+        for name, value in backgrounds:
+            with self.subTest(token=name, value=value):
+                self.assertRegex(value, r"^light-dark\(.+,\s*.+\)$")
+
+    def test_css_leaves_color_scheme_selection_to_streamlit(self):
+        css_text = Path("assets/style.css").read_text(encoding="utf-8")
+        declarations = re.sub(r"/\*.*?\*/", "", css_text, flags=re.DOTALL)
+
+        self.assertNotRegex(declarations, r"(?<![\w-])color-scheme\s*:")
+        self.assertNotIn("prefers-color-scheme", declarations)
+
+    def test_css_does_not_override_native_select_and_popover_colors(self):
+        css_text = Path("assets/style.css").read_text(encoding="utf-8")
+
+        self.assertNotRegex(css_text, r'\[data-baseweb=["\'](?:select|popover|menu)["\']\]')
+        self.assertNotRegex(css_text, r'\[role=["\'](?:listbox|option)["\']\]')
+
+    def test_css_uses_stable_selectors_and_semantic_header(self):
+        css_text = Path("assets/style.css").read_text(encoding="utf-8")
+
+        self.assertNotIn(".st-emotion-cache-", css_text)
+        self.assertRegex(css_text, r'(?m)^\[data-testid="stHeader"\]\s*\{')
+        self.assertNotIn('div[data-testid="stHeader"]', css_text)
+
+    def test_css_login_panel_uses_theme_surface(self):
+        css_text = Path("assets/style.css").read_text(encoding="utf-8")
+        panel_rule = re.search(
+            r"\.stApp:has\(\.auth-login-panel\)\s+\.st-key-login_form\s*\{([^}]+)\}",
+            css_text,
+        )
+
+        self.assertIsNotNone(panel_rule)
+        self.assertRegex(panel_rule.group(1), r"background\s*:\s*var\(--ms-surface\)")
 
 
 if __name__ == "__main__":
