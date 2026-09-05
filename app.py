@@ -1,12 +1,13 @@
 import streamlit as st
 from ui.config import configure_page
-from ui.language import initialize_language
+from ui.language import initialize_language, render_language_selector
 from ui.pages.admin_routes import render_admin_routes
 from ui.pages.auth_page import render_auth_page
 from ui.pages.user_routes import render_user_routes
 
 configure_page()
 initialize_language()
+render_language_selector()
 
 APP_LAST_RENDERED_ROLE_KEY = "app_last_rendered_role"
 

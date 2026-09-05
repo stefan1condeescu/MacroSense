@@ -16,12 +16,21 @@ class AppRoutingTests(unittest.TestCase):
         self.assertIn("st.session_state[APP_LAST_RENDERED_ROLE_KEY] = current_role", self.app_source)
         self.assertIn("st.rerun()", self.app_source)
 
-    def test_app_initializes_language_after_page_configuration(self):
-        self.assertIn("from ui.language import initialize_language", self.app_source)
+    def test_app_renders_language_selector_before_role_routing(self):
+        self.assertIn("initialize_language, render_language_selector", self.app_source)
         self.assertIn("initialize_language()", self.app_source)
+        self.assertIn("render_language_selector()", self.app_source)
         self.assertLess(
             self.app_source.index("configure_page()"),
             self.app_source.index("initialize_language()"),
+        )
+        self.assertLess(
+            self.app_source.index("initialize_language()"),
+            self.app_source.index("render_language_selector()"),
+        )
+        self.assertLess(
+            self.app_source.index("render_language_selector()"),
+            self.app_source.index('if "role" not in st.session_state:'),
         )
 
 

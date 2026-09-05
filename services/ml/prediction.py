@@ -22,6 +22,10 @@ from services.ml.feature_engineering import (
 
 
 DEFAULT_PREDICTION_HORIZONS = (14, 30)
+USER_NOT_FOUND_REASON = "The user could not be found."
+INSUFFICIENT_RECENT_DATA_REASON = (
+    "There is not enough recent data for a prediction."
+)
 
 
 @dataclass(frozen=True)
@@ -71,7 +75,7 @@ def get_user_weight_predictions(
             user_id=user_id,
             analysis_date=target_date,
             predictions=[],
-            unavailable_horizons={horizon: "Utilizatorul nu există." for horizon in horizons},
+            unavailable_horizons={horizon: USER_NOT_FOUND_REASON for horizon in horizons},
         )
 
     return predict_weight_changes_from_frames(
@@ -114,7 +118,7 @@ def get_latest_available_user_weight_predictions(
             user_id=user_id,
             analysis_date=target_date,
             predictions=[],
-            unavailable_horizons={horizon: "Utilizatorul nu există." for horizon in horizons},
+            unavailable_horizons={horizon: USER_NOT_FOUND_REASON for horizon in horizons},
         )
 
     real_data_dates = _real_data_dates_before(
@@ -135,8 +139,7 @@ def get_latest_available_user_weight_predictions(
             analysis_date=target_date,
             predictions=[],
             unavailable_horizons={
-                horizon: "Nu există suficiente date recente pentru predicție."
-                for horizon in horizons
+                horizon: INSUFFICIENT_RECENT_DATA_REASON for horizon in horizons
             },
         )
 
@@ -160,8 +163,7 @@ def get_latest_available_user_weight_predictions(
         analysis_date=target_date,
         predictions=[],
         unavailable_horizons={
-            horizon: "Nu există suficiente date recente pentru predicție."
-            for horizon in horizons
+            horizon: INSUFFICIENT_RECENT_DATA_REASON for horizon in horizons
         },
     )
 
@@ -192,9 +194,7 @@ def predict_weight_changes_from_frames(
             config,
         )
         if feature_row is None:
-            unavailable_horizons[horizon_days] = (
-                "Nu există suficiente date recente pentru predicție."
-            )
+            unavailable_horizons[horizon_days] = INSUFFICIENT_RECENT_DATA_REASON
             continue
 
         try:

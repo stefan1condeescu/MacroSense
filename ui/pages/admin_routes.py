@@ -1,6 +1,6 @@
 import html
 import streamlit as st
-from ui.language import translate
+from ui.language import clear_session_preserving_language, translate
 from ui.page_theme import apply_page_theme, get_admin_page_theme
 from ui.pages.admin_catalog_pages import render_admin_activity_catalog_page, render_admin_food_catalog_page
 
@@ -59,5 +59,5 @@ def render_admin_routes() -> None:
 
     st.sidebar.divider()
     if st.sidebar.button(translate("Log out"), width="stretch", type="tertiary"):
-        st.session_state.clear()
+        clear_session_preserving_language()
         st.rerun()

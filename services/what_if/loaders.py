@@ -57,7 +57,7 @@ def fetch_food_scenario_rows(log_id: int, user_id: int) -> list[dict]:
                     fl.snapshot_fats_100g AS fats_g,
                     fl.meal_type,
                     fl.meal_time,
-                    'Snapshot masă' AS source_label
+                    'Meal snapshot' AS source_label
                 FROM food_logs fl
                 JOIN daily_logs dl ON dl.id = fl.log_id
                 WHERE fl.log_id = %s

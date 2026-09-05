@@ -2,15 +2,19 @@ from datetime import date
 from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 
 import pandas as pd
 
 from services.ml.artifacts import save_weight_model_artifact
 from services.ml.prediction import (
+    INSUFFICIENT_RECENT_DATA_REASON,
+    USER_NOT_FOUND_REASON,
     UserWeightPredictions,
     WeightPrediction,
     _real_data_dates_before,
     _resolve_analysis_date,
+    get_user_weight_predictions,
     get_latest_available_user_weight_predictions,
     predict_weight_changes_from_frames,
     prepare_activity_rows_for_ml,
@@ -129,6 +133,22 @@ class MLPredictionTests(unittest.TestCase):
         self.assertEqual(cardio_row["calories_burned"], 320.0)
         self.assertEqual(strength_row["calories_burned"], 67.0)
 
+    def test_missing_user_reason_uses_english_source_text(self):
+        with patch(
+            "services.ml.prediction.fetch_user_prediction_frames",
+            return_value=(None, pd.DataFrame(), pd.DataFrame(), pd.DataFrame()),
+        ):
+            result = get_user_weight_predictions(
+                user_id=999,
+                analysis_date=date(2026, 5, 14),
+                horizons=(14, 30),
+            )
+
+        self.assertEqual(
+            result.unavailable_horizons,
+            {14: USER_NOT_FOUND_REASON, 30: USER_NOT_FOUND_REASON},
+        )
+
     def test_prediction_returns_14_and_30_day_outputs_from_saved_artifacts(self):
         with TemporaryDirectory() as temp_dir:
             for horizon_days in (14, 30):
@@ -187,7 +207,10 @@ class MLPredictionTests(unittest.TestCase):
             )
 
         self.assertEqual(result.predictions, [])
-        self.assertIn(14, result.unavailable_horizons)
+        self.assertEqual(
+            result.unavailable_horizons,
+            {14: INSUFFICIENT_RECENT_DATA_REASON},
+        )
 
     def test_prediction_reports_bad_artifact_metrics_for_one_horizon_only(self):
         import services.ml.prediction as prediction_module
@@ -366,7 +389,7 @@ class MLPredictionTests(unittest.TestCase):
                     analysis_date=analysis_date,
                     predictions=[],
                     unavailable_horizons={
-                        horizon: "Nu există suficiente date recente pentru predicție."
+                        horizon: INSUFFICIENT_RECENT_DATA_REASON
                         for horizon in horizons
                     },
                 )

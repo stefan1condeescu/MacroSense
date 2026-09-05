@@ -11,11 +11,14 @@ ROMANIAN_TRANSLATIONS = {
     "Food catalog": "Catalog Alimente",
     "Activity catalog": "Catalog Activități",
     "Main menu": "Meniu Principal",
+    "Language": "Limbă",
     "Hello, {name}!": "Salut, {name}!",
     "Log out": "Deconectare",
     "My profile": "Profilul meu",
     "The profile cannot be loaded right now.": "Profilul nu poate fi încărcat momentan.",
     "Name": "Nume",
+    "Email": "Email",
+    "BMI": "BMI",
     "Registration": "Înregistrare",
     "Login": "Autentificare",
     "Create account": "Creare Cont",
@@ -558,6 +561,7 @@ ROMANIAN_TRANSLATIONS = {
     "Entry type": "Tip înregistrare",
     "Catalog food": "Aliment din catalog",
     "Custom meal": "Masă personalizată",
+    "Meal snapshot": "Snapshot masă",
     "The food catalog is empty. The administrator must add foods first.": (
         "Catalogul de alimente este gol. Administratorul trebuie să adauge "
         "alimente mai întâi."

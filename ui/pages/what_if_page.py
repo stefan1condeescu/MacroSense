@@ -47,6 +47,7 @@ from ui.food_selection import (
     build_food_selection_state_key,
     format_food_category_for_display,
     format_food_entry_type,
+    format_food_source_label_for_display,
     format_meal_type,
     get_food_category_filter_options,
 )
@@ -543,7 +544,7 @@ def _render_food_scenario_editor() -> None:
                 vertical_alignment="center",
             )
             with name_col:
-                st.markdown(f"**{row.get('label', '-')}**")
+                st.markdown(f"**{_format_food_row_label(row)}**")
                 st.caption(source_text)
             with quantity_col:
                 quantity_key = f"what_if_food_quantity_{scenario_id}"
@@ -767,7 +768,7 @@ def _render_activity_scenario_editor(reference_weight: float) -> None:
                 vertical_alignment="center",
             )
             with name_col:
-                st.markdown(f"**{row.get('label', '-')}**")
+                st.markdown(f"**{_format_activity_row_label(row)}**")
                 st.caption(
                     f"{format_activity_category_for_display(row.get('category', '-'))} | "
                     f"{row.get('source_label', 'MacroSense')}"
@@ -1136,8 +1137,16 @@ def _build_entries(
     return food_entries, activity_entries, errors
 
 
+def _format_food_row_label(row: dict) -> str:
+    return row.get("label") or format_food_entry_type(row.get("entry_type") or "Aliment")
+
+
+def _format_activity_row_label(row: dict) -> str:
+    return row.get("label") or translate("Activity")
+
+
 def _format_food_row_error(row: dict) -> str:
-    label = row.get("label") or translate("Food")
+    label = _format_food_row_label(row)
     quantity_error = validate_quantity_g_for_ui(
         row.get("quantity_g"),
         "The quantity",
@@ -1151,7 +1160,7 @@ def _format_food_row_error(row: dict) -> str:
 
 
 def _format_activity_row_error(row: dict) -> str:
-    label = row.get("label") or translate("Activity")
+    label = _format_activity_row_label(row)
     duration_error = validate_duration_minutes_for_ui(
         row.get("duration_min"),
         "The duration",
@@ -1274,7 +1283,9 @@ def _format_source_context(row: dict) -> str:
     meal_type = row.get("meal_type")
     meal_time = format_time_for_display(row.get("meal_time"))
     entry_type = format_food_entry_type(row.get("entry_type", "Aliment"))
-    source = format_food_entry_type(row.get("source_label") or "MacroSense")
+    source = format_food_source_label_for_display(
+        row.get("source_label") or "MacroSense"
+    )
     display_meal_type = (
         translate("Scenario")
         if meal_type == "Scenariu"

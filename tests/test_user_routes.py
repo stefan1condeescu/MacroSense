@@ -94,6 +94,12 @@ class UserRoutesTests(unittest.TestCase):
         self.assertIn('"Hello, {name}!"', source)
         self.assertIn('translate("Log out")', source)
 
+    def test_user_logout_preserves_selected_language(self):
+        source = inspect.getsource(user_routes.render_user_routes)
+
+        self.assertIn("clear_session_preserving_language()", source)
+        self.assertNotIn("st.session_state.clear()", source)
+
     def test_user_profile_summary_uses_the_active_language(self):
         profile = {
             "email": "ana@example.com",
