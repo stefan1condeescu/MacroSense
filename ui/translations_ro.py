@@ -1,0 +1,1128 @@
+"""Romanian translations for English UI source text."""
+
+
+ROMANIAN_TRANSLATIONS = {
+    "Home": "Acasă",
+    "Food journal": "Jurnal Alimentar",
+    "Activity journal": "Jurnal Activități",
+    "Weight journal": "Jurnal Greutate",
+    "Custom meals": "Mese Personalizate",
+    "What-if simulator": "Simulator What-if",
+    "Food catalog": "Catalog Alimente",
+    "Activity catalog": "Catalog Activități",
+    "Main menu": "Meniu Principal",
+    "Language": "Limbă",
+    "Hello, {name}!": "Salut, {name}!",
+    "Log out": "Deconectare",
+    "My profile": "Profilul meu",
+    "The profile cannot be loaded right now.": "Profilul nu poate fi încărcat momentan.",
+    "Name": "Nume",
+    "Email": "Email",
+    "BMI": "BMI",
+    "Registration": "Înregistrare",
+    "Login": "Autentificare",
+    "Create account": "Creare Cont",
+    "Navigation": "Navigație",
+    "Food management": "Gestiune Alimente",
+    "Activity management": "Gestiune Activități",
+    "Admin menu": "Meniu Admin",
+    "Logged in as:": "Autentificat ca:",
+    "Admin panel": "Panou Administrator",
+    "Food catalog management": "Gestiune Catalog Alimente",
+    "Add a new food": "Adaugă un aliment nou",
+    "Food name": "Denumire aliment",
+    "Calories (per 100g)": "Calorii (per 100g)",
+    "Protein (g)": "Proteine (g)",
+    "Carbohydrates (g)": "Carbohidrați (g)",
+    "Fats (g)": "Grăsimi (g)",
+    "Save food": "Salvează alimentul",
+    "Food name is required.": "Denumirea alimentului este obligatorie.",
+    "Food name cannot contain HTML-like characters.": (
+        "Denumirea alimentului nu poate conține caractere de tip HTML."
+    ),
+    "Food name must contain at least one letter.": (
+        "Denumirea alimentului trebuie să conțină cel puțin o literă."
+    ),
+    "Nutritional values cannot be negative.": (
+        "Valorile nutriționale nu pot fi negative."
+    ),
+    "Calories must be greater than 0.": "Caloriile trebuie să fie mai mari decât 0.",
+    "Enter at least one macronutrient greater than 0.": (
+        "Completează cel puțin un macronutrient mai mare decât 0."
+    ),
+    'Food "{name}" was added successfully!': (
+        "Alimentul „{name}” a fost adăugat cu succes!"
+    ),
+    "Could not add the food.": "Eroare la adăugarea alimentului.",
+    "The food does not satisfy the validation rules.": (
+        "Alimentul nu respectă regulile de validare."
+    ),
+    "The catalog is empty.": "Catalogul este gol.",
+    "Import food from USDA": "Importă aliment din USDA",
+    "Search for non-branded foods in FoodData Central and save their per-100g values locally.": (
+        "Caută alimente nebranduite în FoodData Central și salvează local "
+        "valorile per 100g."
+    ),
+    'USDA search works best with English terms, for example "ice cream", "salmon", or "orange juice".': (
+        "Căutarea USDA funcționează cel mai bine cu termeni în engleză, de "
+        "exemplu „ice cream”, „salmon” sau „orange juice”."
+    ),
+    "Configure `FDC_API_KEY` in Streamlit secrets or environment variables to use USDA import.": (
+        "Configurează cheia `FDC_API_KEY` în Streamlit secrets sau în "
+        "variabilele de mediu pentru import USDA."
+    ),
+    "Search for USDA food (in English)": "Caută aliment USDA (în engleză)",
+    "E.g. banana, chicken breast, oats": "Ex: banana, chicken breast, oats",
+    "USDA sources": "Surse USDA",
+    "Branded is not included in this version to avoid commercial duplicates.": (
+        "Branded nu este inclus în această versiune pentru a evita duplicatele comerciale."
+    ),
+    "Search USDA": "Caută în USDA",
+    "Enter a search term.": "Introdu un termen de căutare.",
+    "Select at least one USDA source.": "Selectează cel puțin o sursă USDA.",
+    "Found {count} relevant importable results.": (
+        "Am găsit {count} rezultate relevante importabile."
+    ),
+    "No results with complete calorie and macronutrient values were found.": (
+        "Nu am găsit rezultate cu valori complete pentru calorii și macronutrienți."
+    ),
+    "USDA query error: {error}": "Eroare la interogarea USDA: {error}",
+    'The search criteria changed. Select "Search USDA" again to refresh the results.': (
+        "Ai modificat criteriile de căutare. Apasă din nou „Caută în USDA” "
+        "pentru rezultate actualizate."
+    ),
+    "USDA result": "Rezultat USDA",
+    "Review the food before importing": "Verifică alimentul înainte de import",
+    "Open source in FoodData Central": "Deschide sursa în FoodData Central",
+    "Name in the application": "Denumire în aplicație",
+    "Suggested category: {category}": "Categorie sugerată: {category}",
+    "This USDA food is already imported into the catalog.": (
+        "Acest aliment USDA este deja importat în catalog."
+    ),
+    "Import food": "Importă alimentul",
+    "The imported food does not satisfy the validation rules.": (
+        "Alimentul importat nu respectă regulile de validare."
+    ),
+    'Food "{name}" was imported.': "Alimentul „{name}” a fost importat.",
+    "Import failed. Check whether the food already exists in the catalog.": (
+        "Eroare la import. Verifică dacă alimentul nu există deja în catalog."
+    ),
+    "Activity catalog management": "Gestiune Catalog Activități",
+    "Add a new activity": "Adaugă o activitate nouă",
+    "Activity name": "Denumire activitate",
+    "MET coefficient": "Coeficient MET",
+    "The minimum accepted value is {minimum:.1f}. E.g. Running = 8.0": (
+        "Valoarea minimă acceptată este {minimum:.1f}. Ex: Alergat = 8.0"
+    ),
+    "Save activity": "Salvează activitatea",
+    "Activity name is required.": "Denumirea activității este obligatorie.",
+    "Activity name cannot contain HTML-like characters.": (
+        "Denumirea activității nu poate conține caractere de tip HTML."
+    ),
+    "Activity name must contain at least one letter.": (
+        "Denumirea activității trebuie să conțină cel puțin o literă."
+    ),
+    "An activity with this name already exists.": (
+        "Există deja o activitate cu această denumire."
+    ),
+    "The MET coefficient must be at least {minimum:.1f}.": (
+        "Coeficientul MET trebuie să fie cel puțin {minimum:.1f}."
+    ),
+    "Activity category is required.": "Categoria activității este obligatorie.",
+    'Activity "{name}" was added successfully!': (
+        "Activitatea „{name}” a fost adăugată cu succes!"
+    ),
+    "Could not add the activity.": "Eroare la adăugarea activității.",
+    "The activity does not satisfy the validation rules.": (
+        "Activitatea nu respectă regulile de validare."
+    ),
+    "The activity catalog is empty.": "Catalogul de activități este gol.",
+    "Calories consumed": "Calorii consumate",
+    "Activity calories": "Calorii activități",
+    "Estimated TDEE": "TDEE estimat",
+    "Estimated balance": "Balanță estimată",
+    "Not logged": "Nelogat",
+    "Create a new profile": "Creează un profil nou",
+    "Email address": "Adresă Email",
+    "Password": "Parolă",
+    "Full name": "Nume complet",
+    "Height (cm)": "Înălțime (cm)",
+    "Height must be between {minimum:.0f} and {maximum:.0f} cm.": (
+        "Înălțimea trebuie să fie între {minimum:.0f} și {maximum:.0f} cm."
+    ),
+    "Current weight (kg)": "Greutate curentă (kg)",
+    "Weight must be between {minimum:.0f} and {maximum:.0f} kg.": (
+        "Greutatea trebuie să fie între {minimum:.0f} și {maximum:.0f} kg."
+    ),
+    "Age": "Vârstă",
+    "Age must be between {minimum} and {maximum} years.": (
+        "Vârsta trebuie să fie între {minimum} și {maximum} ani."
+    ),
+    "Gender": "Sex",
+    "Goal": "Obiectiv",
+    "Weight loss": "Slăbire",
+    "Maintenance": "Menținere",
+    "Muscle gain": "Creștere",
+    "Register": "Înregistrează-te",
+    "Please complete all required fields (Email, Password, Full name)!": (
+        "Te rog să completezi toate câmpurile obligatorii (Email, Parolă, Nume complet)!"
+    ),
+    "The password must contain at least 6 characters!": (
+        "Parola trebuie să conțină cel puțin 6 caractere!"
+    ),
+    "Please enter a valid email address!": "Te rog introdu o adresă de email validă!",
+    "An account already exists for this email address.": (
+        "Există deja un cont creat cu această adresă de email."
+    ),
+    "Please complete all required fields.": "Te rog să completezi toate câmpurile obligatorii.",
+    "The email address is not valid.": "Adresa de email nu este validă.",
+    "The full name may contain only letters, spaces, hyphens, or apostrophes.": (
+        "Numele complet poate conține doar litere, spații, cratimă sau apostrof."
+    ),
+    "The selected gender is not valid.": "Sexul selectat nu este valid.",
+    "The selected goal is not valid.": "Obiectivul selectat nu este valid.",
+    "The initial weight is not valid.": "Greutatea inițială nu este validă.",
+    "The profile data does not satisfy the application rules.": (
+        "Datele profilului nu respectă regulile aplicației."
+    ),
+    "The database connection could not be established.": (
+        "Nu s-a putut realiza conexiunea la baza de date."
+    ),
+    "The account could not be created. Check the entered data and try again.": (
+        "Contul nu a putut fi creat. Verifică datele introduse și încearcă din nou."
+    ),
+    "Account created successfully! You can now log in.": (
+        "Cont creat cu succes! Te poți autentifica acum."
+    ),
+    "Welcome back": "Bine ai revenit",
+    "Log in to MacroSense to continue tracking.": (
+        "Intră în MacroSense pentru a continua monitorizarea."
+    ),
+    "Log in": "Intră în cont",
+    "Please enter your email address and password.": (
+        "Te rog să introduci adresa de email și parola."
+    ),
+    "Incorrect email or password.": "Email sau parolă incorecte.",
+    "Don't have an account? Choose Create account from the menu on the left.": (
+        "Nu ai cont? Alege Creare Cont din meniul din stânga."
+    ),
+    "Recommendations": "Recomandări",
+    "Based on the last {days} days.": "Pe baza ultimelor {days} zile.",
+    "Based on the last {days} days through the analysis date.": (
+        "Pe baza ultimelor {days} zile până la data analizată."
+    ),
+    "Meals": "Mese",
+    "Not enough data": "Date puține",
+    "Log meals more often.": "Loghează mesele mai des.",
+    "Too little food": "Mese prea puține",
+    "Eat a little more.": "Mănâncă puțin mai mult.",
+    "Meals too heavy": "Mese prea bogate",
+    "Choose slightly lighter portions.": "Alege porții puțin mai ușoare.",
+    "Meals on track": "Mese potrivite",
+    "Your meals support weight loss.": "Mesele susțin slăbirea.",
+    "Increase your intake more gradually.": "Crește aportul mai treptat.",
+    "Your meals support weight gain.": "Mesele susțin creșterea.",
+    "Your meals support maintenance.": "Mesele susțin menținerea.",
+    "Protein": "Proteine",
+    "Low protein": "Proteine puține",
+    "Add a protein source.": "Adaugă o sursă de proteină.",
+    "Enough protein": "Proteine suficiente",
+    "Your protein intake looks good.": "Aportul de proteine arată bine.",
+    "Movement": "Mișcare",
+    "Log activities more often.": "Loghează activitățile mai des.",
+    "Training load too high": "Ritm prea intens",
+    "Include rest days too.": "Păstrează și zile de pauză.",
+    "Intense activity": "Mișcare intensă",
+    "You logged demanding activities.": "Ai avut activități solicitante.",
+    "Low activity": "Mișcare puțină",
+    "Add some light activity.": "Adaugă o activitate ușoară.",
+    "Consistent activity": "Mișcare constantă",
+    "Your activity level looks consistent.": "Ai un ritm bun de activitate.",
+    "Progress": "Progres",
+    "Log your weight more often.": "Loghează greutatea mai des.",
+    "Keep monitoring": "Mai urmărește",
+    "Log a few more days.": "Mai loghează câteva zile.",
+    "Stable weight": "Greutate stabilă",
+    "Your weight remains nearly stable.": "Greutatea rămâne aproape constantă.",
+    "Good progress": "Progres bun",
+    "Your weight is moving toward your goal.": "Greutatea merge spre obiectiv.",
+    "Progress too fast": "Ritm prea rapid",
+    "Make changes more gradually.": "Alege schimbări mai treptate.",
+    "Variable weight": "Greutate variabilă",
+    "Keep monitoring for a few more days.": "Mai urmărește câteva zile.",
+    "Slow progress": "Progres lent",
+    "Adjust your meals or activity.": "Mai ajustează mesele sau mișcarea.",
+    "The dashboard is read-only. TDEE and calorie balance values are estimates calculated from your profile, weight, and journals.": (
+        "Dashboard-ul este read-only. Valorile TDEE și balanța calorică sunt "
+        "estimări orientative calculate din profil, greutate și jurnale."
+    ),
+    "Log in to view the dashboard.": "Autentifică-te pentru a vedea dashboard-ul.",
+    "Error loading the analysis date: {error}": (
+        "Eroare la încărcarea datei de analiză: {error}"
+    ),
+    "Error loading the dashboard: {error}": (
+        "Eroare la încărcarea dashboard-ului: {error}"
+    ),
+    "Analysis date": "Data analiză",
+    "The dashboard, recommendations, and ML prediction are calculated through this date.": (
+        "Dashboard-ul, recomandările și predicția ML sunt calculate până la această dată."
+    ),
+    "The analysis date is the latest day with logged data.": (
+        "Data analiză este ultima zi cu date înregistrate."
+    ),
+    "Dashboard recalculated through the selected date.": (
+        "Dashboard recalculat până la data selectată."
+    ),
+    "Current state": "Starea curentă",
+    "State on the analysis date": "Starea la data analizată",
+    "today": "azi",
+    "on the analysis date": "la data analizată",
+    "Today": "Astăzi",
+    "On the analysis date": "La data analizată",
+    "Height": "Înălțime",
+    "The height saved when the profile was created. It is used to calculate BMI and BMR.": (
+        "Înălțimea setată la crearea profilului. Este folosită la BMI și BMR."
+    ),
+    "The biological sex selected in the profile. It is used in the Mifflin-St Jeor BMR formula.": (
+        "Sexul biologic selectat în profil. Este folosit în formula BMR Mifflin-St Jeor."
+    ),
+    "The age saved in the profile. It is used in the Mifflin-St Jeor BMR formula.": (
+        "Vârsta setată în profil. Este folosită în formula BMR Mifflin-St Jeor."
+    ),
+    "Possible goals: Weight loss = a suggested calorie deficit; Maintenance = weight stability; Muscle gain = a controlled surplus that supports training.": (
+        "Obiective posibile: Slabire = deficit caloric orientativ; Mentinere = "
+        "stabilizarea greutății; Crestere = surplus controlat și susținerea "
+        "antrenamentelor."
+    ),
+    "Current weight": "Greutate curentă",
+    "Weight on the analysis date": "Greutate la data analizată",
+    "The latest weight saved through the analysis date. The delta shows the difference from the previous available weigh-in.": (
+        "Ultima greutate salvată până la data analizată. Delta arată diferența "
+        "față de cântărirea anterioară disponibilă."
+    ),
+    "Current BMI": "BMI curent",
+    "BMI on the analysis date": "BMI la data analizată",
+    "BMI = reference weight / height². It is a general indicator, not a medical diagnosis.": (
+        "BMI = greutatea de referință / înălțime². Este un indicator orientativ, "
+        "nu un diagnostic medical."
+    ),
+    "Estimated BMR": "BMR estimat",
+    "BMR is the basal energy expenditure estimated with the Mifflin-St Jeor formula, using current weight, height, age, and biological sex.": (
+        "BMR este consumul bazal estimat prin formula Mifflin-St Jeor, pe baza "
+        "greutății curente, înălțimii, vârstei și sexului."
+    ),
+    "Estimated TDEE {day_phrase}": "TDEE estimat {day_phrase}",
+    "Estimated TDEE {day_phrase} = BMR * 1.2 + calories burned through activities logged {day_phrase}. The 1.2 factor represents the sedentary baseline.": (
+        "TDEE estimat {day_phrase} = BMR * 1.2 + caloriile arse prin "
+        "antrenamentele logate {day_phrase}. Factorul 1.2 reprezintă baza sedentară."
+    ),
+    "Calories consumed {day_phrase}": "Calorii consumate {day_phrase}",
+    "Total calories from food logged {day_phrase}. If no food is logged, the value is Not logged, not 0 kcal.": (
+        "Totalul caloriilor din alimentele logate {day_phrase}. Dacă nu există "
+        "alimente logate, valoarea este Nelogat, nu 0 kcal."
+    ),
+    "Activity calories {day_phrase}": "Calorii activități {day_phrase}",
+    "Calories burned through activities logged {day_phrase}. If there are no workouts, 0 kcal is displayed as a rest day.": (
+        "Caloriile arse prin activitățile logate {day_phrase}. Dacă nu există "
+        "antrenamente, se afișează 0 kcal ca zi de repaus."
+    ),
+    "Estimated balance {day_phrase}": "Balanță estimată {day_phrase}",
+    "Estimated balance {day_phrase} = calories consumed {day_phrase} - estimated TDEE {day_phrase}. It is calculated only when food is logged {day_phrase}.": (
+        "Balanță estimată {day_phrase} = calorii consumate {day_phrase} - TDEE "
+        "estimat {day_phrase}. Se calculează doar dacă există alimente logate "
+        "{day_phrase}."
+    ),
+    "Add today's meals to see calorie intake and energy balance.": (
+        "Adaugă mesele de azi ca să vezi consumul și balanța energetică."
+    ),
+    "No meals are logged on the analysis date; calorie intake and energy balance remain unlogged.": (
+        "La data analizată nu există mese logate; consumul și balanța rămân nelogate."
+    ),
+    "No workouts today: logged activity is 0 kcal, so the day is treated as a rest day.": (
+        "Fără antrenamente azi: activitatea logată este 0 kcal, deci ziua este "
+        "considerată de repaus."
+    ),
+    "No workouts are logged on the analysis date; activity is 0 kcal, as on a rest day.": (
+        "La data analizată nu există antrenamente logate; activitatea este 0 kcal, "
+        "ca zi de repaus."
+    ),
+    "{age:.0f} years": "{age:.0f} ani",
+    "Focus on a controlled calorie deficit.": "Accent pe deficit caloric controlat.",
+    "Focus on weight stability.": "Accent pe stabilitatea greutății.",
+    "Focus on a controlled surplus, protein, and strength training.": (
+        "Accent pe surplus controlat, proteine și antrenamente de forță."
+    ),
+    "Weight prediction": "Predicție greutate",
+    "The ML prediction is temporarily unavailable. Check the trained models and database connection.": (
+        "Predicția ML nu este disponibilă momentan. Verifică modelele antrenate "
+        "și conexiunea la baza de date."
+    ),
+    "The prediction appears once there are enough logged meals, weigh-ins, and trained ML models for the current user.": (
+        "Predicția apare după ce există suficiente alimente, cântăriri și modele "
+        "ML antrenate pentru utilizatorul curent."
+    ),
+    "In {days} days": "Peste {days} zile",
+    "In {days} days from {date}": "Peste {days} zile de la {date}",
+    "Estimated change: {change} | Date: {date} | MAE: {mae}": (
+        "Schimbare estimată: {change} | Data: {date} | MAE: {mae}"
+    ),
+    "ML prediction calculated from food, activity, and weight history, without future data.": (
+        "Predicție ML calculată din istoricul de alimente, activități și greutate, "
+        "fără date din viitor."
+    ),
+    "There is not enough data for this interval.": (
+        "Nu există suficiente date pentru acest interval."
+    ),
+    "Unavailable": "Indisponibil",
+    "The prediction becomes available once enough data exists.": (
+        "Predicția devine disponibilă după ce există date suficiente."
+    ),
+    "Prediction calculated from data available through {date}.": (
+        "Predicție calculată din datele disponibile până la {date}."
+    ),
+    "The prediction starts from {actual_date}, the latest day with enough data. The current day is skipped because it may be incomplete.": (
+        "Predicția pornește de la {actual_date}, ultima zi cu date suficiente. "
+        "Ziua curentă este evitată pentru că poate fi incompletă."
+    ),
+    "The prediction starts from {actual_date} because there is not enough recent data for {requested_date}.": (
+        "Predicția pornește de la {actual_date}, deoarece pentru {requested_date} "
+        "nu există suficiente date recente."
+    ),
+    "The ML models have not been trained yet.": (
+        "Modelele ML nu au fost antrenate încă."
+    ),
+    "There is not enough recent data for a prediction.": (
+        "Nu există suficiente date recente pentru predicție."
+    ),
+    "The user could not be found.": "Utilizatorul nu există.",
+    "The ML prediction is temporarily unavailable.": (
+        "Predicția ML nu este disponibilă momentan."
+    ),
+    "Progress over the interval": "Evoluție pe interval",
+    "Analysis interval": "Interval analiză",
+    "{days} days": "{days} zile",
+    "Interval weight trend": "Trend greutate interval",
+    "The difference between the reference weight on the last day of the interval and the first day. It does not mean that you had an actual weigh-in every day.": (
+        "Diferența dintre greutatea de referință din ultima zi a intervalului "
+        "și prima zi a intervalului. Nu înseamnă că ai avut cântărire reală "
+        "în fiecare zi."
+    ),
+    "Average intake / logged day": "Consum mediu / zi logată",
+    "Average calories consumed only on days with logged food. Days without logged food are not treated as 0 kcal.": (
+        "Media caloriilor consumate doar pe zilele cu alimente logate. Zilele "
+        "fără alimente nu sunt tratate ca 0 kcal."
+    ),
+    "Average TDEE / food-logged day": "TDEE mediu / zi alimentară",
+    "Average estimated TDEE only on days with logged food, so it can be compared with food intake.": (
+        "Media TDEE-ului estimat doar pentru zilele cu alimentație logată, ca "
+        "să fie comparabil cu consumul alimentar."
+    ),
+    "Average balance / food-logged day": "Balanță medie / zi alimentară",
+    "Average daily calories consumed - estimated TDEE, calculated only on days with logged food.": (
+        "Media valorilor zilnice calorii consumate - TDEE estimat, calculată "
+        "doar pe zilele cu alimente logate."
+    ),
+    "Food logging consistency": "Consistență alimente",
+    "Activity logging consistency": "Consistență antrenamente",
+    "Weight logging consistency": "Consistență greutate",
+    "Overall logging consistency": "Consistență generală",
+    "{logged_days} / {days} days": "{logged_days} / {days} zile",
+    "Percentage of days in the interval with at least one logged food.": (
+        "Procentul de zile din interval cu cel puțin un aliment logat."
+    ),
+    "Percentage of days in the interval with at least one logged workout.": (
+        "Procentul de zile din interval cu cel puțin un antrenament logat."
+    ),
+    "Percentage of days in the interval with an actual weigh-in.": (
+        "Procentul de zile din interval cu o cântărire introdusă efectiv."
+    ),
+    "Percentage of days in the interval with logged food, a workout, or an actual weigh-in.": (
+        "Procentul de zile din interval în care există alimente, antrenament "
+        "sau cântărire reală."
+    ),
+    "Total activity calories": "Calorii activități totale",
+    "Total calories burned through workouts in the selected interval.": (
+        "Totalul caloriilor arse prin antrenamente în intervalul selectat."
+    ),
+    "Exercise entries": "Înregistrări exerciții",
+    "Total number of logged exercises or workouts in the interval. A single day can have multiple entries.": (
+        "Numărul total de exerciții/antrenamente logate în interval. O "
+        "singură zi poate avea mai multe înregistrări."
+    ),
+    "Average protein": "Proteină medie",
+    "Average protein consumed on days with logged food.": (
+        "Media proteinelor consumate pe zilele cu alimente logate."
+    ),
+    "Protein / kg body weight": "Proteină / kg corp",
+    "Average daily protein divided by the reference weight for that day. It will be useful for food recommendations.": (
+        "Media proteinelor zilnice împărțită la greutatea de referință a "
+        "zilei. Va fi utilă pentru recomandările alimentare."
+    ),
+    "Add at least one weight entry to calculate BMR, TDEE, and the estimated calorie balance.": (
+        "Adaugă cel puțin o greutate pentru a putea calcula BMR, TDEE și "
+        "balanța calorică estimată."
+    ),
+    "Date": "Data",
+    "Weight trend": "Evoluția greutății",
+    "No reference weight is available for the selected interval.": (
+        "Nu există greutate de referință pentru intervalul selectat."
+    ),
+    "Weight (kg)": "Greutate (kg)",
+    "Reference weight": "Greutate de referință",
+    "Source": "Sursă",
+    "Distance in days": "Distanță zile",
+    "Actual weigh-in": "Cântărire reală",
+    "Weight": "Greutate",
+    "The line shows the reference weight for each day. The black points mark the days when you entered an actual weigh-in.": (
+        "Linia arată greutatea de referință pentru fiecare zi. Punctele "
+        "negre marchează zilele în care ai introdus efectiv o cântărire."
+    ),
+    "No weight": "Fără greutate",
+    "Fallback from the first future weight": (
+        "Fallback din prima greutate viitoare"
+    ),
+    "Previous weight used as reference": (
+        "Greutate anterioară folosită ca referință"
+    ),
+    "Calories consumed vs estimated TDEE": (
+        "Calorii consumate vs TDEE estimat"
+    ),
+    "No data is available for the selected interval.": (
+        "Nu există date în intervalul selectat."
+    ),
+    "Not enough data is available for the calorie chart.": (
+        "Nu există suficiente date pentru graficul caloric."
+    ),
+    "Intake": "Consum",
+    "Bars represent days with logged food. The orange line is estimated TDEE. A missing bar means no food was logged that day.": (
+        "Barele sunt zile cu alimente logate. Linia portocalie este TDEE-ul "
+        "estimat. Lipsa unei bare înseamnă zi fără alimente logate."
+    ),
+    "Estimated calorie balance": "Balanță calorică estimată",
+    "Not enough data is available for the estimated calorie balance.": (
+        "Nu există suficiente date pentru balanța calorică estimată."
+    ),
+    "The balance is calculated only for days with logged food.": (
+        "Balanța se calculează doar pentru zilele cu alimentație logată."
+    ),
+    "Balance": "Balanță",
+    "Type": "Tip",
+    "Deficit": "Deficit",
+    "Surplus": "Surplus",
+    "Balance = calories consumed - estimated TDEE. Negative values indicate a deficit, while positive values indicate a surplus.": (
+        "Balanță = calorii consumate - TDEE estimat. Valorile negative indică "
+        "deficit, iar cele pozitive indică surplus."
+    ),
+    "Macronutrients": "Macronutrienți",
+    "Macronutrient distribution across protein, carbohydrates, and fats.": (
+        "Distribuția macronutrienților pe proteine, carbohidrați și grăsimi."
+    ),
+    "No food is logged in the selected interval.": (
+        "Nu există alimente logate în intervalul selectat."
+    ),
+    "Carbohydrates": "Carbohidrați",
+    "Fats": "Grăsimi",
+    "Grams": "Grame",
+    "Macro": "Macro",
+    "Physical activity": "Activitate fizică",
+    "Workout logged": "Antrenament logat",
+    "Day without a workout": "Zi fără antrenament",
+    "Status": "Status",
+    "Days without a workout are shown as 0 kcal burned because they can represent normal rest days.": (
+        "Zilele fără antrenament sunt afișate ca 0 kcal arse, pentru că pot "
+        "reprezenta zile normale de repaus."
+    ),
+    "No workouts are logged in the selected interval.": (
+        "Nu există antrenamente logate în intervalul selectat."
+    ),
+    "The table below groups workouts by category and calculation method: MacroSense estimate or manually entered calories.": (
+        "Tabelul de mai jos grupează antrenamentele după categorie și metoda "
+        "de calcul: estimare MacroSense sau calorii introduse manual."
+    ),
+    "Category": "Categorie",
+    "Method": "Metodă",
+    "Entries": "Înregistrări",
+    "Total duration (min)": "Durată totală (min)",
+    "Strength": "Forță",
+    "Flexibility": "Flexibilitate",
+    "Team sport": "Sport de echipă",
+    "Daily activities": "Activități zilnice",
+    "Other": "Altele",
+    "MacroSense estimate": "Estimare MacroSense",
+    "Manual": "Manual",
+    "Select day:": "Selectează ziua:",
+    "Invalid session. Please log in again.": (
+        "Sesiune invalidă. Te rugăm să te reautentifici."
+    ),
+    "You cannot save food entries for a future date.": (
+        "Nu poți salva înregistrări alimentare pentru o dată viitoare."
+    ),
+    "Add food intake": "Adaugă consum alimentar",
+    "Entry type": "Tip înregistrare",
+    "Catalog food": "Aliment din catalog",
+    "Custom meal": "Masă personalizată",
+    "Meal snapshot": "Snapshot masă",
+    "The food catalog is empty. The administrator must add foods first.": (
+        "Catalogul de alimente este gol. Administratorul trebuie să adauge "
+        "alimente mai întâi."
+    ),
+    "Search for food": "Caută aliment",
+    "E.g. bananas, broccoli, salmon": "Ex: banane, broccoli, salmon",
+    "All": "Toate",
+    "No foods match the selected search and category.": (
+        "Nu există alimente pentru căutarea și categoria selectate."
+    ),
+    "Select the food from the table below. The Source column distinguishes MacroSense foods from USDA foods.": (
+        "Selectează alimentul din tabelul de mai jos. Coloana Sursă diferențiază "
+        "alimentele MacroSense de cele USDA."
+    ),
+    "Quantity (g)": "Cantitate (g)",
+    "Consumption time": "Ora consumului",
+    "Meal": "Masă",
+    "Breakfast": "Mic dejun",
+    "Lunch": "Prânz",
+    "Dinner": "Cină",
+    "Snack": "Gustare",
+    "Quantity": "Cantitate",
+    "🔥 Selected food: **{name}** ({source}) · Estimated calories: **{calories} kcal**": (
+        "🔥 Aliment selectat: **{name}** ({source}) · Calorii estimate: "
+        "**{calories} kcal**"
+    ),
+    "Select a food to calculate the calorie estimate.": (
+        "Selectează un aliment pentru a calcula estimarea calorică."
+    ),
+    "Save entry": "Salvează înregistrarea",
+    "Error accessing the daily journal.": "Eroare la accesarea jurnalului zilnic.",
+    "{name} ({quantity}g) added successfully!": (
+        "{name} ({quantity}g) adăugat cu succes!"
+    ),
+    "Error saving the entry.": "Eroare la salvarea înregistrării.",
+    "Validation error: {error}": "Eroare de validare: {error}",
+    "You have no active custom meals. Create or restore one on the Custom meals page.": (
+        "Nu ai mese personalizate active. Creează sau reactivează una în pagina "
+        "„Mese Personalizate”."
+    ),
+    "Consumed quantity (g)": "Cantitate consumată (g)",
+    "Consumed quantity": "Cantitatea consumată",
+    "🔥 Estimated calories: **{calories} kcal**": (
+        "🔥 Calorii estimate: **{calories} kcal**"
+    ),
+    "Save meal to journal": "Salvează masa în jurnal",
+    "Custom meal {name} ({quantity}g) added successfully!": (
+        "Masa personalizată {name} ({quantity}g) a fost adăugată cu succes!"
+    ),
+    "Error saving the custom meal.": "Eroare la salvarea mesei personalizate.",
+    "Foods consumed on {date}": "Alimente consumate pe {date}",
+    "Edit an entry": "Editează o înregistrare",
+    "Entry to edit": "Înregistrare de editat",
+    "New quantity (g)": "Cantitate nouă (g)",
+    "New meal": "Masă nouă",
+    "New time": "Oră nouă",
+    "Save changes": "Salvează modificările",
+    "New quantity": "Cantitatea nouă",
+    "The entry was updated successfully.": (
+        "Înregistrarea a fost actualizată cu succes."
+    ),
+    "Error updating the entry.": "Eroare la actualizarea înregistrării.",
+    "Delete an entry": "Șterge o înregistrare",
+    "Entry": "Înregistrare",
+    "I confirm deletion of this entry": (
+        "Confirm ștergerea acestei înregistrări"
+    ),
+    "Delete entry": "Șterge înregistrarea",
+    "Check the confirmation box before deleting.": (
+        "Bifează confirmarea înainte de ștergere."
+    ),
+    "The entry was deleted successfully.": (
+        "Înregistrarea a fost ștearsă cu succes."
+    ),
+    "Error deleting the entry.": "Eroare la ștergerea înregistrării.",
+    "There are no food entries for this day. Add the first food using the form above.": (
+        "Nu există înregistrări alimentare pentru această zi. Adaugă primul "
+        "aliment folosind formularul de mai sus."
+    ),
+    "{field_label} must be a valid number.": (
+        "{field_label} trebuie să fie un număr valid."
+    ),
+    "{field_label} must be at least {minimum:.0f} g.": (
+        "{field_label} trebuie să fie cel puțin {minimum:.0f} g."
+    ),
+    "{field_label} must be at most {maximum:.0f} g.": (
+        "{field_label} trebuie să fie cel mult {maximum:.0f} g."
+    ),
+    "Accepted range: {minimum:.0f}-{maximum:.0f} g.": (
+        "Interval acceptat: {minimum:.0f}-{maximum:.0f} g."
+    ),
+    "Food": "Aliment",
+    "Calories": "Calorii",
+    "Time": "Ora",
+    "Fruits": "Fructe",
+    "Vegetables": "Legume",
+    "Meat": "Carne",
+    "Fish": "Pește",
+    "Eggs": "Ouă",
+    "Dairy": "Lactate",
+    "Grains": "Cereale",
+    "Bread & bakery products": "Pâine & Panificație",
+    "Pasta & rice": "Paste & Orez",
+    "Legumes": "Leguminoase",
+    "Nuts & seeds": "Nuci & Semințe",
+    "Oils & fats": "Uleiuri & Grăsimi",
+    "Processed meats": "Mezeluri",
+    "Sweets": "Dulciuri",
+    "Snacks": "Gustări",
+    "Beverages & juices": "Băuturi & Sucuri",
+    "Alcoholic beverages": "Alcoolice",
+    "Condiments & sauces": "Condimente & Sosuri",
+    "January": "Ianuarie",
+    "February": "Februarie",
+    "March": "Martie",
+    "April": "Aprilie",
+    "May": "Mai",
+    "June": "Iunie",
+    "July": "Iulie",
+    "August": "August",
+    "September": "Septembrie",
+    "October": "Octombrie",
+    "November": "Noiembrie",
+    "December": "Decembrie",
+    "Physical activity journal": "Jurnal Activități Fizice",
+    "You cannot save workouts for a future date.": (
+        "Nu poți salva antrenamente pentru o dată viitoare."
+    ),
+    "Search for activity": "Caută activitate",
+    "E.g. running, push-ups, chest press": "Ex: alergare, flotări, chest press",
+    "No activities match the selected search and category.": (
+        "Nu există activități pentru căutarea și categoria selectate."
+    ),
+    "MET method": "Metodă MET",
+    "Official Compendium": "Oficial Compendium",
+    "MacroSense mapping": "Mapare MacroSense",
+    "Manual admin": "Manual Admin",
+    "Unknown": "Necunoscut",
+    "There was no earlier weight for the selected date. MET calculations use the first available weight: {weight:.1f} kg from {date}.": (
+        "Pentru data selectată nu exista o greutate anterioară. Calculele MET "
+        "folosesc prima greutate disponibilă: {weight:.1f} kg din {date}."
+    ),
+    "There is no weight history yet. MET calculations temporarily use 70.0 kg.": (
+        "Nu există încă un istoric de greutate. Calculele MET folosesc temporar "
+        "70.0 kg."
+    ),
+    "Add workout": "Adaugă antrenament",
+    "The activity catalog is empty. The administrator must add activities first.": (
+        "Catalogul de activități este gol. Administratorul trebuie să adauge "
+        "date mai întâi."
+    ),
+    "Select the activity from the table below. The Source and MET method columns explain where the MET value comes from.": (
+        "Selectează activitatea din tabelul de mai jos. Coloanele Sursă și "
+        "Metodă MET explică proveniența valorii MET."
+    ),
+    "MET source: {source} · {method}": "Sursă MET: {source} · {method}",
+    "TOTAL session duration (minutes)": "Durată TOTALĂ sesiune (minute)",
+    "Total time spent on this exercise, including rest between sets. {range_help}": (
+        "Timpul total petrecut la acest exercițiu (inclusiv pauzele dintre "
+        "seturi). {range_help}"
+    ),
+    "Duration": "Durată",
+    "Total duration": "Durata totală",
+    "Sets": "Seturi",
+    "Repetitions": "Repetări",
+    "Set count": "Numărul de seturi",
+    "Repetition count": "Numărul de repetări",
+    "Repetitions per set": "Repetări pe set",
+    "📌 Sets and repetitions apply only to Strength exercises.": (
+        "📌 Seturile și repetările se aplică doar la exerciții de Forță."
+    ),
+    "🔥 Estimated calories burned: **{calories} kcal**": (
+        "🔥 Calorii estimate consumate: **{calories} kcal**"
+    ),
+    "Select an activity to calculate the calorie estimate.": (
+        "Selectează o activitate pentru a calcula estimarea calorică."
+    ),
+    "Use calories reported by a watch or cardio machine": (
+        "Folosesc caloriile raportate de ceas/aparat cardio"
+    ),
+    "The manual value will be saved instead of the MET/TUT estimate for this entry.": (
+        "Valoarea manuală va fi salvată în locul estimării MET/TUT pentru "
+        "această înregistrare."
+    ),
+    "Reported calories burned": "Calorii arse raportate",
+    "Manual calories must be between {minimum:.0f} and {maximum:.0f} kcal.": (
+        "Caloriile manuale trebuie să fie între {minimum:.0f} și "
+        "{maximum:.0f} kcal."
+    ),
+    "The manual value will be saved: **{calories:.1f} kcal**": (
+        "Se va salva valoarea manuală: **{calories:.1f} kcal**"
+    ),
+    "Save workout": "Salvează antrenamentul",
+    "{name} added successfully!": "{name} adăugat cu succes!",
+    "Workouts performed on {date}": "Antrenamente efectuate pe {date}",
+    "Edit a workout": "Editează un antrenament",
+    "Current activity: **{name}**. Select another row from the table only if you want to change the activity.": (
+        "Activitate curentă: **{name}**. Selectează alt rând din tabel doar "
+        "dacă vrei să schimbi activitatea."
+    ),
+    "Select a new activity from the table, or leave the table unselected to keep the current activity.": (
+        "Selectează o activitate nouă din tabel sau lasă tabelul neselectat "
+        "pentru a păstra activitatea curentă."
+    ),
+    "New duration (minutes)": "Durată nouă (minute)",
+    "New duration": "Durata nouă",
+    "New sets": "Seturi noi",
+    "New repetitions per set": "Repetări noi pe set",
+    "🔥 Estimated calories after the change: **{calories} kcal**": (
+        "🔥 Calorii estimate după modificare: **{calories} kcal**"
+    ),
+    "The manual value will replace the MET/TUT estimate only for this entry.": (
+        "Valoarea manuală va înlocui estimarea MET/TUT doar pentru această "
+        "înregistrare."
+    ),
+    "The workout was updated successfully.": (
+        "Antrenamentul a fost actualizat cu succes."
+    ),
+    "Error updating the workout.": "Eroare la actualizarea antrenamentului.",
+    "Delete a workout": "Șterge un antrenament",
+    "I confirm deletion of this workout": (
+        "Confirm ștergerea acestui antrenament"
+    ),
+    "Delete workout": "Șterge antrenamentul",
+    "The workout was deleted successfully.": (
+        "Antrenamentul a fost șters cu succes."
+    ),
+    "Error deleting the workout.": "Eroare la ștergerea antrenamentului.",
+    "There are no workouts recorded for this day.": (
+        "Nu există antrenamente înregistrate pentru această zi."
+    ),
+    "{field_label} must be at least {minimum:.1f} minutes.": (
+        "{field_label} trebuie să fie cel puțin {minimum:.1f} minute."
+    ),
+    "{field_label} must be at most {maximum:.0f} minutes.": (
+        "{field_label} trebuie să fie cel mult {maximum:.0f} minute."
+    ),
+    "{field_label} must be at least {minimum}.": (
+        "{field_label} trebuie să fie cel puțin {minimum}."
+    ),
+    "{field_label} must be at most {maximum}.": (
+        "{field_label} trebuie să fie cel mult {maximum}."
+    ),
+    "Accepted range: {minimum:.1f}-{maximum:.0f} minutes.": (
+        "Interval acceptat: {minimum:.1f}-{maximum:.0f} minute."
+    ),
+    "The measurement date cannot be in the future.": (
+        "Data măsurării nu poate fi în viitor."
+    ),
+    "Latest weight": "Ultima greutate",
+    "Latest measurement date": "Data ultimei măsurători",
+    "There are no weight entries for this account yet.": (
+        "Nu există încă înregistrări de greutate pentru acest cont."
+    ),
+    "Add weight": "Adaugă greutate",
+    "Measurement date": "Data măsurării",
+    "A weight entry already exists for this date. Saving will update the existing value.": (
+        "Există deja o greutate pentru această dată. Salvarea va actualiza "
+        "valoarea existentă."
+    ),
+    "If a weight entry already exists for the same day, its value will be updated.": (
+        "Dacă există deja o greutate pentru aceeași zi, valoarea va fi "
+        "actualizată."
+    ),
+    "Save weight": "Salvează greutatea",
+    "Weight saved. Affected days: {count}.": (
+        "Greutate salvată. Zile afectate: {count}."
+    ),
+    "Weight updated. Affected days: {count}.": (
+        "Greutate actualizată. Zile afectate: {count}."
+    ),
+    "Weight deleted. Affected days: {count}.": (
+        "Greutate ștearsă. Zile afectate: {count}."
+    ),
+    "Weight changed. Affected days: {count}.": (
+        "Greutate modificată. Zile afectate: {count}."
+    ),
+    "Error saving the weight.": "Eroare la salvarea greutății.",
+    "Weight history": "Istoric greutate",
+    "Add the first weight using the form above.": (
+        "Adaugă prima greutate folosind formularul de mai sus."
+    ),
+    "Edit a weight entry": "Editează o greutate",
+    "New date": "Dată nouă",
+    "New weight (kg)": "Greutate nouă (kg)",
+    "A weight entry already exists for this date.": (
+        "Există deja o greutate salvată pentru această dată."
+    ),
+    "Error updating the weight.": "Eroare la actualizarea greutății.",
+    "Delete a weight entry": "Șterge o greutate",
+    "We keep at least one reference weight for MET calculations and future predictions.": (
+        "Păstrăm cel puțin o greutate de referință pentru calculele MET și "
+        "predicțiile viitoare."
+    ),
+    "I confirm deletion of this weight entry": (
+        "Confirm ștergerea acestei greutăți"
+    ),
+    "Delete weight": "Șterge greutatea",
+    "Error deleting the weight.": "Eroare la ștergerea greutății.",
+    "The full history is scrollable to keep the page compact.": (
+        "Istoricul complet este derulabil pentru a păstra pagina compactă."
+    ),
+    "Ingredient": "Ingredient",
+    "Total quantity": "Cantitate totală",
+    "Total calories": "Calorii totale",
+    "Saved": "Salvată",
+    "Archived": "Arhivată",
+    "Search for ingredient": "Caută ingredient",
+    "E.g. bananas, broccoli, strawberries": "Ex: banane, broccoli, capsuni",
+    "No ingredients match the selected search and category.": (
+        "Nu există ingrediente pentru căutarea și categoria selectate."
+    ),
+    "Create a custom meal": "Creează o masă personalizată",
+    "Meal name": "Denumire masă",
+    "Select the ingredient from the table. The Source column helps distinguish duplicate foods.": (
+        "Selectează ingredientul din tabel. Coloana Sursă ajută la "
+        "diferențierea alimentelor duplicate."
+    ),
+    "Ingredient quantity (g)": "Cantitate ingredient (g)",
+    "Ingredient quantity": "Cantitatea ingredientului",
+    "🔥 Selected ingredient: **{name}** ({source}) · Estimated calories: **{calories} kcal**": (
+        "🔥 Ingredient selectat: **{name}** ({source}) · Calorii estimate: "
+        "**{calories} kcal**"
+    ),
+    "Select an ingredient to calculate the calorie estimate.": (
+        "Selectează un ingredient pentru a calcula estimarea calorică."
+    ),
+    "Add ingredient": "Adaugă ingredient",
+    "Clear list": "Golește lista",
+    "Save custom meal": "Salvează masa personalizată",
+    "Enter a name for the custom meal.": (
+        "Introdu o denumire pentru masa personalizată."
+    ),
+    "The custom meal name must start with a letter and cannot contain HTML characters.": (
+        "Denumirea mesei trebuie să înceapă cu o literă și nu poate conține "
+        "caractere de tip HTML."
+    ),
+    'Custom meal "{name}" was saved.': (
+        "Masa personalizată „{name}” a fost salvată."
+    ),
+    "Add at least one ingredient to save a custom meal.": (
+        "Adaugă cel puțin un ingredient pentru a salva o masă personalizată."
+    ),
+    "Your custom meals": "Mesele tale personalizate",
+    "Custom meal archive": "Arhivă mese personalizate",
+    "Remove an active meal from future use.": (
+        "Scoate o masă activă din lista de folosire viitoare."
+    ),
+    "Active meal": "Masă activă",
+    "Archive meal": "Arhivează masa",
+    'Meal "{name}" was archived.': "Masa „{name}” a fost arhivată.",
+    "Error archiving the custom meal.": (
+        "Eroare la arhivarea mesei personalizate."
+    ),
+    "You have no active meals to archive.": "Nu ai mese active de arhivat.",
+    "Restore an archived meal to the Food journal.": (
+        "Readuce o masă arhivată în Jurnal Alimentar."
+    ),
+    "Archived meal": "Masă arhivată",
+    "Restore meal": "Reactivează masa",
+    'Meal "{name}" was restored.': "Masa „{name}” a fost reactivată.",
+    "Error restoring the custom meal.": (
+        "Eroare la reactivarea mesei personalizate."
+    ),
+    "You have no archived meals.": "Nu ai mese arhivate.",
+    "View ingredients for": "Vezi ingredientele pentru",
+    "Choose meal for details": "Alege masa pentru detalii",
+    "Edit a custom meal": "Editează o masă personalizată",
+    "Meal to edit": "Masă de editat",
+    "New meal name": "Denumire nouă masă",
+    "Select the ingredient to add. For large lists, search by name or filter the category.": (
+        "Selectează ingredientul de adăugat. Pentru liste mari, caută după "
+        "nume sau filtrează categoria."
+    ),
+    "New ingredient quantity (g)": "Cantitate ingredient nou (g)",
+    "New ingredient quantity": "Cantitatea ingredientului nou",
+    "Add ingredient to recipe": "Adaugă ingredient în rețetă",
+    "The food catalog is empty. You cannot add new ingredients right now.": (
+        "Catalogul de alimente este gol. Nu poți adăuga ingrediente noi "
+        "momentan."
+    ),
+    "Current ingredients": "Ingrediente curente",
+    "Remove": "Elimină",
+    "Quantity for {name}": "Cantitatea pentru {name}",
+    "Save meal changes": "Salvează modificările mesei",
+    "The custom meal must contain at least one ingredient.": (
+        "Masa personalizată trebuie să conțină cel puțin un ingredient."
+    ),
+    'Custom meal "{name}" was updated. Entries already saved in the journal remain unchanged.': (
+        "Masa personalizată „{name}” a fost actualizată. Intrările deja "
+        "salvate în jurnal rămân neschimbate."
+    ),
+    "Error updating the custom meal.": (
+        "Eroare la actualizarea mesei personalizate."
+    ),
+    "You do not have any saved custom meals yet.": (
+        "Nu ai încă mese personalizate salvate."
+    ),
+    "Nutrition database": "Baza de date nutrițională",
+    "The catalog is currently empty. The administrator will add data soon.": (
+        "Catalogul este gol în acest moment. Administratorul va adăuga date "
+        "în curând."
+    ),
+    "Physical activity catalog": "Catalog Activități Fizice",
+    "Available activities": "Lista activităților disponibile",
+    "The activity catalog is currently empty.": (
+        "Catalogul de activități este gol în acest moment."
+    ),
+    "{count} foods in the catalog. Use search or filters for large lists.": (
+        "{count} alimente în catalog. Folosește căutarea sau filtrele pentru "
+        "liste mari."
+    ),
+    "E.g. bananas, broccoli, chicken": "Ex: banane, broccoli, pui",
+    "No foods match the selected filters.": (
+        "Nu există alimente pentru filtrele selectate."
+    ),
+    "Scrollable table: scroll inside the table to see the remaining foods.": (
+        "Tabel scrollabil: derulează în interiorul tabelului pentru restul "
+        "alimentelor."
+    ),
+    "{count} activities in the catalog. Use search or filters for large lists.": (
+        "{count} activități în catalog. Folosește căutarea sau filtrele pentru "
+        "liste mari."
+    ),
+    "E.g. running, push-ups, cycling": "Ex: alergare, flotări, bicicletă",
+    "No activities match the selected filters.": (
+        "Nu există activități pentru filtrele selectate."
+    ),
+    "Scrollable table: scroll inside the table to see the remaining activities.": (
+        "Tabel scrollabil: derulează în interiorul tabelului pentru restul "
+        "activităților."
+    ),
+    "Simulate changes for one day without modifying the real journal. For real changes, use the Food journal or Activity journal.": (
+        "Simulează schimbări pentru o zi fără să modifici jurnalul real. "
+        "Pentru schimbări reale, folosește Jurnal Alimentar sau Jurnal Activități."
+    ),
+    "Log in to use the simulator.": "Autentifică-te pentru a folosi simulatorul.",
+    "There is not enough profile and weight data to calculate the day's TDEE.": (
+        "Nu există suficiente date de profil și greutate pentru a calcula "
+        "TDEE-ul zilei."
+    ),
+    "Build the scenario": "Construiește scenariul",
+    "One more invalid value remains in the scenario.": (
+        "Încă o valoare invalidă în scenariu."
+    ),
+    "{count} more invalid values remain in the scenario.": (
+        "Încă {count} valori invalide în scenariu."
+    ),
+    "Correct the invalid values to see the What-if result.": (
+        "Corectează valorile invalide pentru a vedea rezultatul What-if."
+    ),
+    "The result below remains the last valid calculation; invalid values are not included.": (
+        "Rezultatul de mai jos rămâne ultimul calcul valid; valorile invalide "
+        "nu sunt incluse."
+    ),
+    "The scenario starts from the day's real foods and activities.": (
+        "Scenariul pornește de la alimentele și activitățile reale ale zilei."
+    ),
+    "There is no real journal for this day. The scenario starts from zero.": (
+        "Nu există jurnal real pentru această zi. Scenariul pornește de la zero."
+    ),
+    "Weight used": "Greutate folosită",
+    "Reset scenario": "Resetează scenariul",
+    "Restore the selected day's real values and clear the add fields.": (
+        "Revine la valorile reale ale zilei selectate și golește câmpurile "
+        "de adăugare."
+    ),
+    "Activity calories are calculated using the reference weight from {date}.": (
+        "Caloriile activităților sunt calculate cu greutatea de referință "
+        "din {date}."
+    ),
+    "There are no saved weigh-ins; the simulator uses the 70 kg fallback.": (
+        "Nu există cântăriri salvate; simulatorul folosește fallback-ul de 70 kg."
+    ),
+    "Foods and meals in the scenario": "Alimente și mese în scenariu",
+    "The scenario contains no foods or meals.": (
+        "Scenariul nu conține alimente sau mese."
+    ),
+    "Add food or a meal only to the scenario": (
+        "Adaugă aliment sau masă doar în scenariu"
+    ),
+    "There are no foods in the catalog.": "Nu există alimente în catalog.",
+    "The quantity": "Cantitatea",
+    "Added quantity (g)": "Cantitate adăugată (g)",
+    "Added quantity": "Cantitatea adăugată",
+    "Add food to scenario": "Adaugă aliment în scenariu",
+    "Select a food from the table.": "Selectează un aliment din tabel.",
+    "There are no active custom meals.": "Nu există mese personalizate active.",
+    "Add meal to scenario": "Adaugă masa în scenariu",
+    "The selected meal cannot be simulated with the entered values.": (
+        "Masa selectată nu poate fi simulată cu valorile introduse."
+    ),
+    "Activities in the scenario": "Activități în scenariu",
+    "The scenario contains no activities.": "Scenariul nu conține activități.",
+    "Duration (min)": "Durată (min)",
+    "The duration": "Durata",
+    "Manual calories": "Calorii manuale",
+    "Calories burned": "Calorii arse",
+    "Add activity only to the scenario": "Adaugă activitate doar în scenariu",
+    "There are no activities in the catalog.": (
+        "Nu există activități în catalog."
+    ),
+    "Sets and repetitions apply only to strength exercises.": (
+        "Seturile și repetările se aplică doar la exerciții de Forță."
+    ),
+    "Added duration": "Durata adăugată",
+    "Estimated calories burned": "Calorii estimate consumate",
+    "The selected activity cannot be simulated with the entered values.": (
+        "Activitatea selectată nu poate fi simulată cu valorile introduse."
+    ),
+    "The manual value will replace the MET/TUT estimate only in the simulated scenario.": (
+        "Valoarea manuală va înlocui estimarea MET/TUT doar în scenariul simulat."
+    ),
+    "The manual value will be used: **{calories:.1f} kcal**": (
+        "Se va folosi valoarea manuală: **{calories:.1f} kcal**"
+    ),
+    "Add activity to scenario": "Adaugă activitatea în scenariu",
+    "Activity": "Activitate",
+    "{label}: nutritional values cannot be simulated.": (
+        "{label}: valorile nutriționale nu pot fi simulate."
+    ),
+    "{label}: activity values cannot be simulated.": (
+        "{label}: valorile activității nu pot fi simulate."
+    ),
+    "What-if result": "Rezultat What-if",
+    "Metric": "Metrică",
+    "Real values": "Valori reale",
+    "Simulated scenario": "Scenariu simulat",
+    "Difference": "Diferență",
+    "The scenario is identical to the real day. There are no simulated changes.": (
+        "Scenariul este identic cu ziua reală. Nu există modificări simulate."
+    ),
+    "The estimated balance cannot be compared because food data is missing from the real day or the scenario.": (
+        "Balanța estimată nu poate fi comparată deoarece lipsește alimentația "
+        "din ziua reală sau din scenariu."
+    ),
+    "The estimated balance remains unchanged compared with the real values.": (
+        "Balanța estimată rămâne neschimbată față de valorile reale."
+    ),
+    "The scenario lowers the estimated balance and moves further toward a deficit.": (
+        "Scenariul scade balanța estimată și merge mai mult spre deficit."
+    ),
+    "The scenario raises the estimated balance and moves further toward a surplus.": (
+        "Scenariul crește balanța estimată și merge mai mult spre surplus."
+    ),
+    "The scenario changes the estimated balance only slightly compared with the real values.": (
+        "Scenariul schimbă puțin balanța estimată față de valorile reale."
+    ),
+    "Theoretical impact if the same difference from the real day repeated daily: {impact_14:+.2f} kg over 14 days and {impact_30:+.2f} kg over 30 days. This is a deterministic formula, separate from the ML prediction.": (
+        "Impact teoretic dacă aceeași diferență față de ziua reală s-ar repeta "
+        "zilnic: {impact_14:+.2f} kg în 14 zile și {impact_30:+.2f} kg în 30 "
+        "zile. Aceasta este o formulă deterministă, separată de predicția ML."
+    ),
+    "Scenario": "Scenariu",
+    "Manual calories must be a valid number.": (
+        "Caloriile manuale trebuie să fie un număr valid."
+    ),
+    "Manual calories must be at least {minimum:.0f} kcal.": (
+        "Caloriile manuale trebuie să fie cel puțin {minimum:.0f} kcal."
+    ),
+    "Manual calories must be at most {maximum:.0f} kcal.": (
+        "Caloriile manuale trebuie să fie cel mult {maximum:.0f} kcal."
+    ),
+}

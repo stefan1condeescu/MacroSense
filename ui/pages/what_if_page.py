@@ -29,22 +29,31 @@ from services.what_if.simulator import (
 )
 from ui.activity_selection import (
     build_activity_selection_dataframe,
+    build_activity_selection_display_dataframe,
     build_activity_selection_state_key,
+    format_activity_category_for_display,
+    format_activity_met_method_for_display,
     get_activity_category_filter_options,
 )
 from ui.activity_validation import (
-    duration_range_help,
-    validate_duration_minutes,
-    validate_reps,
-    validate_sets,
+    duration_range_help_for_ui,
+    validate_duration_minutes_for_ui,
+    validate_reps_for_ui,
+    validate_sets_for_ui,
 )
 from ui.food_selection import (
     build_food_selection_dataframe,
+    build_food_selection_display_dataframe,
     build_food_selection_state_key,
+    format_food_category_for_display,
+    format_food_entry_type,
+    format_food_source_label_for_display,
+    format_meal_type,
     get_food_category_filter_options,
 )
 from ui.formatters import format_kcal_for_display, format_time_for_display
-from ui.quantity_validation import quantity_range_help, validate_quantity_g
+from ui.language import translate, translated_selection_key
+from ui.quantity_validation import quantity_range_help_for_ui, validate_quantity_g_for_ui
 from ui.tables import get_table_height
 
 
@@ -111,19 +120,21 @@ ACTIVITY_SCENARIO_METADATA_FIELDS = (
 
 
 def render_what_if_page() -> None:
-    st.title("🧪 Simulator What-if")
+    st.title(f"🧪 {translate('What-if simulator')}")
     st.caption(
-        "Simulează schimbări pentru o zi fără să modifici jurnalul real. "
-        "Pentru schimbări reale, folosește Jurnal Alimentar sau Jurnal Activități."
+        translate(
+            "Simulate changes for one day without modifying the real journal. "
+            "For real changes, use the Food journal or Activity journal."
+        )
     )
 
     user_id = st.session_state.get("user_id")
     if not user_id:
-        st.warning("Autentifică-te pentru a folosi simulatorul.")
+        st.warning(translate("Log in to use the simulator."))
         return
 
     selected_date = st.date_input(
-        "Data analizată",
+        translate("Analysis date"),
         value=date.today(),
         max_value=date.today(),
         key="what_if_selected_date",
@@ -151,12 +162,14 @@ def render_what_if_page() -> None:
 
     if base_tdee is None:
         st.error(
-            "Nu există suficiente date de profil și greutate pentru a calcula TDEE-ul zilei."
+            translate(
+                "There is not enough profile and weight data to calculate the day's TDEE."
+            )
         )
         return
 
     st.divider()
-    st.subheader("Construiește scenariul")
+    st.subheader(translate("Build the scenario"))
     _render_food_scenario_editor()
     _render_add_food_section()
     st.divider()
@@ -360,8 +373,11 @@ def _render_inline_validation_message(message: str | None) -> None:
 
 def _format_remaining_error_count(count: int) -> str:
     if count == 1:
-        return "Încă o valoare invalidă în scenariu."
-    return f"Încă {count} valori invalide în scenariu."
+        return translate("One more invalid value remains in the scenario.")
+    return translate(
+        "{count} more invalid values remain in the scenario.",
+        count=count,
+    )
 
 
 def _get_first_error(*errors: str | None) -> str | None:
@@ -408,7 +424,7 @@ def _calculate_activity_row_calories(row: dict, reference_weight: float) -> floa
 
 
 def _render_scenario_row_calories(calories: float | None) -> None:
-    st.caption("Calorii")
+    st.caption(translate("Calories"))
     if calories is None:
         st.markdown(f"**{UNAVAILABLE_RESULT_VALUE}**")
     else:
@@ -422,12 +438,15 @@ def _render_invalid_scenario_result(errors: list[str]) -> None:
 
     last_valid_comparison = _get_last_valid_comparison()
     if last_valid_comparison is None:
-        st.info("Corectează valorile invalide pentru a vedea rezultatul What-if.")
+        st.info(
+            translate("Correct the invalid values to see the What-if result.")
+        )
         return
 
     st.info(
-        "Rezultatul de mai jos rămâne ultimul calcul valid; "
-        "valorile invalide nu sunt incluse."
+        translate(
+            "The result below remains the last valid calculation; invalid values are not included."
+        )
     )
     st.divider()
     _render_comparison(last_valid_comparison)
@@ -465,20 +484,30 @@ def _render_reference_context(
     info_col, spacer_col, weight_col, reset_col = st.columns(REFERENCE_CONTEXT_COLUMN_WEIGHTS)
     with info_col:
         if daily_log:
-            st.info("Scenariul pornește de la alimentele și activitățile reale ale zilei.")
+            st.info(
+                translate(
+                    "The scenario starts from the day's real foods and activities."
+                )
+            )
         else:
-            st.info("Nu există jurnal real pentru această zi. Scenariul pornește de la zero.")
+            st.info(
+                translate(
+                    "There is no real journal for this day. The scenario starts from zero."
+                )
+            )
     with spacer_col:
         st.empty()
     with weight_col:
-        st.metric("Greutate folosită", f"{reference_weight:.1f} kg")
+        st.metric(translate("Weight used"), f"{reference_weight:.1f} kg")
     with reset_col:
         if st.button(
-            "Resetează scenariul",
+            translate("Reset scenario"),
             key="what_if_reset_button",
             width="stretch",
             type="tertiary",
-            help="Revine la valorile reale ale zilei selectate și golește câmpurile de adăugare.",
+            help=translate(
+                "Restore the selected day's real values and clear the add fields."
+            ),
         ):
             st.session_state[WHAT_IF_FORCE_RESET_KEY] = True
             st.rerun()
@@ -486,18 +515,24 @@ def _render_reference_context(
     source_date = weight_info.get("source_date")
     if source_date:
         st.caption(
-            f"Caloriile activităților sunt calculate cu greutatea de referință din "
-            f"{source_date.strftime('%d.%m.%Y')}."
+            translate(
+                "Activity calories are calculated using the reference weight from {date}.",
+                date=source_date.strftime("%d.%m.%Y"),
+            )
         )
     else:
-        st.caption("Nu există cântăriri salvate; simulatorul folosește fallback-ul de 70 kg.")
+        st.caption(
+            translate(
+                "There are no saved weigh-ins; the simulator uses the 70 kg fallback."
+            )
+        )
 
 
 def _render_food_scenario_editor() -> None:
-    st.markdown("**Alimente și mese în scenariu**")
+    st.markdown(f"**{translate('Foods and meals in the scenario')}**")
     rows = st.session_state.get(WHAT_IF_FOOD_ROWS_KEY, [])
     if not rows:
-        st.info("Scenariul nu conține alimente sau mese.")
+        st.info(translate("The scenario contains no foods or meals."))
         return
 
     for index, row in enumerate(list(rows)):
@@ -509,28 +544,28 @@ def _render_food_scenario_editor() -> None:
                 vertical_alignment="center",
             )
             with name_col:
-                st.markdown(f"**{row.get('label', '-')}**")
+                st.markdown(f"**{_format_food_row_label(row)}**")
                 st.caption(source_text)
             with quantity_col:
                 quantity_key = f"what_if_food_quantity_{scenario_id}"
                 quantity = st.number_input(
-                    "Cantitate (g)",
+                    translate("Quantity (g)"),
                     **_number_input_kwargs(
                         quantity_key,
                         float(row.get("quantity_g") or 100.0),
                         step=1.0,
                         label_visibility="collapsed",
-                        help=quantity_range_help(),
+                        help=quantity_range_help_for_ui(),
                     ),
                 )
-                quantity_error = validate_quantity_g(quantity)
+                quantity_error = validate_quantity_g_for_ui(quantity, "The quantity")
                 _render_inline_validation_message(quantity_error)
                 row["quantity_g"] = float(quantity)
             with calories_col:
                 _render_scenario_row_calories(_calculate_food_row_calories(row))
             with action_col:
                 if st.button(
-                    "Elimină",
+                    translate("Remove"),
                     key=f"what_if_remove_food_{scenario_id}",
                     type="tertiary",
                     width="stretch",
@@ -540,8 +575,10 @@ def _render_food_scenario_editor() -> None:
 
 
 def _render_add_food_section() -> None:
-    with st.expander("Adaugă aliment sau masă doar în scenariu"):
-        food_tab, meal_tab = st.tabs(["Aliment catalog", "Masă personalizată"])
+    with st.expander(translate("Add food or a meal only to the scenario")):
+        food_tab, meal_tab = st.tabs(
+            [translate("Catalog food"), translate("Custom meal")]
+        )
         with food_tab:
             _render_add_catalog_food()
         with meal_tab:
@@ -551,42 +588,44 @@ def _render_add_food_section() -> None:
 def _render_add_catalog_food() -> None:
     food_options = FoodItem.get_catalog_options()
     if not food_options:
-        st.info("Nu există alimente în catalog.")
+        st.info(translate("There are no foods in the catalog."))
         return
 
     search_col, category_col = st.columns([2, 1])
     with search_col:
         search_text = st.text_input(
-            "Caută aliment",
-            placeholder="Ex: banane, broccoli, pui",
+            translate("Search for food"),
+            placeholder=translate("E.g. bananas, broccoli, chicken"),
             key=_versioned_widget_key("what_if_food_search"),
         ).strip()
     with category_col:
         category_filter = st.selectbox(
-            "Categorie",
+            translate("Category"),
             get_food_category_filter_options(food_options),
-            key=_versioned_widget_key("what_if_food_category_filter"),
+            format_func=format_food_category_for_display,
+            key=translated_selection_key(_versioned_widget_key("what_if_food_category_filter")),
         )
 
     selection_df = build_food_selection_dataframe(food_options, search_text, category_filter)
     if selection_df.empty:
-        st.info("Nu există alimente pentru filtrele selectate.")
+        st.info(translate("No foods match the selected filters."))
         return
 
+    selection_display_df = build_food_selection_display_dataframe(selection_df)
     selection_state = st.dataframe(
-        selection_df,
+        selection_display_df,
         width="stretch",
-        height=get_table_height(selection_df, max_rows=8),
+        height=get_table_height(selection_display_df, max_rows=8),
         hide_index=True,
         column_order=["Denumire", "Categorie", "Sursă", "Kcal/100g", "Proteine", "Carbohidrați", "Grăsimi"],
         column_config={
-            "Denumire": st.column_config.TextColumn("Denumire", width="medium"),
-            "Categorie": st.column_config.TextColumn("Categorie", width="small"),
-            "Sursă": st.column_config.TextColumn("Sursă", width="small"),
+            "Denumire": st.column_config.TextColumn(translate("Name"), width="medium"),
+            "Categorie": st.column_config.TextColumn(translate("Category"), width="small"),
+            "Sursă": st.column_config.TextColumn(translate("Source"), width="small"),
             "Kcal/100g": st.column_config.NumberColumn("Kcal/100g", format="%.1f kcal", width="small"),
-            "Proteine": st.column_config.NumberColumn("Proteine", format="%.1f g", width="small"),
-            "Carbohidrați": st.column_config.NumberColumn("Carbohidrați", format="%.1f g", width="small"),
-            "Grăsimi": st.column_config.NumberColumn("Grăsimi", format="%.1f g", width="small"),
+            "Proteine": st.column_config.NumberColumn(translate("Protein"), format="%.1f g", width="small"),
+            "Carbohidrați": st.column_config.NumberColumn(translate("Carbohydrates"), format="%.1f g", width="small"),
+            "Grăsimi": st.column_config.NumberColumn(translate("Fats"), format="%.1f g", width="small"),
         },
         key=build_food_selection_state_key(
             search_text,
@@ -603,24 +642,24 @@ def _render_add_catalog_food() -> None:
         selected_food_id = int(selection_df.iloc[selected_rows[0]]["_food_id"])
 
     quantity = st.number_input(
-        "Cantitate adăugată (g)",
+        translate("Added quantity (g)"),
         value=100.0,
         step=10.0,
-        help=quantity_range_help(),
+        help=quantity_range_help_for_ui(),
         key=_versioned_widget_key("what_if_add_food_quantity"),
     )
-    quantity_error = validate_quantity_g(quantity, "Cantitatea adăugată")
+    quantity_error = validate_quantity_g_for_ui(quantity, "Added quantity")
     if quantity_error:
         _render_inline_validation_message(quantity_error)
 
     if st.button(
-        "Adaugă aliment în scenariu",
+        translate("Add food to scenario"),
         key="what_if_add_food_button",
         width="stretch",
         type="primary",
     ):
         if selected_food_id is None:
-            st.warning("Selectează un aliment din tabel.")
+            st.warning(translate("Select a food from the table."))
             return
         if quantity_error:
             st.error(quantity_error)
@@ -649,29 +688,29 @@ def _render_add_custom_meal() -> None:
     user_id = int(st.session_state["user_id"])
     meal_options = CustomMeal.get_user_meal_options(user_id, include_archived=False)
     if not meal_options:
-        st.info("Nu există mese personalizate active.")
+        st.info(translate("There are no active custom meals."))
         return
 
     meal_ids = list(meal_options.keys())
     selected_meal_id = st.selectbox(
-        "Masă personalizată",
+        translate("Custom meal"),
         meal_ids,
         format_func=lambda meal_id: meal_options[meal_id]["recipe_name"],
         key=_versioned_widget_key("what_if_custom_meal_select"),
     )
     quantity = st.number_input(
-        "Cantitate adăugată (g)",
+        translate("Added quantity (g)"),
         value=100.0,
         step=10.0,
-        help=quantity_range_help(),
+        help=quantity_range_help_for_ui(),
         key=_versioned_widget_key("what_if_add_custom_meal_quantity"),
     )
-    quantity_error = validate_quantity_g(quantity, "Cantitatea adăugată")
+    quantity_error = validate_quantity_g_for_ui(quantity, "Added quantity")
     if quantity_error:
         _render_inline_validation_message(quantity_error)
 
     if st.button(
-        "Adaugă masa în scenariu",
+        translate("Add meal to scenario"),
         key="what_if_add_custom_meal_button",
         width="stretch",
         type="primary",
@@ -687,8 +726,12 @@ def _render_add_custom_meal() -> None:
                 quantity_g=quantity,
                 is_existing=False,
             )
-        except ValueError as exc:
-            st.warning(f"Masa selectată nu poate fi simulată: {exc}")
+        except ValueError:
+            st.warning(
+                translate(
+                    "The selected meal cannot be simulated with the entered values."
+                )
+            )
             return
         meal_quantity_g = float(selected_meal["quantity_g"])
         st.session_state[WHAT_IF_FOOD_ROWS_KEY].append(
@@ -711,10 +754,10 @@ def _render_add_custom_meal() -> None:
 
 
 def _render_activity_scenario_editor(reference_weight: float) -> None:
-    st.markdown("**Activități în scenariu**")
+    st.markdown(f"**{translate('Activities in the scenario')}**")
     rows = st.session_state.get(WHAT_IF_ACTIVITY_ROWS_KEY, [])
     if not rows:
-        st.info("Scenariul nu conține activități.")
+        st.info(translate("The scenario contains no activities."))
         return
 
     for index, row in enumerate(list(rows)):
@@ -725,20 +768,26 @@ def _render_activity_scenario_editor(reference_weight: float) -> None:
                 vertical_alignment="center",
             )
             with name_col:
-                st.markdown(f"**{row.get('label', '-')}**")
-                st.caption(f"{row.get('category', '-')} | {row.get('source_label', 'MacroSense')}")
+                st.markdown(f"**{_format_activity_row_label(row)}**")
+                st.caption(
+                    f"{format_activity_category_for_display(row.get('category', '-'))} | "
+                    f"{row.get('source_label', 'MacroSense')}"
+                )
             with duration_col:
                 duration_key = f"what_if_activity_duration_{scenario_id}"
                 duration = st.number_input(
-                    "Durată (min)",
+                    translate("Duration (min)"),
                     **_number_input_kwargs(
                         duration_key,
                         float(row.get("duration_min") or 30.0),
                         step=5.0,
-                        help=duration_range_help(),
+                        help=duration_range_help_for_ui(),
                     ),
                 )
-                duration_error = validate_duration_minutes(duration)
+                duration_error = validate_duration_minutes_for_ui(
+                    duration,
+                    "The duration",
+                )
                 _render_inline_validation_message(duration_error)
                 row["duration_min"] = float(duration)
             with details_col:
@@ -747,30 +796,30 @@ def _render_activity_scenario_editor(reference_weight: float) -> None:
                     with sets_col:
                         sets_key = f"what_if_activity_sets_{scenario_id}"
                         row["sets"] = st.number_input(
-                            "Seturi",
+                            translate("Sets"),
                             **_number_input_kwargs(
                                 sets_key,
                                 int(row.get("sets") or 3),
                                 step=1,
                             ),
                         )
-                        sets_error = validate_sets(row["sets"])
+                        sets_error = validate_sets_for_ui(row["sets"])
                         _render_inline_validation_message(sets_error)
                     with reps_col:
                         reps_key = f"what_if_activity_reps_{scenario_id}"
                         row["reps"] = st.number_input(
-                            "Repetări",
+                            translate("Repetitions"),
                             **_number_input_kwargs(
                                 reps_key,
                                 int(row.get("reps") or 10),
                                 step=1,
                             ),
                         )
-                        reps_error = validate_reps(row["reps"])
+                        reps_error = validate_reps_for_ui(row["reps"])
                         _render_inline_validation_message(reps_error)
                 manual_toggle_key = f"what_if_activity_manual_toggle_{scenario_id}"
                 use_manual = st.checkbox(
-                    "Calorii manuale",
+                    translate("Manual calories"),
                     **_checkbox_kwargs(
                         manual_toggle_key,
                         row.get("manual_calories_burned") is not None,
@@ -785,7 +834,7 @@ def _render_activity_scenario_editor(reference_weight: float) -> None:
                     )
                     manual_key = f"what_if_activity_manual_{scenario_id}"
                     row["manual_calories_burned"] = st.number_input(
-                        "Calorii arse",
+                        translate("Calories burned"),
                         **_number_input_kwargs(
                             manual_key,
                             float(manual_value),
@@ -806,7 +855,7 @@ def _render_activity_scenario_editor(reference_weight: float) -> None:
                 )
             with action_col:
                 if st.button(
-                    "Elimină",
+                    translate("Remove"),
                     key=f"what_if_remove_activity_{scenario_id}",
                     type="tertiary",
                     width="stretch",
@@ -816,24 +865,25 @@ def _render_activity_scenario_editor(reference_weight: float) -> None:
 
 
 def _render_add_activity_section(reference_weight: float) -> None:
-    with st.expander("Adaugă activitate doar în scenariu"):
+    with st.expander(translate("Add activity only to the scenario")):
         activity_options = Activity.get_catalog_options()
         if not activity_options:
-            st.info("Nu există activități în catalog.")
+            st.info(translate("There are no activities in the catalog."))
             return
 
         search_col, category_col = st.columns([2, 1])
         with search_col:
             search_text = st.text_input(
-                "Caută activitate",
-                placeholder="Ex: alergare, flotări, bicicletă",
+                translate("Search for activity"),
+                placeholder=translate("E.g. running, push-ups, cycling"),
                 key=_versioned_widget_key("what_if_activity_search"),
             ).strip()
         with category_col:
             category_filter = st.selectbox(
-                "Categorie",
+                translate("Category"),
                 get_activity_category_filter_options(activity_options),
-                key=_versioned_widget_key("what_if_activity_category_filter"),
+                format_func=format_activity_category_for_display,
+                key=translated_selection_key(_versioned_widget_key("what_if_activity_category_filter")),
             )
 
         selection_df = build_activity_selection_dataframe(
@@ -842,20 +892,21 @@ def _render_add_activity_section(reference_weight: float) -> None:
             category_filter,
         )
         if selection_df.empty:
-            st.info("Nu există activități pentru filtrele selectate.")
+            st.info(translate("No activities match the selected filters."))
             return
 
+        selection_display_df = build_activity_selection_display_dataframe(selection_df)
         selection_state = st.dataframe(
-            selection_df,
+            selection_display_df,
             width="stretch",
-            height=get_table_height(selection_df, max_rows=8),
+            height=get_table_height(selection_display_df, max_rows=8),
             hide_index=True,
             column_order=["Denumire", "Categorie", "Sursă", "Metodă MET", "MET"],
             column_config={
-                "Denumire": st.column_config.TextColumn("Denumire", width="medium"),
-                "Categorie": st.column_config.TextColumn("Categorie", width="small"),
-                "Sursă": st.column_config.TextColumn("Sursă", width="small"),
-                "Metodă MET": st.column_config.TextColumn("Metodă MET", width="medium"),
+                "Denumire": st.column_config.TextColumn(translate("Name"), width="medium"),
+                "Categorie": st.column_config.TextColumn(translate("Category"), width="small"),
+                "Sursă": st.column_config.TextColumn(translate("Source"), width="small"),
+                "Metodă MET": st.column_config.TextColumn(translate("MET method"), width="medium"),
                 "MET": st.column_config.NumberColumn("MET", format="%.1f", width="small"),
             },
             key=build_activity_selection_state_key(
@@ -875,49 +926,58 @@ def _render_add_activity_section(reference_weight: float) -> None:
         selected_activity = activity_options.get(selected_activity_id) if selected_activity_id else None
         if selected_activity:
             st.caption(
-                f"Sursă MET: {selected_activity.get('source_label', 'MacroSense')} · "
-                f"{selected_activity.get('met_method_label', 'Manual Admin')}"
+                translate(
+                    "MET source: {source} · {method}",
+                    source=selected_activity.get("source_label", "MacroSense"),
+                    method=format_activity_met_method_for_display(
+                        selected_activity.get("met_method_label", "Manual Admin")
+                    ),
+                )
             )
         else:
-            st.caption("Selectează o activitate pentru a calcula estimarea calorică.")
+            st.caption(
+                translate("Select an activity to calculate the calorie estimate.")
+            )
 
         is_strength = _is_strength_category(selected_activity.get("category")) if selected_activity else False
         input_col, detail_col = st.columns(2)
         with input_col:
             duration = st.number_input(
-                "Durată TOTALĂ sesiune (minute)",
+                translate("TOTAL session duration (minutes)"),
                 value=30.0,
                 step=0.1,
-                help=(
-                    "Timpul total petrecut la acest exercițiu, inclusiv pauzele dintre seturi. "
-                    f"{duration_range_help()}"
+                help=translate(
+                    "Total time spent on this exercise, including rest between sets. {range_help}",
+                    range_help=duration_range_help_for_ui(),
                 ),
                 key=_versioned_widget_key("what_if_add_activity_duration"),
             )
         with detail_col:
             if is_strength:
                 sets = st.number_input(
-                    "Seturi",
+                    translate("Sets"),
                     value=3,
                     step=1,
                     key=_versioned_widget_key("what_if_add_activity_sets"),
                 )
                 reps = st.number_input(
-                    "Repetări pe set",
+                    translate("Repetitions per set"),
                     value=12,
                     step=1,
                     key=_versioned_widget_key("what_if_add_activity_reps"),
                 )
             else:
-                st.info("📌 Seturile și repetările se aplică doar la exerciții de Forță.")
+                st.info(
+                    f'📌 {translate("Sets and repetitions apply only to strength exercises.")}'
+                )
                 sets = None
                 reps = None
 
         calc_sets = sets if is_strength else None
         calc_reps = reps if is_strength else None
-        duration_error = validate_duration_minutes(duration, "Durata adăugată")
-        sets_error = validate_sets(calc_sets) if is_strength else None
-        reps_error = validate_reps(calc_reps) if is_strength else None
+        duration_error = validate_duration_minutes_for_ui(duration, "Added duration")
+        sets_error = validate_sets_for_ui(calc_sets) if is_strength else None
+        reps_error = validate_reps_for_ui(calc_reps) if is_strength else None
         estimated_burned = None
         preview_error = None
         if selected_activity and not _get_first_error(duration_error, sets_error, reps_error):
@@ -935,27 +995,39 @@ def _render_add_activity_section(reference_weight: float) -> None:
                     is_existing=False,
                 )
                 estimated_burned = preview_entry.calories_burned
-                st.caption(f"🔥 Calorii estimate consumate: **{estimated_burned:.1f} kcal**")
+                st.caption(
+                    f"🔥 {translate('Estimated calories burned')}: "
+                    f"**{estimated_burned:.1f} kcal**"
+                )
             except ValueError:
-                preview_error = "Activitatea selectată nu poate fi simulată cu valorile introduse."
+                preview_error = translate(
+                    "The selected activity cannot be simulated with the entered values."
+                )
 
         use_manual_calories = st.checkbox(
-            "Folosesc caloriile raportate de ceas/aparat cardio",
+            translate("Use calories reported by a watch or cardio machine"),
             key=_versioned_widget_key("what_if_add_activity_manual_toggle"),
-            help="Valoarea manuală va înlocui estimarea MET/TUT doar în scenariul simulat.",
+            help=translate(
+                "The manual value will replace the MET/TUT estimate only in the simulated scenario."
+            ),
         )
         manual_calories = None
         manual_calories_error = None
         if use_manual_calories:
             manual_calories = st.number_input(
-                "Calorii arse raportate",
+                translate("Reported calories burned"),
                 value=float(max(1, round(estimated_burned or 1, 1))),
                 step=1.0,
                 key=_versioned_widget_key("what_if_add_activity_manual"),
             )
             manual_calories_error = _validate_manual_calories_ui(manual_calories)
             if not manual_calories_error:
-                st.caption(f"Se va folosi valoarea manuală: **{manual_calories:.1f} kcal**")
+                st.caption(
+                    translate(
+                        "The manual value will be used: **{calories:.1f} kcal**",
+                        calories=manual_calories,
+                    )
+                )
 
         validation_error = _get_first_error(
             duration_error,
@@ -968,7 +1040,7 @@ def _render_add_activity_section(reference_weight: float) -> None:
             st.error(validation_error)
 
         if st.button(
-            "Adaugă activitatea în scenariu",
+            translate("Add activity to scenario"),
             key="what_if_add_activity_button",
             width="stretch",
             type="primary",
@@ -991,7 +1063,11 @@ def _render_add_activity_section(reference_weight: float) -> None:
                     is_existing=False,
                 )
             except ValueError:
-                st.error("Activitatea selectată nu poate fi simulată cu valorile introduse.")
+                st.error(
+                    translate(
+                        "The selected activity cannot be simulated with the entered values."
+                    )
+                )
                 return
             st.session_state[WHAT_IF_ACTIVITY_ROWS_KEY].append(
                 {
@@ -1061,30 +1137,52 @@ def _build_entries(
     return food_entries, activity_entries, errors
 
 
+def _format_food_row_label(row: dict) -> str:
+    return row.get("label") or format_food_entry_type(row.get("entry_type") or "Aliment")
+
+
+def _format_activity_row_label(row: dict) -> str:
+    return row.get("label") or translate("Activity")
+
+
 def _format_food_row_error(row: dict) -> str:
-    quantity_error = validate_quantity_g(row.get("quantity_g"))
+    label = _format_food_row_label(row)
+    quantity_error = validate_quantity_g_for_ui(
+        row.get("quantity_g"),
+        "The quantity",
+    )
     if quantity_error:
-        return f"{row.get('label', 'Aliment')}: {quantity_error}"
-    return f"{row.get('label', 'Aliment')}: valorile nutriționale nu pot fi simulate."
+        return f"{label}: {quantity_error}"
+    return translate(
+        "{label}: nutritional values cannot be simulated.",
+        label=label,
+    )
 
 
 def _format_activity_row_error(row: dict) -> str:
-    duration_error = validate_duration_minutes(row.get("duration_min"))
+    label = _format_activity_row_label(row)
+    duration_error = validate_duration_minutes_for_ui(
+        row.get("duration_min"),
+        "The duration",
+    )
     if duration_error:
-        return f"{row.get('label', 'Activitate')}: {duration_error}"
+        return f"{label}: {duration_error}"
     manual_calories = row.get("manual_calories_burned")
     if manual_calories is not None:
         manual_error = _validate_manual_calories_ui(manual_calories)
         if manual_error:
-            return f"{row.get('label', 'Activitate')}: {manual_error}"
-    return f"{row.get('label', 'Activitate')}: valorile activității nu pot fi simulate."
+            return f"{label}: {manual_error}"
+    return translate(
+        "{label}: activity values cannot be simulated.",
+        label=label,
+    )
 
 
 def _render_comparison(comparison) -> None:
-    st.subheader("Rezultat What-if")
+    st.subheader(translate("What-if result"))
     rows = [
         _comparison_row(
-            "Calorii consumate",
+            translate("Calories consumed"),
             comparison.real.calories_in,
             comparison.simulated.calories_in,
             comparison.difference.calories_in,
@@ -1095,36 +1193,46 @@ def _render_comparison(comparison) -> None:
                 comparison.real.has_food_entries and comparison.simulated.has_food_entries
             ),
         ),
-        _comparison_row("Proteine", comparison.real.protein_g, comparison.simulated.protein_g, comparison.difference.protein_g, "g"),
-        _comparison_row("Carbohidrați", comparison.real.carbs_g, comparison.simulated.carbs_g, comparison.difference.carbs_g, "g"),
-        _comparison_row("Grăsimi", comparison.real.fats_g, comparison.simulated.fats_g, comparison.difference.fats_g, "g"),
-        _comparison_row("Calorii activități", comparison.real.activity_calories, comparison.simulated.activity_calories, comparison.difference.activity_calories, "kcal"),
-        _comparison_row("TDEE estimat", comparison.real.estimated_tdee, comparison.simulated.estimated_tdee, comparison.difference.estimated_tdee, "kcal"),
-        _comparison_row("Balanță estimată", comparison.real.estimated_balance, comparison.simulated.estimated_balance, comparison.difference.estimated_balance, "kcal"),
+        _comparison_row(translate("Protein"), comparison.real.protein_g, comparison.simulated.protein_g, comparison.difference.protein_g, "g"),
+        _comparison_row(translate("Carbohydrates"), comparison.real.carbs_g, comparison.simulated.carbs_g, comparison.difference.carbs_g, "g"),
+        _comparison_row(translate("Fats"), comparison.real.fats_g, comparison.simulated.fats_g, comparison.difference.fats_g, "g"),
+        _comparison_row(translate("Activity calories"), comparison.real.activity_calories, comparison.simulated.activity_calories, comparison.difference.activity_calories, "kcal"),
+        _comparison_row(translate("Estimated TDEE"), comparison.real.estimated_tdee, comparison.simulated.estimated_tdee, comparison.difference.estimated_tdee, "kcal"),
+        _comparison_row(translate("Estimated balance"), comparison.real.estimated_balance, comparison.simulated.estimated_balance, comparison.difference.estimated_balance, "kcal"),
     ]
     st.dataframe(
         pd.DataFrame(rows),
         hide_index=True,
         width="stretch",
         column_config={
-            "Metrică": st.column_config.TextColumn("Metrică", width="medium"),
-            "Valori reale": st.column_config.TextColumn("Valori reale", width="small"),
-            "Scenariu simulat": st.column_config.TextColumn("Scenariu simulat", width="small"),
-            "Diferență": st.column_config.TextColumn("Diferență", width="small"),
+            "Metrică": st.column_config.TextColumn(translate("Metric"), width="medium"),
+            "Valori reale": st.column_config.TextColumn(translate("Real values"), width="small"),
+            "Scenariu simulat": st.column_config.TextColumn(translate("Simulated scenario"), width="small"),
+            "Diferență": st.column_config.TextColumn(translate("Difference"), width="small"),
         },
     )
 
     if scenario_matches_real_day(comparison):
-        st.success("Scenariul este identic cu ziua reală. Nu există modificări simulate.")
+        st.success(
+            translate(
+                "The scenario is identical to the real day. There are no simulated changes."
+            )
+        )
     else:
-        st.info(describe_balance_delta(comparison.difference.estimated_balance))
+        st.info(
+            translate(describe_balance_delta(comparison.difference.estimated_balance))
+        )
     if comparison.difference.estimated_balance is not None:
         impact_14 = calculate_repeated_daily_weight_impact(comparison.difference.estimated_balance, 14)
         impact_30 = calculate_repeated_daily_weight_impact(comparison.difference.estimated_balance, 30)
         st.caption(
-            "Impact teoretic dacă aceeași diferență față de ziua reală s-ar repeta zilnic: "
-            f"{impact_14:+.2f} kg în 14 zile și {impact_30:+.2f} kg în 30 zile. "
-            "Aceasta este o formulă deterministă, separată de predicția ML."
+            translate(
+                "Theoretical impact if the same difference from the real day repeated daily: "
+                "{impact_14:+.2f} kg over 14 days and {impact_30:+.2f} kg over 30 days. "
+                "This is a deterministic formula, separate from the ML prediction.",
+                impact_14=impact_14,
+                impact_30=impact_30,
+            )
         )
 
 
@@ -1174,26 +1282,34 @@ def _format_signed_value(value: Any, suffix: str, *, unavailable: bool = False) 
 def _format_source_context(row: dict) -> str:
     meal_type = row.get("meal_type")
     meal_time = format_time_for_display(row.get("meal_time"))
-    source = row.get("source_label") or "MacroSense"
+    entry_type = format_food_entry_type(row.get("entry_type", "Aliment"))
+    source = format_food_source_label_for_display(
+        row.get("source_label") or "MacroSense"
+    )
+    display_meal_type = (
+        translate("Scenario")
+        if meal_type == "Scenariu"
+        else format_meal_type(meal_type)
+    )
     if meal_type and meal_time != "-":
-        return f"{row.get('entry_type', 'Aliment')} | {source} | {meal_type}, {meal_time}"
-    return f"{row.get('entry_type', 'Aliment')} | {source}"
+        return f"{entry_type} | {source} | {display_meal_type}, {meal_time}"
+    return f"{entry_type} | {source}"
 
 
 def _validate_manual_calories_ui(value: Any) -> str | None:
     try:
         numeric_value = float(value)
     except (TypeError, ValueError):
-        return "Caloriile manuale trebuie să fie un număr valid."
+        return translate("Manual calories must be a valid number.")
     if numeric_value < ActivityLog.MIN_MANUAL_CALORIES_BURNED:
-        return (
-            "Caloriile manuale trebuie să fie cel puțin "
-            f"{ActivityLog.MIN_MANUAL_CALORIES_BURNED:.0f} kcal."
+        return translate(
+            "Manual calories must be at least {minimum:.0f} kcal.",
+            minimum=ActivityLog.MIN_MANUAL_CALORIES_BURNED,
         )
     if numeric_value > ActivityLog.MAX_MANUAL_CALORIES_BURNED:
-        return (
-            "Caloriile manuale trebuie să fie cel mult "
-            f"{ActivityLog.MAX_MANUAL_CALORIES_BURNED:.0f} kcal."
+        return translate(
+            "Manual calories must be at most {maximum:.0f} kcal.",
+            maximum=ActivityLog.MAX_MANUAL_CALORIES_BURNED,
         )
     return None
 

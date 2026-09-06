@@ -4,6 +4,8 @@ from datetime import date, time
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from services.what_if.simulator import describe_balance_delta
+from ui import language
 from ui.pages import what_if_page
 from ui.pages.what_if_page import (
     REFERENCE_CONTEXT_COLUMN_WEIGHTS,
@@ -18,28 +20,45 @@ from ui.pages.what_if_page import (
     _clear_scenario_widget_state,
     _get_last_valid_comparison,
     _comparison_row,
+    _format_activity_row_error,
+    _format_activity_row_label,
+    _format_food_row_error,
+    _format_food_row_label,
     _format_remaining_error_count,
+    _format_source_context,
     _format_signed_value,
     _format_value,
+    _is_strength_category,
     _remember_valid_comparison,
     _reset_scenario_widget_state,
     _sync_scenario_state,
+    _validate_manual_calories_ui,
     _versioned_widget_key,
 )
 
 
 class WhatIfPageHelperTests(unittest.TestCase):
-    def test_remaining_error_count_uses_singular_for_one_error(self):
-        self.assertEqual(
-            _format_remaining_error_count(1),
-            "Încă o valoare invalidă în scenariu.",
-        )
+    def test_remaining_error_count_follows_selected_language(self):
+        expectations = {
+            "en": (
+                "One more invalid value remains in the scenario.",
+                "2 more invalid values remain in the scenario.",
+            ),
+            "ro": (
+                "Încă o valoare invalidă în scenariu.",
+                "Încă 2 valori invalide în scenariu.",
+            ),
+        }
 
-    def test_remaining_error_count_uses_plural_for_multiple_errors(self):
-        self.assertEqual(
-            _format_remaining_error_count(2),
-            "Încă 2 valori invalide în scenariu.",
-        )
+        for language_code, (singular, plural) in expectations.items():
+            with self.subTest(language_code=language_code):
+                with patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ):
+                    self.assertEqual(_format_remaining_error_count(1), singular)
+                    self.assertEqual(_format_remaining_error_count(2), plural)
 
     def test_reference_context_keeps_four_columns_to_replace_dashboard_card_row(self):
         source = inspect.getsource(what_if_page._render_reference_context)
@@ -107,13 +126,229 @@ class WhatIfPageHelperTests(unittest.TestCase):
         self.assertIn("what_if_add_activity_reps", source)
         self.assertIn("what_if_add_activity_manual_toggle", source)
         self.assertIn("what_if_add_activity_manual", source)
-        self.assertIn("📌 Seturile și repetările se aplică doar la exerciții de Forță.", source)
-        self.assertIn("🔥 Calorii estimate consumate", source)
+        self.assertIn(
+            "Sets and repetitions apply only to strength exercises.",
+            source,
+        )
+        self.assertIn("Estimated calories burned", source)
         self.assertIn("_validate_manual_calories_ui(manual_calories)", source)
         self.assertIn(
             "manual_calories_burned=manual_calories if use_manual_calories else None",
             source,
         )
+
+    def test_food_and_activity_selectors_translate_display_only(self):
+        food_source = inspect.getsource(what_if_page._render_add_catalog_food)
+        activity_source = inspect.getsource(what_if_page._render_add_activity_section)
+
+        self.assertIn("format_func=format_food_category_for_display", food_source)
+        self.assertIn(
+            "selection_display_df = build_food_selection_display_dataframe(selection_df)",
+            food_source,
+        )
+        self.assertIn(
+            'int(selection_df.iloc[selected_rows[0]]["_food_id"])',
+            food_source,
+        )
+
+        self.assertIn("format_func=format_activity_category_for_display", activity_source)
+        self.assertIn(
+            "selection_display_df = build_activity_selection_display_dataframe(selection_df)",
+            activity_source,
+        )
+        self.assertIn(
+            'int(selection_df.iloc[selected_rows[0]]["_activity_id"])',
+            activity_source,
+        )
+        self.assertIn('_is_strength_category(selected_activity.get("category"))', activity_source)
+
+    def test_strength_detection_keeps_raw_domain_category(self):
+        for language_code in ("en", "ro"):
+            with self.subTest(language_code=language_code):
+                with patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ):
+                    self.assertTrue(_is_strength_category("Forță"))
+                    self.assertFalse(_is_strength_category("Strength"))
+
+    def test_source_context_translates_display_without_changing_row(self):
+        row = {
+            "entry_type": "Aliment",
+            "source_label": "MacroSense",
+            "meal_type": "Mic dejun",
+            "meal_time": time(9, 0),
+        }
+        original_row = row.copy()
+
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            self.assertEqual(
+                _format_source_context(row),
+                "Food | MacroSense | Breakfast, 09:00",
+            )
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            self.assertEqual(
+                _format_source_context(row),
+                "Aliment | MacroSense | Mic dejun, 09:00",
+            )
+
+        self.assertEqual(row, original_row)
+
+    def test_custom_meal_snapshot_source_follows_selected_language(self):
+        row = {
+            "entry_type": "Masă personalizată",
+            "source_label": "Meal snapshot",
+            "meal_type": "Prânz",
+            "meal_time": time(13, 30),
+        }
+
+        with patch.object(language.st, "session_state", {"language": "en"}):
+            self.assertEqual(
+                _format_source_context(row),
+                "Custom meal | Meal snapshot | Lunch, 13:30",
+            )
+        with patch.object(language.st, "session_state", {"language": "ro"}):
+            self.assertEqual(
+                _format_source_context(row),
+                "Masă personalizată | Snapshot masă | Prânz, 13:30",
+            )
+
+    def test_row_validation_uses_natural_labels_in_both_languages(self):
+        expectations = {
+            "en": (
+                "Food: The quantity must be at least 1 g.",
+                "Activity: The duration must be at least 0.1 minutes.",
+            ),
+            "ro": (
+                "Aliment: Cantitatea trebuie să fie cel puțin 1 g.",
+                "Activitate: Durata trebuie să fie cel puțin 0.1 minute.",
+            ),
+        }
+
+        for language_code, expected in expectations.items():
+            with self.subTest(language_code=language_code):
+                with patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ):
+                    self.assertEqual(
+                        _format_food_row_error({"label": "", "quantity_g": 0}),
+                        expected[0],
+                    )
+                    self.assertEqual(
+                        _format_activity_row_error(
+                            {
+                                "label": "",
+                                "duration_min": 0,
+                                "manual_calories_burned": None,
+                            }
+                        ),
+                        expected[1],
+                    )
+
+    def test_missing_row_names_follow_language_without_changing_named_entries(self):
+        for language_code, expected in (
+            ("en", ("Food", "Custom meal", "Activity")),
+            ("ro", ("Aliment", "Masă personalizată", "Activitate")),
+        ):
+            with self.subTest(language_code=language_code):
+                with patch.object(language.st, "session_state", {"language": language_code}):
+                    self.assertEqual(_format_food_row_label({"label": ""}), expected[0])
+                    self.assertEqual(
+                        _format_food_row_label(
+                            {"label": "", "entry_type": "Masă personalizată"}
+                        ),
+                        expected[1],
+                    )
+                    self.assertEqual(_format_activity_row_label({"label": None}), expected[2])
+                    for name in ("Food", "Custom meal", "Activity", "Prânzul meu"):
+                        row = {"label": name, "entry_type": "Masă personalizată"}
+                        self.assertEqual(_format_food_row_label(row), name)
+                        self.assertEqual(_format_activity_row_label(row), name)
+                        self.assertEqual(row["label"], name)
+
+    def test_manual_calorie_validation_follows_selected_language(self):
+        expectations = {
+            "en": (
+                "Manual calories must be a valid number.",
+                "Manual calories must be at least 1 kcal.",
+                "Manual calories must be at most 5000 kcal.",
+            ),
+            "ro": (
+                "Caloriile manuale trebuie să fie un număr valid.",
+                "Caloriile manuale trebuie să fie cel puțin 1 kcal.",
+                "Caloriile manuale trebuie să fie cel mult 5000 kcal.",
+            ),
+        }
+
+        for language_code, expected in expectations.items():
+            with self.subTest(language_code=language_code):
+                with patch.object(
+                    language.st,
+                    "session_state",
+                    {"language": language_code},
+                ):
+                    self.assertEqual(_validate_manual_calories_ui("bad"), expected[0])
+                    self.assertEqual(_validate_manual_calories_ui(0), expected[1])
+                    self.assertEqual(_validate_manual_calories_ui(5001), expected[2])
+                    self.assertIsNone(_validate_manual_calories_ui(250))
+
+    def test_balance_description_is_translated_at_render_boundary(self):
+        source = inspect.getsource(what_if_page._render_comparison)
+
+        self.assertIn(
+            "translate(describe_balance_delta(comparison.difference.estimated_balance))",
+            source,
+        )
+
+        expectations = {
+            "en": {
+                None: (
+                    "The estimated balance cannot be compared because food data is "
+                    "missing from the real day or the scenario."
+                ),
+                0: "The estimated balance remains unchanged compared with the real values.",
+                -100: (
+                    "The scenario lowers the estimated balance and moves further "
+                    "toward a deficit."
+                ),
+                100: (
+                    "The scenario raises the estimated balance and moves further "
+                    "toward a surplus."
+                ),
+                50: (
+                    "The scenario changes the estimated balance only slightly "
+                    "compared with the real values."
+                ),
+            },
+            "ro": {
+                None: (
+                    "Balanța estimată nu poate fi comparată deoarece lipsește "
+                    "alimentația din ziua reală sau din scenariu."
+                ),
+                0: "Balanța estimată rămâne neschimbată față de valorile reale.",
+                -100: "Scenariul scade balanța estimată și merge mai mult spre deficit.",
+                100: "Scenariul crește balanța estimată și merge mai mult spre surplus.",
+                50: "Scenariul schimbă puțin balanța estimată față de valorile reale.",
+            },
+        }
+        for language_code, language_expectations in expectations.items():
+            with patch.object(
+                language.st,
+                "session_state",
+                {"language": language_code},
+            ):
+                for balance_delta, expected in language_expectations.items():
+                    with self.subTest(
+                        language_code=language_code,
+                        balance_delta=balance_delta,
+                    ):
+                        self.assertEqual(
+                            language.translate(describe_balance_delta(balance_delta)),
+                            expected,
+                        )
 
     def test_add_food_buttons_use_primary_what_if_style(self):
         catalog_source = inspect.getsource(what_if_page._render_add_catalog_food)

@@ -2,19 +2,22 @@ import inspect
 import re
 import unittest
 from decimal import Decimal
+from unittest.mock import patch
 
 import pandas as pd
 
+from ui import language
 from ui.pages import activity_journal_page, food_journal_page, what_if_page
 from ui import journal_energy_summary
 from ui.journal_energy_summary import build_daily_energy_summary_cards
 
 
-def _summary_values(energy_estimate):
-    return {
-        card["label"]: card["value"]
-        for card in build_daily_energy_summary_cards(energy_estimate)
-    }
+def _summary_values(energy_estimate, language_code="ro"):
+    with patch.object(language.st, "session_state", {"language": language_code}):
+        return {
+            card["label"]: card["value"]
+            for card in build_daily_energy_summary_cards(energy_estimate)
+        }
 
 
 class JournalEnergyMetricTests(unittest.TestCase):
@@ -32,8 +35,8 @@ class JournalEnergyMetricTests(unittest.TestCase):
     def test_what_if_uses_estimated_balance_not_activity_only_journal_balance(self):
         source = inspect.getsource(what_if_page)
 
-        self.assertIn("TDEE estimat", source)
-        self.assertIn("Balanță estimată", source)
+        self.assertIn('translate("Estimated TDEE")', source)
+        self.assertIn('translate("Estimated balance")', source)
         self.assertIn("estimated_balance", source)
         self.assertNotIn("journal_balance", source)
 
@@ -83,6 +86,23 @@ class JournalEnergyMetricTests(unittest.TestCase):
         self.assertEqual(values["Calorii activități"], "0 kcal")
         self.assertEqual(values["TDEE estimat"], "2100 kcal")
         self.assertEqual(values["Balanță estimată"], "-300 kcal")
+
+    def test_journal_summary_uses_english_labels_when_selected(self):
+        values = _summary_values(
+            {
+                "has_food_logs": False,
+                "food_calories_in": None,
+                "activity_calories_burned": 320.0,
+                "estimated_tdee": 2320.0,
+                "estimated_balance": None,
+            },
+            language_code="en",
+        )
+
+        self.assertEqual(values["Calories consumed"], "Not logged")
+        self.assertEqual(values["Activity calories"], "320 kcal")
+        self.assertEqual(values["Estimated TDEE"], "2320 kcal")
+        self.assertEqual(values["Estimated balance"], "Not logged")
 
     def test_food_journal_recalculates_daily_totals_after_all_mutations(self):
         source = inspect.getsource(food_journal_page.render_food_journal_page)

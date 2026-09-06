@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date, datetime
 from html import escape
+import json
 from typing import Any
 
 import altair as alt
@@ -22,21 +23,22 @@ from services.recommendations.simple_recommendations import (
     RecommendationCard,
     build_dashboard_recommendation_cards,
 )
+from ui.language import translate, translated_selection_key
 
 
-INTERVAL_OPTIONS = {
+INTERVAL_OPTIONS = (7, 30, 90)
+DEFAULT_INTERVAL_DAYS = 30
+LEGACY_INTERVAL_DAYS = {
     "7 zile": 7,
     "30 zile": 30,
     "90 zile": 90,
 }
-DEFAULT_INTERVAL_LABEL = "30 zile"
 DASHBOARD_INTERVAL_KEY = "dashboard_interval_selection"
 DASHBOARD_ANALYSIS_DATE_KEY = "dashboard_analysis_date"
 
-GOAL_HELP = (
-    "Obiective posibile: Slabire = deficit caloric orientativ; Mentinere = "
-    "stabilizarea greutății; Crestere = surplus controlat și susținerea "
-    "antrenamentelor."
+GOAL_HELP_SOURCE_TEXT = (
+    "Possible goals: Weight loss = a suggested calorie deficit; Maintenance = "
+    "weight stability; Muscle gain = a controlled surplus that supports training."
 )
 
 PROTEIN_COLOR = "#D64545"
@@ -48,29 +50,65 @@ ACTIVITY_COLOR = "#6F52ED"
 DEFICIT_COLOR = "#2E7D32"
 SURPLUS_COLOR = "#C94C4C"
 
+REFERENCE_WEIGHT_SOURCE_TEXT = {
+    "missing": "No weight",
+    "actual": "Actual weigh-in",
+    "future_fallback": "Fallback from the first future weight",
+    "previous": "Previous weight used as reference",
+}
+BALANCE_TYPE_SOURCE_TEXT = {
+    "deficit": "Deficit",
+    "surplus": "Surplus",
+}
+MACRONUTRIENT_SOURCE_TEXT = {
+    "protein_g": "Protein",
+    "carbs_g": "Carbohydrates",
+    "fats_g": "Fats",
+}
+ACTIVITY_STATUS_SOURCE_TEXT = {
+    "logged": "Workout logged",
+    "rest_day": "Day without a workout",
+}
+ACTIVITY_CATEGORY_SOURCE_TEXT = {
+    "Cardio": "Cardio",
+    "Forță": "Strength",
+    "Flexibilitate": "Flexibility",
+    "Sport de echipă": "Team sport",
+    "Activități zilnice": "Daily activities",
+    "Altele": "Other",
+}
+ACTIVITY_METHOD_SOURCE_TEXT = {
+    "Manual": "Manual",
+    "Estimare MacroSense": "MacroSense estimate",
+}
+
 
 def render_dashboard_page() -> None:
-    st.title("🏠 Acasă")
+    st.title(f"🏠 {translate('Home')}")
     st.caption(
-        "Dashboard-ul este read-only. Valorile TDEE și balanța calorică sunt "
-        "estimări orientative calculate din profil, greutate și jurnale."
+        translate(
+            "The dashboard is read-only. TDEE and calorie balance values are "
+            "estimates calculated from your profile, weight, and journals."
+        )
     )
 
-    selected_interval = _resolve_interval_label(
-        st.session_state.get(DASHBOARD_INTERVAL_KEY)
-    )
-    days = INTERVAL_OPTIONS.get(selected_interval, 30)
+    days = _initialize_interval_selection()
 
     user_id = st.session_state.get("user_id")
     if not user_id:
-        st.warning("Autentifică-te pentru a vedea dashboard-ul.")
+        st.warning(translate("Log in to view the dashboard."))
         return
 
     today = date.today()
     try:
         latest_data_date = get_latest_user_data_date(int(user_id), today)
     except RuntimeError as exc:
-        st.error(f"Eroare la încărcarea datei de analiză: {exc}")
+        st.error(
+            translate(
+                "Error loading the analysis date: {error}",
+                error=exc,
+            )
+        )
         return
 
     selected_analysis_date = _render_analysis_date_selector(
@@ -85,7 +123,12 @@ def render_dashboard_page() -> None:
             end_date=selected_analysis_date,
         )
     except RuntimeError as exc:
-        st.error(f"Eroare la încărcarea dashboard-ului: {exc}")
+        st.error(
+            translate(
+                "Error loading the dashboard: {error}",
+                error=exc,
+            )
+        )
         return
 
     _render_current_state(data.get("current", {}), data.get("end_date"), today=today)
@@ -103,13 +146,14 @@ def render_dashboard_page() -> None:
     )
 
     st.divider()
-    st.subheader("Evoluție pe interval")
+    st.subheader(translate("Progress over the interval"))
     st.radio(
-        "Interval analiză",
-        list(INTERVAL_OPTIONS.keys()),
-        index=list(INTERVAL_OPTIONS.keys()).index(selected_interval),
+        translate("Analysis interval"),
+        list(INTERVAL_OPTIONS),
+        format_func=_display_interval_name,
         horizontal=True,
-        key=DASHBOARD_INTERVAL_KEY,
+        key=translated_selection_key(DASHBOARD_INTERVAL_KEY),
+        **_interval_radio_kwargs(days),
     )
 
     _render_interval_summary(data)
@@ -136,13 +180,13 @@ def _render_analysis_date_selector(
         st.session_state[DASHBOARD_ANALYSIS_DATE_KEY] = initial_date
 
     selected_date = st.date_input(
-        "Data analiză",
+        translate("Analysis date"),
         value=initial_date,
         max_value=today,
         key=DASHBOARD_ANALYSIS_DATE_KEY,
-        help=(
-            "Dashboard-ul, recomandările și predicția ML sunt calculate până "
-            "la această dată."
+        help=translate(
+            "The dashboard, recommendations, and ML prediction are calculated "
+            "through this date."
         ),
     )
     selected_date = _resolve_dashboard_analysis_date(
@@ -151,9 +195,11 @@ def _render_analysis_date_selector(
         today=today,
     )
     if latest_data_date and selected_date == latest_data_date and selected_date != today:
-        st.caption("Data analiză este ultima zi cu date înregistrate.")
+        st.caption(
+            translate("The analysis date is the latest day with logged data.")
+        )
     elif selected_date != today:
-        st.caption("Dashboard recalculat până la data selectată.")
+        st.caption(translate("Dashboard recalculated through the selected date."))
     return selected_date
 
 
@@ -179,9 +225,11 @@ def _analysis_date_context(
     is_today = _to_date(analysis_date or resolved_today) == resolved_today
     return {
         "is_today": is_today,
-        "state_title": "Starea curentă" if is_today else "Starea la data analizată",
-        "day_phrase": "azi" if is_today else "la data analizată",
-        "day_sentence": "Astăzi" if is_today else "La data analizată",
+        "state_title": translate(
+            "Current state" if is_today else "State on the analysis date"
+        ),
+        "day_phrase": translate("today" if is_today else "on the analysis date"),
+        "day_sentence": translate("Today" if is_today else "On the analysis date"),
     }
 
 
@@ -199,28 +247,38 @@ def _render_current_state(
     _render_card_grid(
         [
             {
-                "label": "Înălțime",
+                "label": translate("Height"),
                 "value": _format_cm(current.get("height_cm")),
                 "accent": "profile",
-                "help": "Înălțimea setată la crearea profilului. Este folosită la BMI și BMR.",
+                "help": translate(
+                    "The height saved when the profile was created. It is used "
+                    "to calculate BMI and BMR."
+                ),
             },
             {
-                "label": "Sex",
+                "label": translate("Gender"),
                 "value": _format_gender(current.get("gender")),
                 "accent": "profile",
-                "help": "Sexul biologic selectat în profil. Este folosit în formula BMR Mifflin-St Jeor.",
+                "help": translate(
+                    "The biological sex selected in the profile. It is used in "
+                    "the Mifflin-St Jeor BMR formula."
+                ),
             },
             {
-                "label": "Vârstă",
+                "label": translate("Age"),
                 "value": _format_age(current.get("age")),
                 "accent": "profile",
-                "help": "Vârsta setată în profil. Este folosită în formula BMR Mifflin-St Jeor.",
+                "help": translate(
+                    "The age saved in the profile. It is used in the Mifflin-St "
+                    "Jeor BMR formula."
+                ),
             },
             {
-                "label": "Obiectiv",
+                "label": translate("Goal"),
                 "value": _format_goal(current.get("goal")),
                 "accent": "goal",
-                "help": _goal_description(current.get("goal")) or GOAL_HELP,
+                "help": _goal_description(current.get("goal"))
+                or translate(GOAL_HELP_SOURCE_TEXT),
             },
         ],
         columns_count=4,
@@ -229,43 +287,50 @@ def _render_current_state(
     _render_card_grid(
         [
             {
-                "label": "Greutate curentă"
+                "label": translate("Current weight")
                 if is_today
-                else "Greutate la data analizată",
+                else translate("Weight on the analysis date"),
                 "value": _format_kg(current.get("current_weight_kg")),
                 "delta": _format_kg_delta(current.get("weight_delta_kg")),
                 "accent": "weight",
-                "help": (
-                    "Ultima greutate salvată până la data analizată. Delta arată "
-                    "diferența față de cântărirea anterioară disponibilă."
+                "help": translate(
+                    "The latest weight saved through the analysis date. The delta "
+                    "shows the difference from the previous available weigh-in."
                 ),
             },
             {
-                "label": "BMI curent" if is_today else "BMI la data analizată",
+                "label": translate("Current BMI")
+                if is_today
+                else translate("BMI on the analysis date"),
                 "value": _format_number(current.get("current_bmi"), ""),
                 "accent": "health",
-                "help": (
-                    "BMI = greutatea de referință / înălțime². Este un indicator "
-                    "orientativ, nu un diagnostic medical."
+                "help": translate(
+                    "BMI = reference weight / height². It is a general indicator, "
+                    "not a medical diagnosis."
                 ),
             },
             {
-                "label": "BMR estimat",
+                "label": translate("Estimated BMR"),
                 "value": _format_kcal(current.get("current_bmr")),
                 "accent": "energy",
-                "help": (
-                    "BMR este consumul bazal estimat prin formula Mifflin-St "
-                    "Jeor, pe baza greutății curente, înălțimii, vârstei și sexului."
+                "help": translate(
+                    "BMR is the basal energy expenditure estimated with the "
+                    "Mifflin-St Jeor formula, using current weight, height, age, "
+                    "and biological sex."
                 ),
             },
             {
-                "label": f"TDEE estimat {day_phrase}",
+                "label": translate(
+                    "Estimated TDEE {day_phrase}",
+                    day_phrase=day_phrase,
+                ),
                 "value": _format_kcal(current.get("today_estimated_tdee")),
                 "accent": "energy",
-                "help": (
-                    f"TDEE estimat {day_phrase} = BMR * 1.2 + caloriile arse prin "
-                    f"antrenamentele logate {day_phrase}. Factorul 1.2 reprezintă "
-                    "baza sedentară."
+                "help": translate(
+                    "Estimated TDEE {day_phrase} = BMR * 1.2 + calories burned "
+                    "through activities logged {day_phrase}. The 1.2 factor "
+                    "represents the sedentary baseline.",
+                    day_phrase=day_phrase,
                 ),
             },
         ],
@@ -275,31 +340,43 @@ def _render_current_state(
     _render_card_grid(
         [
             {
-                "label": f"Calorii consumate {day_phrase}",
+                "label": translate(
+                    "Calories consumed {day_phrase}",
+                    day_phrase=day_phrase,
+                ),
                 "value": _format_kcal_or_missing(current.get("today_calories_in")),
                 "accent": "food",
-                "help": (
-                    f"Totalul caloriilor din alimentele logate {day_phrase}. Dacă "
-                    "nu există alimente logate, valoarea este Nelogat, nu 0 kcal."
+                "help": translate(
+                    "Total calories from food logged {day_phrase}. If no food is "
+                    "logged, the value is Not logged, not 0 kcal.",
+                    day_phrase=day_phrase,
                 ),
             },
             {
-                "label": f"Calorii activități {day_phrase}",
+                "label": translate(
+                    "Activity calories {day_phrase}",
+                    day_phrase=day_phrase,
+                ),
                 "value": _format_kcal_zero(current.get("today_activity_calories")),
                 "accent": "activity",
-                "help": (
-                    f"Caloriile arse prin activitățile logate {day_phrase}. Dacă "
-                    "nu există antrenamente, se afișează 0 kcal ca zi de repaus."
+                "help": translate(
+                    "Calories burned through activities logged {day_phrase}. If "
+                    "there are no workouts, 0 kcal is displayed as a rest day.",
+                    day_phrase=day_phrase,
                 ),
             },
             {
-                "label": f"Balanță estimată {day_phrase}",
+                "label": translate(
+                    "Estimated balance {day_phrase}",
+                    day_phrase=day_phrase,
+                ),
                 "value": _format_signed_kcal(current.get("today_estimated_balance")),
                 "accent": "balance",
-                "help": (
-                    f"Balanță estimată {day_phrase} = calorii consumate "
-                    f"{day_phrase} - TDEE estimat {day_phrase}. Se calculează "
-                    f"doar dacă există alimente logate {day_phrase}."
+                "help": translate(
+                    "Estimated balance {day_phrase} = calories consumed "
+                    "{day_phrase} - estimated TDEE {day_phrase}. It is calculated "
+                    "only when food is logged {day_phrase}.",
+                    day_phrase=day_phrase,
                 ),
             },
         ],
@@ -310,23 +387,31 @@ def _render_current_state(
     if not current.get("today_has_food_logs"):
         if is_today:
             status_messages.append(
-                "Adaugă mesele de azi ca să vezi consumul și balanța energetică."
+                translate(
+                    "Add today's meals to see calorie intake and energy balance."
+                )
             )
         else:
             status_messages.append(
-                "La data analizată nu există mese logate; consumul și balanța "
-                "rămân nelogate."
+                translate(
+                    "No meals are logged on the analysis date; calorie intake "
+                    "and energy balance remain unlogged."
+                )
             )
     if not current.get("today_has_activity_logs"):
         if is_today:
             status_messages.append(
-                "Fără antrenamente azi: activitatea logată este 0 kcal, deci ziua "
-                "este considerată de repaus."
+                translate(
+                    "No workouts today: logged activity is 0 kcal, so the day is "
+                    "treated as a rest day."
+                )
             )
         else:
             status_messages.append(
-                "La data analizată nu există antrenamente logate; activitatea este "
-                "0 kcal, ca zi de repaus."
+                translate(
+                    "No workouts are logged on the analysis date; activity is "
+                    "0 kcal, as on a rest day."
+                )
             )
     if status_messages:
         st.info(" ".join(status_messages))
@@ -337,7 +422,7 @@ def _render_weight_prediction_section(
     analysis_date: date | None,
     today: date | None = None,
 ) -> UserWeightPredictions | None:
-    st.subheader("Predicție greutate")
+    st.subheader(translate("Weight prediction"))
 
     try:
         prediction_result = get_latest_available_user_weight_predictions(
@@ -349,8 +434,10 @@ def _render_weight_prediction_section(
         )
     except RuntimeError:
         st.info(
-            "Predicția ML nu este disponibilă momentan. Verifică modelele "
-            "antrenate și conexiunea la baza de date."
+            translate(
+                "The ML prediction is temporarily unavailable. Check the "
+                "trained models and database connection."
+            )
         )
         return None
 
@@ -370,8 +457,10 @@ def _render_weight_prediction_section(
         )
     else:
         st.info(
-            "Predicția apare după ce există suficiente alimente, cântăriri și "
-            "modele ML antrenate pentru utilizatorul curent."
+            translate(
+                "The prediction appears once there are enough logged meals, "
+                "weigh-ins, and trained ML models for the current user."
+            )
         )
 
     return prediction_result
@@ -395,13 +484,21 @@ def _render_recommendation_section(
         except RuntimeError:
             recommendation_data = dashboard_data
 
-    st.subheader("Recomandări")
+    st.subheader(translate("Recommendations"))
     day_context = _analysis_date_context(analysis_date)
     if bool(day_context["is_today"]):
-        st.caption(f"Pe baza ultimelor {RECOMMENDATION_DAYS} zile.")
+        st.caption(
+            translate(
+                "Based on the last {days} days.",
+                days=RECOMMENDATION_DAYS,
+            )
+        )
     else:
         st.caption(
-            f"Pe baza ultimelor {RECOMMENDATION_DAYS} zile până la data analizată."
+            translate(
+                "Based on the last {days} days through the analysis date.",
+                days=RECOMMENDATION_DAYS,
+            )
         )
     cards = build_dashboard_recommendation_cards(
         recommendation_data,
@@ -418,12 +515,15 @@ def _render_recommendation_grid(cards: list[RecommendationCard]) -> None:
 
 
 def _build_recommendation_card_html(card: RecommendationCard) -> str:
+    category = escape(translate(card.category))
+    status = escape(translate(card.status))
+    message = escape(translate(card.message))
     return "".join(
         [
             f'<div class="recommendation-card {escape(card.accent)}">',
-            f'<div class="recommendation-card-category">{escape(card.category)}</div>',
-            f'<div class="recommendation-card-status">{escape(card.status)}</div>',
-            f'<div class="recommendation-card-message">{escape(card.message)}</div>',
+            f'<div class="recommendation-card-category">{category}</div>',
+            f'<div class="recommendation-card-status">{status}</div>',
+            f'<div class="recommendation-card-message">{message}</div>',
             "</div>",
         ]
     )
@@ -446,26 +546,28 @@ def _build_weight_prediction_cards(
     for horizon_days in DEFAULT_PREDICTION_HORIZONS:
         prediction = predictions_by_horizon.get(horizon_days)
         if prediction:
-            label = f"Peste {horizon_days} zile"
+            label = translate("In {days} days", days=horizon_days)
             if uses_fallback_date:
-                label = (
-                    f"Peste {horizon_days} zile de la "
-                    f"{_format_date(prediction.analysis_date)}"
+                label = translate(
+                    "In {days} days from {date}",
+                    days=horizon_days,
+                    date=_format_date(prediction.analysis_date),
                 )
             cards.append(
                 {
                     "label": label,
                     "value": _format_kg(prediction.predicted_weight_kg),
-                    "caption": (
-                        "Schimbare estimată: "
-                        f"{_format_kg_delta(prediction.predicted_change_kg) or '—'} | "
-                        f"Data: {_format_date(prediction.target_date)} | "
-                        f"MAE: {_format_prediction_error(prediction.metrics.get('mae'))}"
+                    "caption": translate(
+                        "Estimated change: {change} | Date: {date} | MAE: {mae}",
+                        change=_format_kg_delta(prediction.predicted_change_kg)
+                        or "—",
+                        date=_format_date(prediction.target_date),
+                        mae=_format_prediction_error(prediction.metrics.get("mae")),
                     ),
                     "accent": "prediction",
-                    "help": (
-                        "Predicție ML calculată din istoricul de "
-                        "alimente, activități și greutate, fără date din viitor."
+                    "help": translate(
+                        "ML prediction calculated from food, activity, and weight "
+                        "history, without future data."
                     ),
                 }
             )
@@ -473,15 +575,17 @@ def _build_weight_prediction_cards(
 
         reason = prediction_result.unavailable_horizons.get(
             horizon_days,
-            "Nu există suficiente date pentru acest interval.",
+            "There is not enough data for this interval.",
         )
         cards.append(
             {
-                "label": f"Peste {horizon_days} zile",
-                "value": "Indisponibil",
+                "label": translate("In {days} days", days=horizon_days),
+                "value": translate("Unavailable"),
                 "caption": _format_prediction_unavailable_reason(reason),
                 "accent": "prediction",
-                "help": "Predicția devine disponibilă după ce există date suficiente.",
+                "help": translate(
+                    "The prediction becomes available once enough data exists."
+                ),
             }
         )
     return cards
@@ -500,19 +604,21 @@ def _format_prediction_source_caption(
     )
     current_date = today or date.today()
     if actual_date == requested_date:
-        return (
-            "Predicție calculată din datele disponibile până la "
-            f"{_format_date(actual_date)}."
+        return translate(
+            "Prediction calculated from data available through {date}.",
+            date=_format_date(actual_date),
         )
     if requested_date == current_date:
-        return (
-            f"Predicția pornește de la {_format_date(actual_date)}, ultima zi "
-            "cu date suficiente. Ziua curentă este evitată pentru că poate fi "
-            "incompletă."
+        return translate(
+            "The prediction starts from {actual_date}, the latest day with enough "
+            "data. The current day is skipped because it may be incomplete.",
+            actual_date=_format_date(actual_date),
         )
-    return (
-        f"Predicția pornește de la {_format_date(actual_date)}, deoarece pentru "
-        f"{_format_date(requested_date)} nu există suficiente date recente."
+    return translate(
+        "The prediction starts from {actual_date} because there is not enough "
+        "recent data for {requested_date}.",
+        actual_date=_format_date(actual_date),
+        requested_date=_format_date(requested_date),
     )
 
 
@@ -525,14 +631,50 @@ def _format_prediction_error(value: Any) -> str:
 
 def _format_prediction_unavailable_reason(reason: str) -> str:
     if "Missing model artifact" in reason or "Missing metadata artifact" in reason:
-        return "Modelele ML nu au fost antrenate încă."
-    return reason
+        return translate("The ML models have not been trained yet.")
+    if reason in {
+        "Nu există suficiente date pentru acest interval.",
+        "There is not enough data for this interval.",
+    }:
+        return translate("There is not enough data for this interval.")
+    if reason in {
+        "Nu există suficiente date recente pentru predicție.",
+        "There is not enough recent data for a prediction.",
+    }:
+        return translate("There is not enough recent data for a prediction.")
+    if reason in {"Utilizatorul nu există.", "The user could not be found."}:
+        return translate("The user could not be found.")
+    return translate("The ML prediction is temporarily unavailable.")
 
 
-def _resolve_interval_label(value: Any) -> str:
-    if value in INTERVAL_OPTIONS:
-        return str(value)
-    return DEFAULT_INTERVAL_LABEL
+def _resolve_interval_days(value: Any) -> int:
+    if (
+        isinstance(value, int)
+        and not isinstance(value, bool)
+        and value in INTERVAL_OPTIONS
+    ):
+        return int(value)
+    if isinstance(value, str) and value in LEGACY_INTERVAL_DAYS:
+        return LEGACY_INTERVAL_DAYS[value]
+    return DEFAULT_INTERVAL_DAYS
+
+
+def _initialize_interval_selection() -> int:
+    current_value = st.session_state.get(DASHBOARD_INTERVAL_KEY)
+    selected_days = _resolve_interval_days(current_value)
+    if current_value is not None and current_value != selected_days:
+        st.session_state[DASHBOARD_INTERVAL_KEY] = selected_days
+    return selected_days
+
+
+def _interval_radio_kwargs(days: int) -> dict[str, int]:
+    if DASHBOARD_INTERVAL_KEY in st.session_state:
+        return {}
+    return {"index": list(INTERVAL_OPTIONS).index(days)}
+
+
+def _display_interval_name(days: int) -> str:
+    return translate("{days} days", days=days)
 
 
 def _render_card_grid(cards: list[dict[str, Any]], columns_count: int) -> None:
@@ -614,40 +756,40 @@ def _render_interval_summary(data: dict[str, Any]) -> None:
     _render_card_grid(
         [
             {
-                "label": "Trend greutate interval",
+                "label": translate("Interval weight trend"),
                 "value": _format_kg_delta(interval_weight_delta) or "—",
                 "accent": "weight",
-                "help": (
-                    "Diferența dintre greutatea de referință din ultima zi a "
-                    "intervalului și prima zi a intervalului. Nu înseamnă că ai "
-                    "avut cântărire reală în fiecare zi."
+                "help": translate(
+                    "The difference between the reference weight on the last day "
+                    "of the interval and the first day. It does not mean that you "
+                    "had an actual weigh-in every day."
                 ),
             },
             {
-                "label": "Consum mediu / zi logată",
+                "label": translate("Average intake / logged day"),
                 "value": _format_kcal(summary.get("avg_calories_in")),
                 "accent": "food",
-                "help": (
-                    "Media caloriilor consumate doar pe zilele cu alimente "
-                    "logate. Zilele fără alimente nu sunt tratate ca 0 kcal."
+                "help": translate(
+                    "Average calories consumed only on days with logged food. "
+                    "Days without logged food are not treated as 0 kcal."
                 ),
             },
             {
-                "label": "TDEE mediu / zi alimentară",
+                "label": translate("Average TDEE / food-logged day"),
                 "value": _format_kcal(summary.get("avg_estimated_tdee")),
                 "accent": "energy",
-                "help": (
-                    "Media TDEE-ului estimat doar pentru zilele cu alimentație "
-                    "logată, ca să fie comparabil cu consumul alimentar."
+                "help": translate(
+                    "Average estimated TDEE only on days with logged food, so it "
+                    "can be compared with food intake."
                 ),
             },
             {
-                "label": "Balanță medie / zi alimentară",
+                "label": translate("Average balance / food-logged day"),
                 "value": _format_signed_kcal(summary.get("avg_estimated_balance")),
                 "accent": "balance",
-                "help": (
-                    "Media valorilor zilnice calorii consumate - TDEE estimat, "
-                    "calculată doar pe zilele cu alimente logate."
+                "help": translate(
+                    "Average daily calories consumed - estimated TDEE, calculated "
+                    "only on days with logged food."
                 ),
             },
         ],
@@ -657,34 +799,56 @@ def _render_interval_summary(data: dict[str, Any]) -> None:
     _render_card_grid(
         [
             {
-                "label": "Consistență alimente",
+                "label": translate("Food logging consistency"),
                 "value": _format_percent(summary.get("food_logging_consistency")),
-                "caption": f"{summary.get('food_days', 0)} / {days} zile",
+                "caption": translate(
+                    "{logged_days} / {days} days",
+                    logged_days=summary.get("food_days", 0),
+                    days=days,
+                ),
                 "accent": "food",
-                "help": "Procentul de zile din interval cu cel puțin un aliment logat.",
+                "help": translate(
+                    "Percentage of days in the interval with at least one logged food."
+                ),
             },
             {
-                "label": "Consistență antrenamente",
+                "label": translate("Activity logging consistency"),
                 "value": _format_percent(summary.get("activity_logging_consistency")),
-                "caption": f"{summary.get('activity_days', 0)} / {days} zile",
+                "caption": translate(
+                    "{logged_days} / {days} days",
+                    logged_days=summary.get("activity_days", 0),
+                    days=days,
+                ),
                 "accent": "activity",
-                "help": "Procentul de zile din interval cu cel puțin un antrenament logat.",
+                "help": translate(
+                    "Percentage of days in the interval with at least one logged workout."
+                ),
             },
             {
-                "label": "Consistență greutate",
+                "label": translate("Weight logging consistency"),
                 "value": _format_percent(summary.get("weight_logging_consistency")),
-                "caption": f"{summary.get('weight_days', 0)} / {days} zile",
+                "caption": translate(
+                    "{logged_days} / {days} days",
+                    logged_days=summary.get("weight_days", 0),
+                    days=days,
+                ),
                 "accent": "weight",
-                "help": "Procentul de zile din interval cu o cântărire introdusă efectiv.",
+                "help": translate(
+                    "Percentage of days in the interval with an actual weigh-in."
+                ),
             },
             {
-                "label": "Consistență generală",
+                "label": translate("Overall logging consistency"),
                 "value": _format_percent(summary.get("overall_logging_consistency")),
-                "caption": f"{summary.get('logged_days', 0)} / {days} zile",
+                "caption": translate(
+                    "{logged_days} / {days} days",
+                    logged_days=summary.get("logged_days", 0),
+                    days=days,
+                ),
                 "accent": "quality",
-                "help": (
-                    "Procentul de zile din interval în care există alimente, "
-                    "antrenament sau cântărire reală."
+                "help": translate(
+                    "Percentage of days in the interval with logged food, a "
+                    "workout, or an actual weigh-in."
                 ),
             },
         ],
@@ -694,33 +858,37 @@ def _render_interval_summary(data: dict[str, Any]) -> None:
     _render_card_grid(
         [
             {
-                "label": "Calorii activități totale",
+                "label": translate("Total activity calories"),
                 "value": _format_kcal_zero(summary.get("activity_total_calories")),
                 "accent": "activity",
-                "help": "Totalul caloriilor arse prin antrenamente în intervalul selectat.",
-            },
-            {
-                "label": "Înregistrări exerciții",
-                "value": str(summary.get("workouts_count", 0)),
-                "accent": "activity",
-                "help": (
-                    "Numărul total de exerciții/antrenamente logate în interval. "
-                    "O singură zi poate avea mai multe înregistrări."
+                "help": translate(
+                    "Total calories burned through workouts in the selected interval."
                 ),
             },
             {
-                "label": "Proteină medie",
-                "value": _format_number(summary.get("avg_protein_g"), " g"),
-                "accent": "food",
-                "help": "Media proteinelor consumate pe zilele cu alimente logate.",
+                "label": translate("Exercise entries"),
+                "value": str(summary.get("workouts_count", 0)),
+                "accent": "activity",
+                "help": translate(
+                    "Total number of logged exercises or workouts in the interval. "
+                    "A single day can have multiple entries."
+                ),
             },
             {
-                "label": "Proteină / kg corp",
+                "label": translate("Average protein"),
+                "value": _format_number(summary.get("avg_protein_g"), " g"),
+                "accent": "food",
+                "help": translate(
+                    "Average protein consumed on days with logged food."
+                ),
+            },
+            {
+                "label": translate("Protein / kg body weight"),
                 "value": _format_number(summary.get("avg_protein_per_kg"), " g/kg"),
                 "accent": "health",
-                "help": (
-                    "Media proteinelor zilnice împărțită la greutatea de referință "
-                    "a zilei. Va fi utilă pentru recomandările alimentare."
+                "help": translate(
+                    "Average daily protein divided by the reference weight for "
+                    "that day. It will be useful for food recommendations."
                 ),
             },
         ],
@@ -729,32 +897,57 @@ def _render_interval_summary(data: dict[str, Any]) -> None:
 
     if not summary.get("has_energy_estimates"):
         st.info(
-            "Adaugă cel puțin o greutate pentru a putea calcula BMR, TDEE și "
-            "balanța calorică estimată."
+            translate(
+                "Add at least one weight entry to calculate BMR, TDEE, and the "
+                "estimated calorie balance."
+            )
         )
 
 
 def _render_weight_chart(data: dict[str, Any]) -> None:
-    st.subheader("Evoluția greutății")
+    st.subheader(translate("Weight trend"))
     reference_rows = _prepare_daily_weight_rows(data.get("daily_rows", pd.DataFrame()))
     actual_rows = _prepare_weight_rows(data.get("weight_rows", pd.DataFrame()))
     date_domain = _date_order_domain(reference_rows)
     if reference_rows.empty:
-        st.info("Nu există greutate de referință pentru intervalul selectat.")
+        st.info(
+            translate(
+                "No reference weight is available for the selected interval."
+            )
+        )
         return
+
+    reference_rows = reference_rows.copy()
+    reference_rows["reference_weight_source_label"] = reference_rows[
+        "reference_weight_source_id"
+    ].map(_format_reference_weight_source)
 
     base = alt.Chart(reference_rows).encode(
         x=_daily_x_axis(date_domain),
         y=alt.Y(
-            "Greutate (kg):Q",
-            title="Greutate (kg)",
+            "reference_weight_kg:Q",
+            title=translate("Weight (kg)"),
             scale=alt.Scale(zero=False),
         ),
         tooltip=[
-            alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-            alt.Tooltip("Greutate (kg):Q", title="Greutate de referință", format=".1f"),
-            alt.Tooltip("Sursă referință:N", title="Sursă"),
-            alt.Tooltip("Distanță zile:Q", title="Distanță zile"),
+            alt.Tooltip(
+                "log_date:T",
+                title=translate("Date"),
+                format="%d.%m.%Y",
+            ),
+            alt.Tooltip(
+                "reference_weight_kg:Q",
+                title=translate("Reference weight"),
+                format=".1f",
+            ),
+            alt.Tooltip(
+                "reference_weight_source_label:N",
+                title=translate("Source"),
+            ),
+            alt.Tooltip(
+                "reference_weight_days_distance:Q",
+                title=translate("Distance in days"),
+            ),
         ],
     )
     layers = [
@@ -766,10 +959,22 @@ def _render_weight_chart(data: dict[str, Any]) -> None:
             color="#111827", filled=True, size=90
         ).encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("Greutate (kg):Q", title="Greutate (kg)", scale=alt.Scale(zero=False)),
+            y=alt.Y(
+                "weight_kg:Q",
+                title=translate("Weight (kg)"),
+                scale=alt.Scale(zero=False),
+            ),
             tooltip=[
-                alt.Tooltip("Data:T", title="Cântărire reală", format="%d.%m.%Y"),
-                alt.Tooltip("Greutate (kg):Q", title="Greutate", format=".1f"),
+                alt.Tooltip(
+                    "log_date:T",
+                    title=translate("Actual weigh-in"),
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip(
+                    "weight_kg:Q",
+                    title=translate("Weight"),
+                    format=".1f",
+                ),
             ],
         )
         layers.append(actual_points)
@@ -777,25 +982,29 @@ def _render_weight_chart(data: dict[str, Any]) -> None:
     chart = alt.layer(*layers).properties(height=260)
     st.altair_chart(_configure_chart(chart), width="stretch")
     st.caption(
-        "Linia arată greutatea de referință pentru fiecare zi. Punctele negre "
-        "marchează zilele în care ai introdus efectiv o cântărire."
+        translate(
+            "The line shows the reference weight for each day. The black points "
+            "mark the days when you entered an actual weigh-in."
+        )
     )
 
 
 def _render_calorie_chart(data: dict[str, Any]) -> None:
-    st.subheader("Calorii consumate vs TDEE estimat")
+    st.subheader(translate("Calories consumed vs estimated TDEE"))
     daily_rows = _prepare_daily_rows(data.get("daily_rows", pd.DataFrame()))
     date_domain = _date_order_domain(daily_rows)
     if daily_rows.empty:
-        st.info("Nu există date în intervalul selectat.")
+        st.info(translate("No data is available for the selected interval."))
         return
 
     food_rows = daily_rows[daily_rows["has_food_logs"]].dropna(
-        subset=["Calorii consumate"]
+        subset=["food_calories_in"]
     )
-    tdee_rows = daily_rows.dropna(subset=["TDEE estimat"])
+    tdee_rows = daily_rows.dropna(subset=["estimated_tdee"])
     if food_rows.empty and tdee_rows.empty:
-        st.info("Nu există suficiente date pentru graficul caloric.")
+        st.info(
+            translate("Not enough data is available for the calorie chart.")
+        )
         return
 
     layers = []
@@ -805,10 +1014,18 @@ def _render_calorie_chart(data: dict[str, Any]) -> None:
             .mark_bar(color=FOOD_COLOR, opacity=0.8)
             .encode(
                 x=_daily_x_axis(date_domain),
-                y=alt.Y("Calorii consumate:Q", title="kcal"),
+                y=alt.Y("food_calories_in:Q", title="kcal"),
                 tooltip=[
-                    alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                    alt.Tooltip("Calorii consumate:Q", title="Consum", format=".0f"),
+                    alt.Tooltip(
+                        "log_date:T",
+                        title=translate("Date"),
+                        format="%d.%m.%Y",
+                    ),
+                    alt.Tooltip(
+                        "food_calories_in:Q",
+                        title=translate("Intake"),
+                        format=".0f",
+                    ),
                 ],
             )
         )
@@ -816,10 +1033,14 @@ def _render_calorie_chart(data: dict[str, Any]) -> None:
     if not tdee_rows.empty:
         line_base = alt.Chart(tdee_rows).encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("TDEE estimat:Q", title="kcal"),
+            y=alt.Y("estimated_tdee:Q", title="kcal"),
             tooltip=[
-                alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                alt.Tooltip("TDEE estimat:Q", title="TDEE", format=".0f"),
+                alt.Tooltip(
+                    "log_date:T",
+                    title=translate("Date"),
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip("estimated_tdee:Q", title="TDEE", format=".0f"),
             ],
         )
         layers.append(line_base.mark_line(color=TDEE_COLOR, strokeWidth=3))
@@ -828,45 +1049,75 @@ def _render_calorie_chart(data: dict[str, Any]) -> None:
     chart = alt.layer(*layers).resolve_scale(y="shared").properties(height=280)
     st.altair_chart(_configure_chart(chart), width="stretch")
     st.caption(
-        "Barele sunt zile cu alimente logate. Linia portocalie este TDEE-ul "
-        "estimat. Lipsa unei bare înseamnă zi fără alimente logate."
+        translate(
+            "Bars represent days with logged food. The orange line is estimated "
+            "TDEE. A missing bar means no food was logged that day."
+        )
     )
 
 
 def _render_balance_chart(data: dict[str, Any]) -> None:
-    st.subheader("Balanță calorică estimată")
+    st.subheader(translate("Estimated calorie balance"))
     daily_rows = _prepare_daily_rows(data.get("daily_rows", pd.DataFrame()))
     date_domain = _date_order_domain(daily_rows)
-    if daily_rows.empty or "Balanță kcal" not in daily_rows.columns:
-        st.info("Nu există suficiente date pentru balanța calorică estimată.")
+    if daily_rows.empty or "estimated_balance" not in daily_rows.columns:
+        st.info(
+            translate(
+                "Not enough data is available for the estimated calorie balance."
+            )
+        )
         return
 
-    chart_rows = daily_rows.dropna(subset=["Balanță kcal"]).copy()
+    chart_rows = daily_rows.dropna(subset=["estimated_balance"]).copy()
     if chart_rows.empty:
-        st.info("Balanța se calculează doar pentru zilele cu alimentație logată.")
+        st.info(
+            translate("The balance is calculated only for days with logged food.")
+        )
         return
 
-    chart_rows["Tip"] = chart_rows["Balanță kcal"].apply(
-        lambda value: "Deficit" if value < 0 else "Surplus"
+    chart_rows["balance_type_id"] = chart_rows["estimated_balance"].apply(
+        lambda value: "deficit" if value < 0 else "surplus"
+    )
+    chart_rows["balance_type_label"] = chart_rows["balance_type_id"].map(
+        lambda value: _translate_stable_value(value, BALANCE_TYPE_SOURCE_TEXT)
     )
     bars = (
         alt.Chart(chart_rows)
         .mark_bar()
         .encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("Balanță kcal:Q", title="kcal", scale=alt.Scale(zero=True)),
+            y=alt.Y(
+                "estimated_balance:Q",
+                title="kcal",
+                scale=alt.Scale(zero=True),
+            ),
             color=alt.Color(
-                "Tip:N",
+                "balance_type_id:N",
                 scale=alt.Scale(
-                    domain=["Deficit", "Surplus"],
+                    domain=["deficit", "surplus"],
                     range=[DEFICIT_COLOR, SURPLUS_COLOR],
                 ),
-                legend=alt.Legend(title=None, orient="bottom"),
+                legend=alt.Legend(
+                    title=None,
+                    orient="bottom",
+                    labelExpr=_legend_label_expression(BALANCE_TYPE_SOURCE_TEXT),
+                ),
             ),
             tooltip=[
-                alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                alt.Tooltip("Balanță kcal:Q", title="Balanță", format="+.0f"),
-                alt.Tooltip("Tip:N", title="Tip"),
+                alt.Tooltip(
+                    "log_date:T",
+                    title=translate("Date"),
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip(
+                    "estimated_balance:Q",
+                    title=translate("Balance"),
+                    format="+.0f",
+                ),
+                alt.Tooltip(
+                    "balance_type_label:N",
+                    title=translate("Type"),
+                ),
             ],
         )
     )
@@ -878,47 +1129,69 @@ def _render_balance_chart(data: dict[str, Any]) -> None:
     chart = alt.layer(bars, zero_line).properties(height=260)
     st.altair_chart(_configure_chart(chart), width="stretch")
     st.caption(
-        "Balanță = calorii consumate - TDEE estimat. Valorile negative indică "
-        "deficit, iar cele pozitive indică surplus."
+        translate(
+            "Balance = calories consumed - estimated TDEE. Negative values "
+            "indicate a deficit, while positive values indicate a surplus."
+        )
     )
 
 
 def _render_macro_chart(data: dict[str, Any]) -> None:
-    st.subheader("Macronutrienți")
+    st.subheader(translate("Macronutrients"))
     st.caption(
-        "Distribuția macronutrienților pe proteine, carbohidrați și grăsimi."
+        translate(
+            "Macronutrient distribution across protein, carbohydrates, and fats."
+        )
     )
     daily_rows = _prepare_daily_rows(data.get("daily_rows", pd.DataFrame()))
     date_domain = _date_order_domain(daily_rows)
     macro_rows = _prepare_macro_rows(data.get("macro_rows", pd.DataFrame()))
     if macro_rows.empty:
-        st.info("Nu există alimente logate în intervalul selectat.")
+        st.info(translate("No food is logged in the selected interval."))
         return
 
     chart_rows = macro_rows.melt(
-        id_vars=["Data", "DataLabel", "DataOrder"],
-        value_vars=["Proteine", "Carbohidrați", "Grăsimi"],
-        var_name="Macronutrient",
-        value_name="Grame",
+        id_vars=["log_date", "date_label", "date_order"],
+        value_vars=list(MACRONUTRIENT_SOURCE_TEXT),
+        var_name="macronutrient_id",
+        value_name="grams",
+    )
+    chart_rows["macronutrient_label"] = chart_rows["macronutrient_id"].map(
+        lambda value: _translate_stable_value(value, MACRONUTRIENT_SOURCE_TEXT)
     )
     chart = (
         alt.Chart(chart_rows)
         .mark_bar()
         .encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("Grame:Q", title="Grame"),
+            y=alt.Y("grams:Q", title=translate("Grams")),
             color=alt.Color(
-                "Macronutrient:N",
+                "macronutrient_id:N",
                 scale=alt.Scale(
-                    domain=["Proteine", "Carbohidrați", "Grăsimi"],
+                    domain=list(MACRONUTRIENT_SOURCE_TEXT),
                     range=[PROTEIN_COLOR, CARBS_COLOR, FATS_COLOR],
                 ),
-                legend=alt.Legend(title=None, orient="bottom"),
+                legend=alt.Legend(
+                    title=None,
+                    orient="bottom",
+                    labelExpr=_legend_label_expression(MACRONUTRIENT_SOURCE_TEXT),
+                ),
             ),
             tooltip=[
-                alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                alt.Tooltip("Macronutrient:N", title="Macro"),
-                alt.Tooltip("Grame:Q", title="Grame", format=".1f"),
+                alt.Tooltip(
+                    "log_date:T",
+                    title=translate("Date"),
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip(
+                    "macronutrient_label:N",
+                    title=translate("Macro"),
+                ),
+                alt.Tooltip(
+                    "grams:Q",
+                    title=translate("Grams"),
+                    format=".1f",
+                ),
             ],
         )
         .properties(height=280)
@@ -927,63 +1200,90 @@ def _render_macro_chart(data: dict[str, Any]) -> None:
 
 
 def _render_activity_section(data: dict[str, Any]) -> None:
-    st.subheader("Activitate fizică")
+    st.subheader(translate("Physical activity"))
     daily_rows = _prepare_daily_rows(data.get("daily_rows", pd.DataFrame()))
     date_domain = _date_order_domain(daily_rows)
     activity_breakdown = data.get("activity_breakdown", pd.DataFrame())
 
     if daily_rows.empty:
-        st.info("Nu există date în intervalul selectat.")
+        st.info(translate("No data is available for the selected interval."))
         return
 
     chart_rows = daily_rows.copy()
-    chart_rows["Status"] = chart_rows["has_activity_logs"].apply(
-        lambda value: "Antrenament logat" if value else "Zi fără antrenament"
+    chart_rows["activity_status_id"] = chart_rows["has_activity_logs"].apply(
+        lambda value: "logged" if value else "rest_day"
+    )
+    chart_rows["activity_status_label"] = chart_rows["activity_status_id"].map(
+        lambda value: _translate_stable_value(value, ACTIVITY_STATUS_SOURCE_TEXT)
     )
     chart = (
         alt.Chart(chart_rows)
         .mark_bar(color=ACTIVITY_COLOR, opacity=0.85)
         .encode(
             x=_daily_x_axis(date_domain),
-            y=alt.Y("Calorii activități:Q", title="kcal"),
+            y=alt.Y("activity_calories_burned:Q", title="kcal"),
             tooltip=[
-                alt.Tooltip("Data:T", title="Data", format="%d.%m.%Y"),
-                alt.Tooltip("Calorii activități:Q", title="Calorii activități", format=".0f"),
-                alt.Tooltip("Status:N", title="Status"),
+                alt.Tooltip(
+                    "log_date:T",
+                    title=translate("Date"),
+                    format="%d.%m.%Y",
+                ),
+                alt.Tooltip(
+                    "activity_calories_burned:Q",
+                    title=translate("Activity calories"),
+                    format=".0f",
+                ),
+                alt.Tooltip(
+                    "activity_status_label:N",
+                    title=translate("Status"),
+                ),
             ],
         )
         .properties(height=260)
     )
     st.altair_chart(_configure_chart(chart), width="stretch")
     st.caption(
-        "Zilele fără antrenament sunt afișate ca 0 kcal arse, pentru că pot "
-        "reprezenta zile normale de repaus."
+        translate(
+            "Days without a workout are shown as 0 kcal burned because they can "
+            "represent normal rest days."
+        )
     )
 
     if activity_breakdown.empty:
-        st.info("Nu există antrenamente logate în intervalul selectat.")
+        st.info(translate("No workouts are logged in the selected interval."))
         return
 
     st.caption(
-        "Tabelul de mai jos grupează antrenamentele după categorie și metoda de "
-        "calcul: estimare MacroSense sau calorii introduse manual."
+        translate(
+            "The table below groups workouts by category and calculation method: "
+            "MacroSense estimate or manually entered calories."
+        )
     )
-    method_rows = activity_breakdown.rename(
-        columns={
-            "category": "Categorie",
-            "calculation_method": "Metodă",
-            "entries_count": "Înregistrări",
-            "total_duration_min": "Durată totală (min)",
-            "total_calories_burned": "Calorii activități",
-        }
-    )
+    method_rows = activity_breakdown.copy()
+    if "category" in method_rows.columns:
+        method_rows["category"] = method_rows["category"].map(
+            _format_activity_category
+        )
+    if "calculation_method" in method_rows.columns:
+        method_rows["calculation_method"] = method_rows[
+            "calculation_method"
+        ].map(_format_activity_method)
     st.dataframe(
         method_rows,
         hide_index=True,
         width="stretch",
         column_config={
-            "Durată totală (min)": st.column_config.NumberColumn(format="%.1f"),
-            "Calorii activități": st.column_config.NumberColumn(format="%.1f kcal"),
+            "category": st.column_config.TextColumn(translate("Category")),
+            "calculation_method": st.column_config.TextColumn(translate("Method")),
+            "entries_count": st.column_config.NumberColumn(translate("Entries")),
+            "total_duration_min": st.column_config.NumberColumn(
+                translate("Total duration (min)"),
+                format="%.1f",
+            ),
+            "total_calories_burned": st.column_config.NumberColumn(
+                translate("Activity calories"),
+                format="%.1f kcal",
+            ),
         },
     )
 
@@ -992,61 +1292,94 @@ def _prepare_weight_rows(weight_rows: pd.DataFrame) -> pd.DataFrame:
     if weight_rows.empty:
         return pd.DataFrame()
     chart_rows = weight_rows.copy()
-    chart_rows["Data"] = pd.to_datetime(chart_rows["log_date"])
+    chart_rows["log_date"] = pd.to_datetime(chart_rows["log_date"])
     chart_rows = _add_date_display_columns(chart_rows)
-    chart_rows["Greutate (kg)"] = pd.to_numeric(
-        chart_rows["weight_kg"], errors="coerce"
-    )
-    return chart_rows.dropna(subset=["Data", "Greutate (kg)"])
+    chart_rows["weight_kg"] = pd.to_numeric(chart_rows["weight_kg"], errors="coerce")
+    return chart_rows.dropna(subset=["log_date", "weight_kg"])
 
 
 def _prepare_daily_weight_rows(daily_rows: pd.DataFrame) -> pd.DataFrame:
     if daily_rows.empty or "reference_weight_kg" not in daily_rows.columns:
         return pd.DataFrame()
     chart_rows = daily_rows.copy()
-    chart_rows["Data"] = pd.to_datetime(chart_rows["log_date"])
+    chart_rows["log_date"] = pd.to_datetime(chart_rows["log_date"])
     chart_rows = _add_date_display_columns(chart_rows)
-    chart_rows["Greutate (kg)"] = pd.to_numeric(
+    chart_rows["reference_weight_kg"] = pd.to_numeric(
         chart_rows["reference_weight_kg"], errors="coerce"
     )
     if "reference_weight_days_distance" in chart_rows.columns:
-        chart_rows["Distanță zile"] = pd.to_numeric(
+        chart_rows["reference_weight_days_distance"] = pd.to_numeric(
             chart_rows["reference_weight_days_distance"], errors="coerce"
         )
     else:
-        chart_rows["Distanță zile"] = None
-    chart_rows["Sursă referință"] = chart_rows.apply(
-        _format_reference_weight_source, axis=1
+        chart_rows["reference_weight_days_distance"] = None
+    chart_rows["reference_weight_source_id"] = chart_rows.apply(
+        _reference_weight_source_id,
+        axis=1,
     )
-    return chart_rows.dropna(subset=["Data", "Greutate (kg)"])
+    return chart_rows.dropna(subset=["log_date", "reference_weight_kg"])
 
 
-def _format_reference_weight_source(row: pd.Series) -> str:
+def _reference_weight_source_id(row: pd.Series) -> str:
     if pd.isna(row.get("reference_weight_kg")):
-        return "Fără greutate"
+        return "missing"
     if row.get("reference_weight_days_distance") == 0:
-        return "Cântărire reală"
+        return "actual"
     if bool(row.get("reference_weight_uses_future_reference")):
-        return "Fallback din prima greutate viitoare"
-    return "Greutate anterioară folosită ca referință"
+        return "future_fallback"
+    return "previous"
+
+
+def _format_reference_weight_source(source_id: str) -> str:
+    return _translate_stable_value(source_id, REFERENCE_WEIGHT_SOURCE_TEXT)
+
+
+def _translate_stable_value(
+    value: Any,
+    source_text_by_value: dict[str, str],
+) -> str:
+    stable_value = str(value)
+    source_text = source_text_by_value.get(stable_value)
+    if source_text is None:
+        return _format_text(value)
+    return translate(source_text)
+
+
+def _legend_label_expression(source_text_by_id: dict[str, str]) -> str:
+    expression = "datum.label"
+    for stable_id, source_text in reversed(list(source_text_by_id.items())):
+        translated_label = translate(source_text)
+        expression = (
+            f"datum.label == {json.dumps(stable_id)} ? "
+            f"{json.dumps(translated_label, ensure_ascii=False)} : ({expression})"
+        )
+    return expression
+
+
+def _format_activity_category(value: Any) -> str:
+    return _translate_stable_value(value, ACTIVITY_CATEGORY_SOURCE_TEXT)
+
+
+def _format_activity_method(value: Any) -> str:
+    return _translate_stable_value(value, ACTIVITY_METHOD_SOURCE_TEXT)
 
 
 def _prepare_daily_rows(daily_rows: pd.DataFrame) -> pd.DataFrame:
     if daily_rows.empty:
         return pd.DataFrame()
     chart_rows = daily_rows.copy()
-    chart_rows["Data"] = pd.to_datetime(chart_rows["log_date"])
+    chart_rows["log_date"] = pd.to_datetime(chart_rows["log_date"])
     chart_rows = _add_date_display_columns(chart_rows)
-    chart_rows["Calorii consumate"] = pd.to_numeric(
+    chart_rows["food_calories_in"] = pd.to_numeric(
         chart_rows["food_calories_in"], errors="coerce"
     )
-    chart_rows["TDEE estimat"] = pd.to_numeric(
+    chart_rows["estimated_tdee"] = pd.to_numeric(
         chart_rows["estimated_tdee"], errors="coerce"
     )
-    chart_rows["Balanță kcal"] = pd.to_numeric(
+    chart_rows["estimated_balance"] = pd.to_numeric(
         chart_rows["estimated_balance"], errors="coerce"
     )
-    chart_rows["Calorii activități"] = pd.to_numeric(
+    chart_rows["activity_calories_burned"] = pd.to_numeric(
         chart_rows["activity_calories_burned"], errors="coerce"
     ).fillna(0.0)
     return chart_rows
@@ -1056,33 +1389,33 @@ def _prepare_macro_rows(macro_rows: pd.DataFrame) -> pd.DataFrame:
     if macro_rows.empty:
         return pd.DataFrame()
     chart_rows = macro_rows.copy()
-    chart_rows["Data"] = pd.to_datetime(chart_rows["log_date"])
+    chart_rows["log_date"] = pd.to_datetime(chart_rows["log_date"])
     chart_rows = _add_date_display_columns(chart_rows)
-    chart_rows["Proteine"] = pd.to_numeric(chart_rows["protein_g"], errors="coerce")
-    chart_rows["Carbohidrați"] = pd.to_numeric(chart_rows["carbs_g"], errors="coerce")
-    chart_rows["Grăsimi"] = pd.to_numeric(chart_rows["fats_g"], errors="coerce")
-    return chart_rows.dropna(subset=["Data"])
+    chart_rows["protein_g"] = pd.to_numeric(chart_rows["protein_g"], errors="coerce")
+    chart_rows["carbs_g"] = pd.to_numeric(chart_rows["carbs_g"], errors="coerce")
+    chart_rows["fats_g"] = pd.to_numeric(chart_rows["fats_g"], errors="coerce")
+    return chart_rows.dropna(subset=["log_date"])
 
 
 def _add_date_display_columns(dataframe: pd.DataFrame) -> pd.DataFrame:
     chart_rows = dataframe.copy()
-    chart_rows["DataLabel"] = chart_rows["Data"].dt.strftime("%d.%m")
-    chart_rows["DataOrder"] = chart_rows["Data"].dt.strftime("%Y-%m-%d")
+    chart_rows["date_label"] = chart_rows["log_date"].dt.strftime("%d.%m")
+    chart_rows["date_order"] = chart_rows["log_date"].dt.strftime("%Y-%m-%d")
     return chart_rows
 
 
 def _date_order_domain(dataframe: pd.DataFrame) -> list[str] | None:
-    if dataframe.empty or "DataOrder" not in dataframe.columns:
+    if dataframe.empty or "date_order" not in dataframe.columns:
         return None
-    domain = dataframe["DataOrder"].dropna().astype(str).drop_duplicates().tolist()
+    domain = dataframe["date_order"].dropna().astype(str).drop_duplicates().tolist()
     return domain or None
 
 
 def _daily_x_axis(domain: list[str] | None = None) -> alt.X:
     scale = alt.Scale(domain=domain) if domain else alt.Undefined
     return alt.X(
-        "DataOrder:N",
-        title="Data",
+        "date_order:N",
+        title=translate("Date"),
         scale=scale,
         axis=alt.Axis(
             labelAngle=0,
@@ -1106,8 +1439,8 @@ def _calculate_interval_weight_delta(weight_rows: pd.DataFrame | None) -> float 
     )
     if prepared_rows.shape[0] < 2:
         return None
-    first_weight = float(prepared_rows.iloc[0]["Greutate (kg)"])
-    last_weight = float(prepared_rows.iloc[-1]["Greutate (kg)"])
+    first_weight = float(prepared_rows.iloc[0]["weight_kg"])
+    last_weight = float(prepared_rows.iloc[-1]["weight_kg"])
     return round(last_weight - first_weight, 2)
 
 
@@ -1119,8 +1452,8 @@ def _calculate_interval_weight_delta_from_daily(
     )
     if prepared_rows.shape[0] < 2:
         return None
-    first_weight = float(prepared_rows.iloc[0]["Greutate (kg)"])
-    last_weight = float(prepared_rows.iloc[-1]["Greutate (kg)"])
+    first_weight = float(prepared_rows.iloc[0]["reference_weight_kg"])
+    last_weight = float(prepared_rows.iloc[-1]["reference_weight_kg"])
     return round(last_weight - first_weight, 2)
 
 
@@ -1141,7 +1474,7 @@ def _format_kcal_zero(value: Any) -> str:
 def _format_kcal_or_missing(value: Any) -> str:
     numeric_value = _as_float(value)
     if numeric_value is None:
-        return "Nelogat"
+        return translate("Not logged")
     return f"{numeric_value:.0f} kcal"
 
 
@@ -1177,7 +1510,7 @@ def _format_age(value: Any) -> str:
     numeric_value = _as_float(value)
     if numeric_value is None:
         return "—"
-    return f"{numeric_value:.0f} ani"
+    return translate("{age:.0f} years", age=numeric_value)
 
 
 def _format_gender(value: Any) -> str:
@@ -1190,28 +1523,34 @@ def _format_gender(value: Any) -> str:
 
 def _format_goal(value: Any) -> str:
     goal_key = _normalize_goal(value)
-    labels = {
-        "slabire": "Slabire",
-        "mentinere": "Mentinere",
-        "masa_musculara": "Crestere",
-        "crestere": "Crestere",
+    source_labels = {
+        "slabire": "Weight loss",
+        "mentinere": "Maintenance",
+        "masa_musculara": "Muscle gain",
+        "crestere": "Muscle gain",
     }
-    return labels.get(goal_key, _format_text(value))
+    source_label = source_labels.get(goal_key)
+    if source_label is None:
+        return _format_text(value)
+    return translate(source_label)
 
 
 def _goal_description(value: Any) -> str | None:
     goal_key = _normalize_goal(value)
-    descriptions = {
-        "slabire": "Accent pe deficit caloric controlat.",
-        "mentinere": "Accent pe stabilitatea greutății.",
+    source_descriptions = {
+        "slabire": "Focus on a controlled calorie deficit.",
+        "mentinere": "Focus on weight stability.",
         "masa_musculara": (
-            "Accent pe surplus controlat, proteine și antrenamente de forță."
+            "Focus on a controlled surplus, protein, and strength training."
         ),
         "crestere": (
-            "Accent pe surplus controlat, proteine și antrenamente de forță."
+            "Focus on a controlled surplus, protein, and strength training."
         ),
     }
-    return descriptions.get(goal_key)
+    source_description = source_descriptions.get(goal_key)
+    if source_description is None:
+        return None
+    return translate(source_description)
 
 
 def _normalize_goal(value: Any) -> str:

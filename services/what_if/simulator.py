@@ -84,7 +84,7 @@ def build_food_entry(
 
     return WhatIfFoodEntry(
         entry_id=str(entry_id),
-        label=str(label or "Aliment"),
+        label=str(label or ""),
         entry_type=str(entry_type or "Aliment"),
         quantity_g=round(quantity, 2),
         calories=calories_per_100g * quantity / 100.0,
@@ -108,14 +108,14 @@ def build_custom_meal_entry(
     factor = 100.0 / meal_quantity_g
     return build_food_entry(
         entry_id=entry_id,
-        label=meal.get("recipe_name") or meal.get("name") or "Masă personalizată",
+        label=meal.get("recipe_name") or meal.get("name") or "",
         entry_type="Masă personalizată",
         quantity_g=quantity_g,
         calories_100g=_as_non_negative_float(meal.get("calories"), "meal.calories") * factor,
         protein_100g=_as_non_negative_float(meal.get("protein_g"), "meal.protein_g") * factor,
         carbs_100g=_as_non_negative_float(meal.get("carbs_g"), "meal.carbs_g") * factor,
         fats_100g=_as_non_negative_float(meal.get("fats_g"), "meal.fats_g") * factor,
-        source_label="Masă personalizată",
+        source_label="Custom meal",
         is_existing=is_existing,
     )
 
@@ -156,7 +156,7 @@ def build_activity_entry(
 
     return WhatIfActivityEntry(
         entry_id=str(entry_id),
-        label=str(label or "Activitate"),
+        label=str(label or ""),
         category=str(category or "Altele"),
         duration_min=round(duration, 2),
         calories_burned=calories,
@@ -249,20 +249,20 @@ def calculate_repeated_daily_weight_impact(
 
 
 def describe_balance_delta(daily_balance_delta_kcal: Any) -> str:
-    """Builds a short Romanian interpretation for the simulated balance change."""
+    """Builds a short English source-text interpretation of the balance change."""
     if daily_balance_delta_kcal is None:
         return (
-            "Balanța estimată nu poate fi comparată deoarece lipsește alimentația "
-            "din ziua reală sau din scenariu."
+            "The estimated balance cannot be compared because food data is missing "
+            "from the real day or the scenario."
         )
     balance_delta = _as_float(daily_balance_delta_kcal, "daily_balance_delta_kcal")
     if abs(balance_delta) <= 0.05:
-        return "Balanța estimată rămâne neschimbată față de valorile reale."
+        return "The estimated balance remains unchanged compared with the real values."
     if balance_delta <= -100:
-        return "Scenariul scade balanța estimată și merge mai mult spre deficit."
+        return "The scenario lowers the estimated balance and moves further toward a deficit."
     if balance_delta >= 100:
-        return "Scenariul crește balanța estimată și merge mai mult spre surplus."
-    return "Scenariul schimbă puțin balanța estimată față de valorile reale."
+        return "The scenario raises the estimated balance and moves further toward a surplus."
+    return "The scenario changes the estimated balance only slightly compared with the real values."
 
 
 def _validate_quantity_g(value: Any) -> float:

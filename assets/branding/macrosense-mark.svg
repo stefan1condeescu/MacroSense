@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">MacroSense</title>
+  <g fill="#218273">
+    <path d="M29 7.2A25 25 0 0 0 29 56.8Z"/>
+    <path d="M35 7.2A25 25 0 0 1 56.8 29H35Z"/>
+    <path d="M35 35H56.8A25 25 0 0 1 35 56.8Z"/>
+  </g>
+</svg>

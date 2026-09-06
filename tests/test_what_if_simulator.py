@@ -4,6 +4,7 @@ import unittest
 from services.what_if import loaders, simulator
 from services.what_if.simulator import (
     build_activity_entry,
+    build_custom_meal_entry,
     build_food_entry,
     calculate_repeated_daily_weight_impact,
     calculate_totals,
@@ -30,6 +31,55 @@ class WhatIfSimulatorTests(unittest.TestCase):
         self.assertEqual(entry.protein_g, 4.5)
         self.assertEqual(entry.carbs_g, 37.5)
         self.assertEqual(entry.fats_g, 1.5)
+
+    def test_missing_names_remain_empty_for_ui_fallbacks(self):
+        food_entry = build_food_entry(
+            entry_id="food-1",
+            label="",
+            entry_type="",
+            quantity_g=100,
+            calories_100g=100,
+            protein_100g=10,
+            carbs_100g=10,
+            fats_100g=1,
+        )
+        custom_meal_entry = build_custom_meal_entry(
+            entry_id="meal-1",
+            meal={
+                "recipe_name": "",
+                "quantity_g": 100,
+                "calories": 100,
+                "protein_g": 10,
+                "carbs_g": 10,
+                "fats_g": 1,
+            },
+            quantity_g=100,
+        )
+        activity_entry = build_activity_entry(
+            entry_id="activity-1",
+            label="",
+            category="",
+            duration_min=30,
+            met=5,
+            weight_kg=70,
+        )
+
+        self.assertEqual(
+            (food_entry.label, food_entry.entry_type),
+            ("", "Aliment"),
+        )
+        self.assertEqual(
+            (
+                custom_meal_entry.label,
+                custom_meal_entry.entry_type,
+                custom_meal_entry.source_label,
+            ),
+            ("", "Masă personalizată", "Custom meal"),
+        )
+        self.assertEqual(
+            (activity_entry.label, activity_entry.category),
+            ("", "Altele"),
+        )
 
     def test_food_entry_rejects_quantity_outside_supported_range(self):
         with self.assertRaises(ValueError):
@@ -180,7 +230,11 @@ class WhatIfSimulatorTests(unittest.TestCase):
         self.assertIsNone(comparison.real.estimated_balance)
         self.assertEqual(comparison.simulated.estimated_balance, 300.0)
         self.assertIsNone(comparison.difference.estimated_balance)
-        self.assertIn("nu poate fi comparată", describe_balance_delta(None))
+        self.assertEqual(
+            describe_balance_delta(None),
+            "The estimated balance cannot be compared because food data is missing "
+            "from the real day or the scenario.",
+        )
 
     def test_totals_round_after_summing_raw_food_values(self):
         food_entries = [
@@ -256,7 +310,24 @@ class WhatIfSimulatorTests(unittest.TestCase):
         )
 
         self.assertTrue(scenario_matches_real_day(comparison))
-        self.assertIn("neschimbată", describe_balance_delta(comparison.difference.estimated_balance))
+        self.assertEqual(
+            describe_balance_delta(comparison.difference.estimated_balance),
+            "The estimated balance remains unchanged compared with the real values.",
+        )
+
+    def test_balance_description_covers_each_non_neutral_direction(self):
+        self.assertEqual(
+            describe_balance_delta(-100),
+            "The scenario lowers the estimated balance and moves further toward a deficit.",
+        )
+        self.assertEqual(
+            describe_balance_delta(100),
+            "The scenario raises the estimated balance and moves further toward a surplus.",
+        )
+        self.assertEqual(
+            describe_balance_delta(50),
+            "The scenario changes the estimated balance only slightly compared with the real values.",
+        )
 
     def test_repeated_daily_impact_uses_7700_kcal_reference(self):
         self.assertEqual(calculate_repeated_daily_weight_impact(-550, 14), -1.0)

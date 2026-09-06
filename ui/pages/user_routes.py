@@ -5,6 +5,12 @@ from typing import Any
 import streamlit as st
 from database import get_connection
 from services.analytics.energy import calculate_bmi
+from ui.language import (
+    clear_session_preserving_language,
+    normalize_navigation_selection,
+    translate,
+    translated_selection_key,
+)
 from ui.page_theme import apply_page_theme, get_user_page_theme
 from ui.pages.activity_journal_page import (
     ACTIVITY_JOURNAL_DATE_KEY,
@@ -21,17 +27,47 @@ from ui.pages.weight_journal_page import (
 from ui.pages.what_if_page import render_what_if_page
 
 
-USER_MENU_OPTIONS = [
-    "Acasă",
-    "Jurnal Alimentar",
-    "Jurnal Activități",
-    "Jurnal Greutate",
-    "Mese Personalizate",
-    "Simulator What-if",
-    "Catalog Alimente",
-    "Catalog Activități",
-]
+USER_PAGES = {
+    "dashboard": {
+        "label": "Home",
+        "render": render_dashboard_page,
+    },
+    "food_journal": {
+        "label": "Food journal",
+        "render": render_food_journal_page,
+    },
+    "activity_journal": {
+        "label": "Activity journal",
+        "render": render_activity_journal_page,
+    },
+    "weight_journal": {
+        "label": "Weight journal",
+        "render": render_weight_journal_page,
+    },
+    "custom_meals": {
+        "label": "Custom meals",
+        "render": render_custom_meals_page,
+    },
+    "what_if": {
+        "label": "What-if simulator",
+        "render": render_what_if_page,
+    },
+    "food_catalog": {
+        "label": "Food catalog",
+        "render": render_user_food_catalog_page,
+    },
+    "activity_catalog": {
+        "label": "Activity catalog",
+        "render": render_user_activity_catalog_page,
+    },
+}
+USER_MENU_OPTIONS = tuple(USER_PAGES)
 USER_LAST_RENDERED_PAGE_KEY = "user_last_rendered_page"
+PROFILE_GOAL_SOURCE_TEXT = {
+    "Slabire": "Weight loss",
+    "Mentinere": "Maintenance",
+    "Crestere": "Muscle gain",
+}
 JOURNAL_DATE_SELECTOR_KEYS = {
     FOOD_JOURNAL_DATE_KEY,
     ACTIVITY_JOURNAL_DATE_KEY,
@@ -41,27 +77,43 @@ JOURNAL_DATE_SELECTOR_PREFIXES = (WEIGHT_LOG_ADD_DATE_KEY_PREFIX,)
 
 
 def render_user_routes() -> None:
-    st.sidebar.title(f"Salut, {st.session_state['user_full_name']}!")
+    st.sidebar.title(
+        translate(
+            "Hello, {name}!",
+            name=st.session_state["user_full_name"],
+        )
+    )
     _render_sidebar_profile_summary()
 
-    choice = st.sidebar.radio("Meniu Principal", USER_MENU_OPTIONS, key="user_main_menu")
+    normalize_navigation_selection("user_main_menu", USER_PAGES)
+    selected_page = st.sidebar.radio(
+        translate("Main menu"),
+        options=list(USER_PAGES),
+        format_func=display_page_name,
+        key=translated_selection_key("user_main_menu"),
+    )
 
     last_rendered_page = st.session_state.get(USER_LAST_RENDERED_PAGE_KEY)
     if last_rendered_page is None:
-        st.session_state[USER_LAST_RENDERED_PAGE_KEY] = choice
-    elif last_rendered_page != choice:
+        st.session_state[USER_LAST_RENDERED_PAGE_KEY] = selected_page
+    elif last_rendered_page != selected_page:
         _reset_journal_date_selectors()
-        st.session_state[USER_LAST_RENDERED_PAGE_KEY] = choice
+        st.session_state[USER_LAST_RENDERED_PAGE_KEY] = selected_page
         st.rerun()
 
     page_slot = st.empty()
     with page_slot.container():
-        apply_page_theme(get_user_page_theme(choice))
-        _render_selected_user_page(choice)
+        apply_page_theme(get_user_page_theme(selected_page))
+        _render_selected_user_page(selected_page)
 
     st.sidebar.divider()
-    if st.sidebar.button("Deconectare", width="stretch", type="tertiary"):
-        st.session_state.clear()
+    if st.sidebar.button(
+        translate("Log out"),
+        key="user_logout",
+        width="stretch",
+        type="tertiary",
+    ):
+        clear_session_preserving_language()
         st.rerun()
 
 
@@ -70,14 +122,14 @@ def _render_sidebar_profile_summary() -> None:
     if not user_id:
         return
 
-    with st.sidebar.expander("Profilul meu"):
+    with st.sidebar.expander(translate("My profile")):
         try:
             profile = load_user_profile_summary(int(user_id))
         except RuntimeError:
-            st.caption("Profilul nu poate fi încărcat momentan.")
+            st.caption(translate("The profile cannot be loaded right now."))
             return
         if not profile:
-            st.caption("Profilul nu poate fi încărcat momentan.")
+            st.caption(translate("The profile cannot be loaded right now."))
             return
         st.markdown(build_user_profile_summary_html(profile), unsafe_allow_html=True)
 
@@ -140,21 +192,27 @@ def load_user_profile_summary(user_id: int) -> dict[str, Any] | None:
 def build_user_profile_summary_html(profile: dict[str, Any]) -> str:
     """Build escaped read-only sidebar profile details."""
     rows = [
-        ("Email", _format_profile_text(profile.get("email"))),
-        ("Nume", _format_profile_text(profile.get("full_name"))),
-        ("Înregistrare", _format_profile_date(profile.get("registration_date"))),
-        ("Înălțime", _format_profile_number(profile.get("height_cm"), " cm", 0)),
-        ("Sex", _format_profile_text(profile.get("gender"))),
-        ("Vârstă", _format_profile_number(profile.get("age"), " ani", 0)),
-        ("Obiectiv", _format_profile_text(profile.get("goal"))),
+        (translate("Email"), _format_profile_text(profile.get("email"))),
+        (translate("Name"), _format_profile_text(profile.get("full_name"))),
         (
-            "Greutate",
+            translate("Registration"),
+            _format_profile_date(profile.get("registration_date")),
+        ),
+        (
+            translate("Height"),
+            _format_profile_number(profile.get("height_cm"), " cm", 0),
+        ),
+        (translate("Gender"), _format_profile_text(profile.get("gender"))),
+        (translate("Age"), _format_profile_age(profile.get("age"))),
+        (translate("Goal"), _format_profile_goal(profile.get("goal"))),
+        (
+            translate("Weight"),
             _format_profile_weight(
                 profile.get("latest_weight_kg"),
                 profile.get("latest_weight_date"),
             ),
         ),
-        ("BMI", _format_profile_number(profile.get("bmi"), "", 1)),
+        (translate("BMI"), _format_profile_number(profile.get("bmi"), "", 1)),
     ]
     row_html = "".join(
         [
@@ -193,6 +251,24 @@ def _format_profile_number(value: Any, suffix: str, decimals: int) -> str:
     return f"{numeric_value:.{decimals}f}{suffix}"
 
 
+def _format_profile_age(value: Any) -> str:
+    try:
+        numeric_value = float(value)
+    except (TypeError, ValueError):
+        return "—"
+    return translate("{age:.0f} years", age=numeric_value)
+
+
+def _format_profile_goal(value: Any) -> str:
+    goal = _format_profile_text(value)
+    if goal == "—":
+        return goal
+    source_text = PROFILE_GOAL_SOURCE_TEXT.get(goal)
+    if source_text is None:
+        return goal
+    return translate(source_text)
+
+
 def _format_profile_weight(weight_kg: Any, weight_date: Any) -> str:
     weight_text = _format_profile_number(weight_kg, " kg", 1)
     date_text = _format_profile_date(weight_date)
@@ -223,20 +299,13 @@ def _reset_journal_date_selectors() -> None:
             del st.session_state[key]
 
 
-def _render_selected_user_page(choice: str) -> None:
-    if choice == "Acasă":
-        render_dashboard_page()
-    elif choice == "Jurnal Alimentar":
-        render_food_journal_page()
-    elif choice == "Jurnal Activități":
-        render_activity_journal_page()
-    elif choice == "Jurnal Greutate":
-        render_weight_journal_page()
-    elif choice == "Mese Personalizate":
-        render_custom_meals_page()
-    elif choice == "Simulator What-if":
-        render_what_if_page()
-    elif choice == "Catalog Alimente":
-        render_user_food_catalog_page()
-    elif choice == "Catalog Activități":
-        render_user_activity_catalog_page()
+def display_page_name(page_id: str) -> str:
+    """Return the translated label for a stable user page ID."""
+    page = USER_PAGES.get(page_id)
+    if page is None:
+        return page_id
+    return translate(str(page["label"]))
+
+
+def _render_selected_user_page(page_id: str) -> None:
+    USER_PAGES[page_id]["render"]()

@@ -112,9 +112,9 @@ def build_dashboard_recommendation_cards(
 def _build_meal_card(context: RecommendationContext) -> RecommendationCard:
     if context.food_days < MIN_FOOD_DAYS or context.avg_estimated_balance is None:
         return RecommendationCard(
-            "Mese",
-            "Date puține",
-            "Loghează mesele mai des.",
+            "Meals",
+            "Not enough data",
+            "Log meals more often.",
             "quality",
         )
 
@@ -124,72 +124,75 @@ def _build_meal_card(context: RecommendationContext) -> RecommendationCard:
     if goal == "slabire":
         if balance < -900:
             return RecommendationCard(
-                "Mese", "Mese prea puține", "Mănâncă puțin mai mult.", "energy"
+                "Meals", "Too little food", "Eat a little more.", "energy"
             )
         if balance > -150:
             return RecommendationCard(
-                "Mese",
-                "Mese prea bogate",
-                "Alege porții puțin mai ușoare.",
+                "Meals",
+                "Meals too heavy",
+                "Choose slightly lighter portions.",
                 "balance",
             )
         return RecommendationCard(
-            "Mese", "Mese potrivite", "Mesele susțin slăbirea.", "food"
+            "Meals", "Meals on track", "Your meals support weight loss.", "food"
         )
 
     if goal == "crestere":
         if balance < 150:
             return RecommendationCard(
-                "Mese",
-                "Mese prea puține",
-                "Mănâncă puțin mai mult.",
+                "Meals",
+                "Too little food",
+                "Eat a little more.",
                 "energy",
             )
         if balance > 800:
             return RecommendationCard(
-                "Mese", "Mese prea bogate", "Crește aportul mai treptat.", "balance"
+                "Meals",
+                "Meals too heavy",
+                "Increase your intake more gradually.",
+                "balance",
             )
         return RecommendationCard(
-            "Mese", "Mese potrivite", "Mesele susțin creșterea.", "food"
+            "Meals", "Meals on track", "Your meals support weight gain.", "food"
         )
 
     if balance < -350:
         return RecommendationCard(
-            "Mese", "Mese prea puține", "Mănâncă puțin mai mult.", "energy"
+            "Meals", "Too little food", "Eat a little more.", "energy"
         )
     if balance > 350:
         return RecommendationCard(
-            "Mese",
-            "Mese prea bogate",
-            "Alege porții puțin mai ușoare.",
+            "Meals",
+            "Meals too heavy",
+            "Choose slightly lighter portions.",
             "balance",
         )
     return RecommendationCard(
-        "Mese", "Mese potrivite", "Mesele susțin menținerea.", "food"
+        "Meals", "Meals on track", "Your meals support maintenance.", "food"
     )
 
 
 def _build_protein_card(context: RecommendationContext) -> RecommendationCard:
     if context.food_days < MIN_FOOD_DAYS or context.avg_protein_per_kg is None:
         return RecommendationCard(
-            "Proteine",
-            "Date puține",
-            "Loghează mesele mai des.",
+            "Protein",
+            "Not enough data",
+            "Log meals more often.",
             "quality",
         )
 
     threshold = _protein_threshold_for_context(context)
     if context.avg_protein_per_kg < threshold:
         return RecommendationCard(
-            "Proteine",
-            "Proteine puține",
-            "Adaugă o sursă de proteină.",
+            "Protein",
+            "Low protein",
+            "Add a protein source.",
             "food",
         )
     return RecommendationCard(
-        "Proteine",
-        "Proteine suficiente",
-        "Aportul de proteine arată bine.",
+        "Protein",
+        "Enough protein",
+        "Your protein intake looks good.",
         "health",
     )
 
@@ -203,25 +206,25 @@ def _build_activity_card(context: RecommendationContext) -> RecommendationCard:
         and context.activity_days < MIN_ACTIVITY_DAYS_FOR_JUDGEMENT
     ):
         return RecommendationCard(
-            "Mișcare",
-            "Date puține",
-            "Loghează activitățile mai des.",
+            "Movement",
+            "Not enough data",
+            "Log activities more often.",
             "quality",
         )
 
     if _has_excessive_activity_volume(context):
         return RecommendationCard(
-            "Mișcare",
-            "Ritm prea intens",
-            "Păstrează și zile de pauză.",
+            "Movement",
+            "Training load too high",
+            "Include rest days too.",
             "activity",
         )
 
     if context.activity_days <= 2 and avg_active_day >= 650:
         return RecommendationCard(
-            "Mișcare",
-            "Mișcare intensă",
-            "Ai avut activități solicitante.",
+            "Movement",
+            "Intense activity",
+            "You logged demanding activities.",
             "activity",
         )
 
@@ -230,16 +233,16 @@ def _build_activity_card(context: RecommendationContext) -> RecommendationCard:
         and activity_total < 900
     ):
         return RecommendationCard(
-            "Mișcare",
-            "Mișcare puțină",
-            "Adaugă o activitate ușoară.",
+            "Movement",
+            "Low activity",
+            "Add some light activity.",
             "activity",
         )
 
     return RecommendationCard(
-        "Mișcare",
-        "Mișcare constantă",
-        "Ai un ritm bun de activitate.",
+        "Movement",
+        "Consistent activity",
+        "Your activity level looks consistent.",
         "activity",
     )
 
@@ -251,9 +254,9 @@ def _build_progress_card(context: RecommendationContext) -> RecommendationCard:
         or context.interval_weight_delta_kg is None
     ):
         return RecommendationCard(
-            "Progres",
-            "Date puține",
-            "Loghează greutatea mai des.",
+            "Progress",
+            "Not enough data",
+            "Log your weight more often.",
             "quality",
         )
 
@@ -268,44 +271,44 @@ def _build_progress_card(context: RecommendationContext) -> RecommendationCard:
     prediction_status = _classify_prediction_progress(context)
     if _progress_signals_conflict(actual_status, prediction_status):
         return RecommendationCard(
-            "Progres",
-            "Mai urmărește",
-            "Mai loghează câteva zile.",
+            "Progress",
+            "Keep monitoring",
+            "Log a few more days.",
             "quality",
         )
 
     if actual_status == "good":
         if _normalize_goal(context.goal) == "mentinere":
             return RecommendationCard(
-                "Progres",
-                "Greutate stabilă",
-                "Greutatea rămâne aproape constantă.",
+                "Progress",
+                "Stable weight",
+                "Your weight remains nearly stable.",
                 "weight",
             )
         return RecommendationCard(
-            "Progres",
-            "Progres bun",
-            "Greutatea merge spre obiectiv.",
+            "Progress",
+            "Good progress",
+            "Your weight is moving toward your goal.",
             "weight",
         )
     if actual_status == "too_fast":
         return RecommendationCard(
-            "Progres",
-            "Ritm prea rapid",
-            "Alege schimbări mai treptate.",
+            "Progress",
+            "Progress too fast",
+            "Make changes more gradually.",
             "balance",
         )
     if actual_status == "variable":
         return RecommendationCard(
-            "Progres",
-            "Greutate variabilă",
-            "Mai urmărește câteva zile.",
+            "Progress",
+            "Variable weight",
+            "Keep monitoring for a few more days.",
             "weight",
         )
     return RecommendationCard(
-        "Progres",
-        "Progres lent",
-        "Mai ajustează mesele sau mișcarea.",
+        "Progress",
+        "Slow progress",
+        "Adjust your meals or activity.",
         "energy",
     )
 

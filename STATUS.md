@@ -1,6 +1,12 @@
 # Status Proiect - MacroSense
 
-## 🟢 Ce am terminat:
+Istoricul de mai jos păstrează etapele proiectului, inclusiv soluții înlocuite
+ulterior. Pentru comportamentul curent și arhitectură, vezi [README.md](README.md).
+Mențiunile despre licență și diagrame sunt istorice: directorul `docs/` nu este
+disponibil în acest checkout, deci sincronizarea UML/ERD nu a fost reverificată.
+
+## Ce am terminat
+
 - [x] Setare mediu virtual (venv) și instalare Streamlit.
 - [x] Redactare completă a Capitolelor 1, 2 și 3 din licență (în limba română).
 - [x] Diagramele UML și ERD finalizate și actualizate cu denumiri în engleză.
@@ -103,15 +109,24 @@
 - [x] Actualizare seed demo: `seed_demo_users.sql` extinde utilizatorii demo cu date până la 23.05.2026 și calibrează consumul alimentar recent astfel încât predicțiile ML să fie mai consistente cu trendul real al greutății.
 - [x] Stabilizare ML/Dashboard v2: artefactele au fost regenerate pe 50 utilizatori sintetici și 150 zile de istoric, metadata salvează contextul de training, dashboard-ul tratează zilele incomplete cu fallback controlat, iar tabelele selectabile din Jurnal Alimentar, Jurnal Activități și Mese Personalizate nu mai trunchiază catalogul la primele 40 de rânduri.
 - [x] Simulator What-if v1: adăugare pagină read-only pentru scenarii alimentare și activități, cu modificare doar în sesiune, comparație valori reale vs scenariu simulat, impact teoretic 14/30 zile și validări în UI + servicii pure + protecție prin lipsa oricărei scrieri în DB.
+- [x] Recomandări explicabile în Dashboard: patru carduri pentru alimentație, proteine, activitate și progres, bazate pe indicatorii existenți și predicția de greutate când este disponibilă. Generarea de meniuri și programe de antrenament rămâne în backlog.
+- [x] Sumar energetic comun în Jurnal Alimentar și Jurnal Activități: calorii consumate, calorii din activități, TDEE estimat și balanță estimată, cu afișarea datelor lipsă pentru zilele fără alimente.
+- [x] Interfață EN/RO: texte sursă engleze, catalog de traduceri românești și selector cu steaguri locale. Limba este păstrată în sesiune și după logout; implicit EN, configurabil prin `MACROSENSE_DEFAULT_LANGUAGE`.
+- [x] Stabilizare schimbare limbă: ID-uri de navigare stabile pentru Auth/User/Admin, resincronizarea selecțiilor traduse și păstrarea valorilor nesalvate în formularele reactive. Valorile canonice din DB și denumirile catalogului se păstrează.
 
-## 🟡 La ce lucrăm acum (Focus curent):
-- [ ] Verificare manuală UI pentru Simulator What-if și decizie scope următor: recomandări explicabile sau polish Dashboard.
+## La ce lucrăm acum
 
-## 🔴 Ce urmează (Backlog):
-- [ ] Recomandări explicabile pe baza indicatorilor existenți: mese, proteine/kg, consistență și activitate fizică.
+- [x] Suita completă `unittest` trece; conexiunile DB și HTTP sunt simulate în teste. Integrarea pe o bază PostgreSQL de test rămâne separată.
+- [x] Verificare vizibilă locală fără salvări: Dashboard, preview alimentar cu păstrarea selecției EN/RO, validare durată, navigare prin greutate/mese/cataloage, modificare și resetare scenariu What-if, Admin Activități EN→RO→EN fără `KeyError`. Acest tur nu verifică operațiile reale de salvare/editare/ștergere.
+- [ ] Reproducere și discutare problemă de navigare: după editarea duratei și selectarea rapidă a Jurnalului Greutate, meniul a indicat Greutate, dar conținutul a rămas în Jurnal Activități. Navigarea separată a funcționat; o posibilă suprapunere de rerun-uri rămâne de verificat înainte de modificarea codului.
+- [ ] Review final documentație: README simplificat, diagramă de arhitectură și ghid de fișiere adăugate, STATUS și AGENTS aliniate. Randarea diagramei pe GitHub rămâne de verificat după publicarea branch-ului.
+
+## Ce urmează
+
+- [ ] PR `feature/bilingual-ui` → `main`: review al întregului diff după teste și documentație.
+- [ ] PR pentru demo public: configurarea credențialelor, gestionarea parolelor și restricționarea accesului Admin/creării de conturi.
+- [ ] PR de deploy: PostgreSQL găzduit, secrete, artefacte ML, verificări de pornire și procedură de rollback.
 - [ ] Recomandări personalizate de mese.
 - [ ] Recomandări personalizate de antrenamente.
-- [ ] Discuție decizie scope ML final: păstrăm doar predicția greutății 14/30 zile + What-if determinist sau adăugăm recomandări simple explicabile.
-- [ ] Extindere Dashboard cu recomandări personalizate, dacă rămâne timp după Simulatorul What-if.
 - [ ] Opțional: trigger-e DB pentru sincronizarea automată a totalurilor din `daily_logs` după modificări directe în `food_logs`/`activity_logs`; amânat pentru a evita complexitate inutilă în acest milestone.
-- [ ] Sincronizare documentație licență/diagrame după finalizarea funcționalităților principale.
+- [ ] Sincronizare documentație licență/diagrame când fișierele din `docs/` sunt disponibile.

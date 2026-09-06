@@ -3,6 +3,85 @@ import unicodedata
 
 import pandas as pd
 
+from ui.language import translate
+
+
+FOOD_ENTRY_TYPE_SOURCE_TEXT = {
+    "Aliment": "Food",
+    "Aliment din catalog": "Catalog food",
+    "Masă personalizată": "Custom meal",
+}
+FOOD_SOURCE_LABEL_SOURCE_TEXT = {
+    "Masă personalizată": "Custom meal",
+    "Custom meal": "Custom meal",
+    "Meal snapshot": "Meal snapshot",
+}
+MEAL_TYPE_SOURCE_TEXT = {
+    "Mic dejun": "Breakfast",
+    "Prânz": "Lunch",
+    "Cină": "Dinner",
+    "Gustare": "Snack",
+}
+FOOD_CATEGORY_SOURCE_TEXT = {
+    "Toate": "All",
+    "Fructe": "Fruits",
+    "Legume": "Vegetables",
+    "Carne": "Meat",
+    "Pește": "Fish",
+    "Ouă": "Eggs",
+    "Lactate": "Dairy",
+    "Cereale": "Grains",
+    "Pâine & Panificație": "Bread & bakery products",
+    "Paste & Orez": "Pasta & rice",
+    "Leguminoase": "Legumes",
+    "Nuci & Semințe": "Nuts & seeds",
+    "Uleiuri & Grăsimi": "Oils & fats",
+    "Mezeluri": "Processed meats",
+    "Dulciuri": "Sweets",
+    "Gustări": "Snacks",
+    "Băuturi & Sucuri": "Beverages & juices",
+    "Alcoolice": "Alcoholic beverages",
+    "Condimente & Sosuri": "Condiments & sauces",
+    "Altele": "Other",
+}
+
+
+def _format_mapped_value(value, source_text_by_value: dict) -> str:
+    source_text = source_text_by_value.get(value)
+    if source_text is None:
+        return str(value)
+    return translate(source_text)
+
+
+def format_food_entry_type(value) -> str:
+    """Return a translated label without changing the stable entry-type value."""
+    return _format_mapped_value(value, FOOD_ENTRY_TYPE_SOURCE_TEXT)
+
+
+def format_food_source_label_for_display(value) -> str:
+    """Return a translated source label without changing scenario metadata."""
+    return _format_mapped_value(value, FOOD_SOURCE_LABEL_SOURCE_TEXT)
+
+
+def format_meal_type(value) -> str:
+    """Return a translated label without changing the stored meal-type value."""
+    return _format_mapped_value(value, MEAL_TYPE_SOURCE_TEXT)
+
+
+def format_food_category_for_display(value) -> str:
+    """Return a translated label without changing the stored food category."""
+    return _format_mapped_value(value, FOOD_CATEGORY_SOURCE_TEXT)
+
+
+def build_food_selection_display_dataframe(dataframe: pd.DataFrame) -> pd.DataFrame:
+    """Return a translated display copy while preserving selection IDs and values."""
+    display_dataframe = dataframe.copy()
+    if "Categorie" in display_dataframe.columns:
+        display_dataframe["Categorie"] = display_dataframe["Categorie"].map(
+            format_food_category_for_display
+        )
+    return display_dataframe
+
 
 def normalize_search_text(value: str) -> str:
     """Normalizes user search text for case-insensitive and accent-insensitive matching."""

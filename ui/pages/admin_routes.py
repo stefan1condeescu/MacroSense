@@ -1,7 +1,26 @@
 import html
 import streamlit as st
+from ui.language import (
+    clear_session_preserving_language,
+    normalize_navigation_selection,
+    translate,
+    translated_selection_key,
+)
 from ui.page_theme import apply_page_theme, get_admin_page_theme
 from ui.pages.admin_catalog_pages import render_admin_activity_catalog_page, render_admin_food_catalog_page
+
+
+ADMIN_PAGES = {
+    "food_catalog": {
+        "label": "Food management",
+        "render": render_admin_food_catalog_page,
+    },
+    "activity_catalog": {
+        "label": "Activity management",
+        "render": render_admin_activity_catalog_page,
+    },
+}
+ADMIN_MENU_OPTIONS = tuple(ADMIN_PAGES)
 
 
 def build_admin_identity_html(email: str) -> str:
@@ -9,29 +28,42 @@ def build_admin_identity_html(email: str) -> str:
     safe_email = html.escape(str(email or "-"), quote=True)
     return (
         '<div class="admin-auth-card">'
-        "<span>Autentificat ca:</span>"
+        f"<span>{html.escape(translate('Logged in as:'), quote=True)}</span>"
         f"<strong>{safe_email}</strong>"
         "</div>"
     )
 
 
+def display_admin_page_name(page_id: str) -> str:
+    """Return the translated label for a stable administrator page ID."""
+    page = ADMIN_PAGES.get(page_id)
+    if page is None:
+        return page_id
+    return translate(str(page["label"]))
+
+
+def _render_selected_admin_page(page_id: str) -> None:
+    ADMIN_PAGES[page_id]["render"]()
+
+
 def render_admin_routes() -> None:
-    st.sidebar.title("Panou Administrator")
+    st.sidebar.title(translate("Admin panel"))
     st.sidebar.markdown(
         build_admin_identity_html(st.session_state.get("logged_in_email")),
         unsafe_allow_html=True,
     )
 
-    menu = ["Gestiune Alimente", "Gestiune Activități"]
-    choice = st.sidebar.selectbox("Meniu Admin", menu)
-    apply_page_theme(get_admin_page_theme(choice))
-
-    if choice == "Gestiune Alimente":
-        render_admin_food_catalog_page()
-    elif choice == "Gestiune Activități":
-        render_admin_activity_catalog_page()
+    normalize_navigation_selection("admin_main_menu", ADMIN_PAGES)
+    selected_page = st.sidebar.selectbox(
+        translate("Admin menu"),
+        options=list(ADMIN_PAGES),
+        format_func=display_admin_page_name,
+        key=translated_selection_key("admin_main_menu"),
+    )
+    apply_page_theme(get_admin_page_theme(selected_page))
+    _render_selected_admin_page(selected_page)
 
     st.sidebar.divider()
-    if st.sidebar.button("Deconectare", width="stretch", type="tertiary"):
-        st.session_state.clear()
+    if st.sidebar.button(translate("Log out"), key="admin_logout", width="stretch", type="tertiary"):
+        clear_session_preserving_language()
         st.rerun()
