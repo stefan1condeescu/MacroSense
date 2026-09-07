@@ -7,6 +7,10 @@ from unittest.mock import patch
 import pandas as pd
 
 from services.ml.artifacts import save_weight_model_artifact
+from services.ml.feature_engineering import (
+    build_default_weight_prediction_feature_config,
+    build_weight_prediction_feature_row,
+)
 from services.ml.prediction import (
     INSUFFICIENT_RECENT_DATA_REASON,
     USER_NOT_FOUND_REASON,
@@ -149,9 +153,64 @@ class MLPredictionTests(unittest.TestCase):
             {14: USER_NOT_FOUND_REASON, 30: USER_NOT_FOUND_REASON},
         )
 
-    def test_prediction_returns_14_and_30_day_outputs_from_saved_artifacts(self):
+    def test_descriptive_names_preserve_14_and_30_day_predictions(self):
+        profile = {**self.profile, "full_name": "Utilizator Demonstrativ"}
+        renamed_profile = {**profile, "full_name": "Demo User"}
+        food_rows = self.food_rows.assign(food_name="Piept de pui la grătar")
+        renamed_food_rows = food_rows.assign(food_name="Grilled chicken breast")
+        raw_activity_rows = pd.DataFrame(
+            {
+                "user_id": [1, 1, 1],
+                "log_date": [date(2026, 5, 3)] * 3,
+                "activity_name": ["Alergare", "Genuflexiuni", "Ciclism"],
+                "category": ["Cardio", "Forță", "Cardio"],
+                "duration_min": [30, 30, 30],
+                "sets": [None, 3, None],
+                "reps": [None, 10, None],
+                "manual_calories_burned": [None, None, 250],
+                "met_multiplier": [8.0, 5.0, 8.0],
+            }
+        )
+        renamed_raw_activity_rows = raw_activity_rows.assign(
+            activity_name=["Running", "Squats", "Cycling"]
+        )
+        activity_rows = prepare_activity_rows_for_ml(
+            raw_activity_rows, self.weight_rows
+        )
+        renamed_activity_rows = prepare_activity_rows_for_ml(
+            renamed_raw_activity_rows, self.weight_rows
+        )
+
+        self.assertEqual(activity_rows["calories_burned"].tolist(), [320.0, 67.0, 250.0])
+        pd.testing.assert_frame_equal(
+            activity_rows.drop(columns="activity_name"),
+            renamed_activity_rows.drop(columns="activity_name"),
+            check_exact=True,
+        )
+
         with TemporaryDirectory() as temp_dir:
             for horizon_days in (14, 30):
+                with self.subTest(horizon_days=horizon_days):
+                    config = build_default_weight_prediction_feature_config(horizon_days)
+                    feature_row = build_weight_prediction_feature_row(
+                        profile,
+                        food_rows,
+                        activity_rows,
+                        self.weight_rows,
+                        date(2026, 5, 14),
+                        config,
+                    )
+                    renamed_feature_row = build_weight_prediction_feature_row(
+                        renamed_profile,
+                        renamed_food_rows,
+                        renamed_activity_rows,
+                        self.weight_rows,
+                        date(2026, 5, 14),
+                        config,
+                    )
+                    self.assertIsNotNone(feature_row)
+                    self.assertEqual(feature_row, renamed_feature_row)
+
                 training_result = train_weight_prediction_models(
                     _make_training_dataset(horizon_days),
                     ModelTrainingConfig(
@@ -164,9 +223,18 @@ class MLPredictionTests(unittest.TestCase):
                 save_weight_model_artifact(training_result, temp_dir)
 
             result = predict_weight_changes_from_frames(
-                self.profile,
-                self.food_rows,
-                self.activity_rows,
+                profile,
+                food_rows,
+                activity_rows,
+                self.weight_rows,
+                date(2026, 5, 14),
+                temp_dir,
+                horizons=(14, 30),
+            )
+            renamed_result = predict_weight_changes_from_frames(
+                renamed_profile,
+                renamed_food_rows,
+                renamed_activity_rows,
                 self.weight_rows,
                 date(2026, 5, 14),
                 temp_dir,
@@ -177,6 +245,7 @@ class MLPredictionTests(unittest.TestCase):
         self.assertEqual(result.analysis_date, date(2026, 5, 14))
         self.assertEqual(result.unavailable_horizons, {})
         self.assertEqual([item.horizon_days for item in result.predictions], [14, 30])
+        self.assertEqual(result, renamed_result)
         for prediction in result.predictions:
             self.assertGreater(prediction.predicted_weight_kg, 30)
             self.assertLess(prediction.predicted_weight_kg, 300)
