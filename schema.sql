@@ -248,10 +248,10 @@ CREATE TABLE food_logs (
     )
 );
 
--- Insert default Admin account
+-- Public demo Admin account. Use only with isolated synthetic demo data.
 INSERT INTO admins (email, password_hash, access_level) 
 VALUES (
-    'admin@test.com', 
-    encode(sha256('parola123'::bytea), 'hex'), 
+    'admin@example.com',
+    encode(sha256('MacroSenseAdmin2026!'::bytea), 'hex'),
     1
 );

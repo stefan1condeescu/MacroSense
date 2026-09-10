@@ -6,9 +6,43 @@ MacroSense is a nutrition, activity and weight journal built with Python, Stream
 
 Developed as a bachelor's degree project. It runs locally with synthetic demo data; public deployment and security hardening are still pending.
 
-The interface supports English and Romanian. English is the default. Stored category, goal and meal-type values remain unchanged; translations apply only to their display.
+The interface supports English and Romanian. English is the default, and the demo seeds use English food, activity, person and recipe names. Stored category, goal, meal-type and status values remain unchanged; translations apply only to their display.
 
-[Architecture](#architecture) · [Local setup](#local-setup) · [Tests](#running-tests) · [Demo walkthrough](#suggested-presentation-flow)
+[Preview](#preview) · [Architecture](#architecture) · [Local setup](#local-setup) · [Tests](#running-tests) · [Demo walkthrough](#suggested-presentation-flow)
+
+## Preview
+
+Captured locally in English. Journal examples use synthetic history from May 2026; the Admin example shows a live USDA search.
+
+### Welcome
+
+Login screen with local branding, a subtle fruit background and English/Romanian language selection.
+
+![MacroSense login screen with a faded fruit background and language flags](assets/screenshots/welcome.jpg)
+
+### Dashboard predictions and recommendations
+
+Experimental 14/30-day weight predictions alongside explainable, rule-based recommendations.
+
+![Dashboard showing weight predictions and meal, protein, activity and progress recommendations](assets/screenshots/dashboard-predictions.jpg)
+
+### Food journal
+
+Saved meals with English food names, portion-based calories, meal types and times.
+
+![Food journal for 27 May 2026 showing breakfast and lunch entries with quantities and calories](assets/screenshots/food-journal.jpg)
+
+### What-if comparison
+
+Increasing a blueberry portion from 103.55 g to 150 g changes the simulated totals, not the saved journal. The theoretical weight impact is separate from the ML prediction.
+
+![What-if table comparing real and simulated nutrition, energy balance and theoretical weight impact](assets/screenshots/what-if.jpg)
+
+### USDA food import
+
+Admins can search FoodData Central and review the source and per-100g nutrients before importing a food. This example only previews the result; it does not save it.
+
+![Admin USDA search for kiwifruit with a Foundation result and calorie and macronutrient preview](assets/screenshots/admin-usda.jpg)
 
 ## What The Application Does
 
@@ -252,6 +286,8 @@ User: postgres
 
 `DB_PASSWORD` is required and has no default. Set it to your local PostgreSQL password; without it, the application reports a configuration error instead of connecting. See [Local setup](#3-create-and-initialize-the-database). Never commit real credentials.
 
+For the English demo, use a separate database named `macrosense_demo_en` and set `DB_NAME` accordingly. This overrides the default without replacing an existing database.
+
 Main tables:
 
 ```text
@@ -282,7 +318,7 @@ The schema includes constraints for:
 
 ## Seed Data
 
-Optional seed files provide catalogs and synthetic history for local demos.
+Optional seed files provide English-named catalogs and synthetic history for demos. Internal category, goal, meal-type and status values stay unchanged to preserve validation, calculations and ML inputs.
 
 Recommended order:
 
@@ -296,44 +332,48 @@ database/seeds/seed_demo_users.sql
 
 The seed data adds:
 
-- A default administrator account.
-- More than 170 USDA-based starter food items.
-- Official Compendium activity entries.
-- Practical MacroSense activity mappings.
+- A public demo administrator account.
+- 182 USDA-based starter food items.
+- 67 official Compendium activity entries.
+- 42 practical MacroSense activity mappings.
 - Five synthetic demo users.
 - Weight history.
 - Food logs.
 - Activity logs.
 - Custom meals and historical snapshots.
 
-Run `schema.sql` on an empty database. Back up an existing database before changing its schema or reseeding: `seed_demo_users.sql` replaces the five demo users and their associated history.
+Run `schema.sql` only on an empty demo database. Rerunning `seed_demo_users.sql` replaces the five accounts listed below and their associated history; it does not remove older Romanian demo accounts or other users. Use it only in the isolated demo database.
+
+The supplied history ends on **27 May 2026**. Select that date in journals and What-if to explore populated days; dates are fixed for reproducibility.
 
 ## Demo Accounts
 
-The schema and demo seed create these local test accounts. Their passwords are public defaults: do not expose them in a public deployment.
+The schema and demo seed create these intentionally public demo accounts. Use them only with disposable synthetic data, never a personal or production database. Demo Admin keeps all existing Admin functions available; anyone with its login can change the catalog.
 
 Administrator:
 
 ```text
-Email: admin@test.com
-Password: parola123
+Email: admin@example.com
+Password: MacroSenseAdmin2026!
 ```
 
 Demo users:
 
 ```text
-demo.slabire@test.com
-demo.masa@test.com
-demo.mentinere@test.com
-demo.activ@test.com
-demo.rar@test.com
+demo.weightloss@example.com
+demo.musclegain@example.com
+demo.maintenance@example.com
+demo.active@example.com
+demo.sparse@example.com
 ```
 
 All demo users use:
 
 ```text
-Password: test123
+Password: MacroSenseDemo2026!
 ```
+
+These are application logins, not PostgreSQL credentials. `DB_PASSWORD` and `FDC_API_KEY` must remain private. Public hosting is not configured yet.
 
 ## Local Setup
 
@@ -356,13 +396,21 @@ brew services start postgresql@16
 
 ### 3. Create And Initialize The Database
 
-Create a PostgreSQL database named:
+In pgAdmin, create a new, empty PostgreSQL database named:
 
 ```text
-macrosense_db
+macrosense_demo_en
 ```
 
 Create `.streamlit/secrets.toml` using [the example configuration](.streamlit/secrets.toml.example). If that file already exists, add the missing settings without replacing existing values or API keys. Set `DB_PASSWORD` to your local PostgreSQL password. The real secrets file is ignored by Git.
+
+Set or update this one key to select the new demo database:
+
+```toml
+DB_NAME = "macrosense_demo_en"
+```
+
+Keep any old database intact until the new demo passes analytics, prediction and UI checks. Back it up and review any extra imported or manually entered data before deciding what to remove.
 
 You can supply these values as environment variables instead:
 
@@ -374,7 +422,7 @@ DB_USER
 DB_PASSWORD
 ```
 
-Run the SQL files in the [seed order](#seed-data) using pgAdmin Query Tool on a fresh database. For an existing database, back it up and review the SQL before running it.
+Run the SQL files in the [seed order](#seed-data) using pgAdmin Query Tool connected to `macrosense_demo_en`. Confirm the selected database before each script; do not run these setup steps against the old database.
 
 ### 4. Optional USDA API Key
 
@@ -427,13 +475,13 @@ Then open:
 Servers
   MacroSense Local
     Databases
-      macrosense_db
+      macrosense_demo_en
         Schemas
           public
             Tables
 ```
 
-To run SQL files manually, right-click `macrosense_db`, open Query Tool, paste or open the SQL file, and execute it.
+To run SQL files manually, right-click `macrosense_demo_en`, open Query Tool, paste or open the SQL file, and execute it.
 
 ## Running Tests
 
@@ -454,6 +502,7 @@ The test suite covers:
 - USDA client parsing and filtering.
 - UI helper functions and routing behavior.
 - SQL seed consistency.
+- Name-only changes preserving activity calories, ML features and 14/30-day predictions with the same temporary model artifacts.
 - Streamlit language switching, stable navigation and draft preservation.
 
 Database and HTTP calls are mocked; SQL tests inspect schema and seed text. These tests do not prove live PostgreSQL transactions or USDA connectivity. Test those separately with a disposable database and a configured API key.
@@ -478,7 +527,7 @@ Key implementation choices:
 
 For a local presentation, use a synthetic demo account:
 
-1. Open pgAdmin and show `macrosense_db`, the schema tables, and the seed files.
+1. Open pgAdmin and show `macrosense_demo_en`, the schema tables, and the seed files.
 2. Start MacroSense, demonstrate the EN/RO flags and log in as the administrator.
 3. Show the food and activity catalogs, including source labels and USDA import.
 4. Log in as a demo user.
@@ -490,7 +539,7 @@ For a local presentation, use a synthetic demo account:
 10. Open the What-if simulator and compare a real day with a simulated scenario.
 11. Mention the automated test suite and validation layers.
 
-Use a disposable demo database for save/edit/delete demonstrations. Catalog browsing, dashboard inspection and What-if scenarios do not require changing saved records.
+Use a disposable demo database for save/edit/delete demonstrations. Catalog browsing, dashboard inspection and What-if scenarios do not require changing saved records. For English screenshots, keep the English flag selected and use the seeded history ending on 27 May 2026.
 
 ## Privacy And Publishing Notes
 
@@ -503,10 +552,12 @@ Keep the following out of Git:
 - real personal user data
 - private thesis documents, unless intentionally published
 
-The included demo data is synthetic. Before public deployment, replace default credentials, harden password storage and restrict Admin/registration access. Database settings already support secrets/environment configuration, but the current local setup is not hardened for public use.
+The intended public demo keeps Admin accessible with all existing functions, using only an isolated, disposable synthetic database. Visitors can alter its data; keep a documented seed-reset procedure. Public app logins do not make the PostgreSQL password or USDA API key public.
+
+Password-storage hardening, hosted database configuration and deployment/rollback checks are still pending. The current local setup is not a hardened production deployment.
 
 ## Current Status
 
-The local workflows described above are implemented, including EN/RO UI, dashboard recommendations, weight predictions and What-if. Next steps are public-demo security and deployment; see [STATUS.md](STATUS.md) for project history and remaining work.
+The bilingual UI PR is merged. The separate English demo database is populated and has passed a local User/Admin walkthrough, including journal save/edit/delete operations. What-if rounding and missing-set handling in ML inputs have been corrected; live comparisons preserve analytics and 14/30-day predictions. Public-demo security and deployment remain pending. See [STATUS.md](STATUS.md) for validation coverage, known issues and remaining work.
 
 The original thesis UML/ERD files are not included in this checkout. This architecture section documents the current code.

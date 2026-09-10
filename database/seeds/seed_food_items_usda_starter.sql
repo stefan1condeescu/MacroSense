@@ -17,7 +17,7 @@ INSERT INTO food_items (
 )
 VALUES
     (
-        'Banane, crude',
+        'Bananas, raw',
         97.00,
         0.74,
         22.71,
@@ -29,7 +29,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709224/nutrients'
     ),
     (
-        'Mere, crude',
+        'Apples, raw',
         61.00,
         0.17,
         14.80,
@@ -41,7 +41,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709215/nutrients'
     ),
     (
-        'Capsuni, crude',
+        'Strawberries, raw',
         36.00,
         0.64,
         7.96,
@@ -53,7 +53,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709283/nutrients'
     ),
     (
-        'Portocale, crude',
+        'Oranges, raw',
         97.00,
         1.50,
         25.00,
@@ -65,7 +65,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/169103/nutrients'
     ),
     (
-        'Pere, crude',
+        'Pears, raw',
         42.00,
         0.50,
         10.65,
@@ -77,7 +77,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709255/nutrients'
     ),
     (
-        'Struguri, cruzi',
+        'Grapes, raw',
         93.00,
         5.60,
         17.30,
@@ -89,7 +89,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168575/nutrients'
     ),
     (
-        'Afine, crude',
+        'Blueberries, raw',
         64.00,
         0.70,
         14.57,
@@ -101,7 +101,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709275/nutrients'
     ),
     (
-        'Zmeura, cruda',
+        'Raspberries, raw',
         57.00,
         1.01,
         12.90,
@@ -113,7 +113,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709281/nutrients'
     ),
     (
-        'Avocado, crud',
+        'Avocado, raw',
         206.00,
         1.81,
         8.32,
@@ -125,7 +125,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710824/nutrients'
     ),
     (
-        'Kiwi, crud',
+        'Kiwi, raw',
         64.00,
         1.06,
         14.00,
@@ -137,7 +137,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709239/nutrients'
     ),
     (
-        'Ananas, crud',
+        'Pineapple, raw',
         60.00,
         0.46,
         14.09,
@@ -149,7 +149,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709260/nutrients'
     ),
     (
-        'Mango, crud',
+        'Mango, raw',
         70.60,
         0.69,
         17.40,
@@ -161,7 +161,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710834/nutrients'
     ),
     (
-        'Pepene rosu, crud',
+        'Watermelon, raw',
         30.00,
         0.61,
         7.55,
@@ -173,7 +173,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709270/nutrients'
     ),
     (
-        'Piersici, crude',
+        'Peaches, raw',
         42.00,
         0.91,
         9.87,
@@ -185,7 +185,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/325430/nutrients'
     ),
     (
-        'Prune, crude',
+        'Plums, raw',
         62.00,
         0.50,
         13.60,
@@ -197,7 +197,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/173952/nutrients'
     ),
     (
-        'Caise, crude',
+        'Apricots, raw',
         48.00,
         1.40,
         11.12,
@@ -209,7 +209,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709221/nutrients'
     ),
     (
-        'Cirese, crude',
+        'Cherries, raw',
         71.00,
         1.04,
         16.16,
@@ -221,7 +221,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709231/nutrients'
     ),
     (
-        'Smochine, crude',
+        'Figs, raw',
         74.00,
         0.75,
         19.18,
@@ -233,7 +233,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709235/nutrients'
     ),
     (
-        'Rosii, crude',
+        'Tomatoes, raw',
         27.00,
         0.83,
         5.51,
@@ -245,7 +245,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/321360/nutrients'
     ),
     (
-        'Morcovi, cruzi',
+        'Carrots, raw',
         44.00,
         0.87,
         9.68,
@@ -257,7 +257,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709660/nutrients'
     ),
     (
-        'Broccoli, crud',
+        'Broccoli, raw',
         39.00,
         2.57,
         6.27,
@@ -269,7 +269,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709643/nutrients'
     ),
     (
-        'Cartofi, cruzi',
+        'Potatoes, raw',
         77.00,
         2.05,
         17.50,
@@ -281,7 +281,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/170026/nutrients'
     ),
     (
-        'Cartofi dulci, cruzi',
+        'Sweet potatoes, raw',
         42.00,
         2.49,
         8.82,
@@ -293,7 +293,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/169303/nutrients'
     ),
     (
-        'Spanac, crud',
+        'Spinach, raw',
         22.00,
         2.20,
         3.90,
@@ -305,7 +305,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168438/nutrients'
     ),
     (
-        'Salata verde, cruda',
+        'Lettuce, raw',
         25.00,
         2.58,
         3.65,
@@ -317,7 +317,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709791/nutrients'
     ),
     (
-        'Castraveti, cruzi',
+        'Cucumbers, raw',
         10.00,
         0.59,
         2.16,
@@ -329,7 +329,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/169225/nutrients'
     ),
     (
-        'Ardei gras, crud',
+        'Bell pepper, raw',
         19.70,
         0.71,
         4.78,
@@ -341,7 +341,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2258588/nutrients'
     ),
     (
-        'Ceapa, cruda',
+        'Onion, raw',
         32.00,
         1.83,
         7.34,
@@ -353,7 +353,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709794/nutrients'
     ),
     (
-        'Usturoi, crud',
+        'Garlic, raw',
         143.00,
         6.62,
         28.20,
@@ -365,7 +365,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709786/nutrients'
     ),
     (
-        'Vinete, crude',
+        'Eggplant, raw',
         25.00,
         0.98,
         5.88,
@@ -377,7 +377,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709785/nutrients'
     ),
     (
-        'Dovlecei, cruzi',
+        'Zucchini, raw',
         16.00,
         0.98,
         3.27,
@@ -389,7 +389,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2685568/nutrients'
     ),
     (
-        'Conopida, cruda',
+        'Cauliflower, raw',
         22.90,
         1.64,
         4.72,
@@ -401,7 +401,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2685573/nutrients'
     ),
     (
-        'Ciuperci, crude',
+        'Mushrooms, raw',
         32.00,
         1.49,
         6.86,
@@ -413,7 +413,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168422/nutrients'
     ),
     (
-        'Varza, cruda',
+        'Cabbage, raw',
         31.00,
         0.96,
         6.38,
@@ -425,7 +425,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709773/nutrients'
     ),
     (
-        'Sparanghel, crud',
+        'Asparagus, raw',
         23.50,
         1.44,
         5.10,
@@ -437,7 +437,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710823/nutrients'
     ),
     (
-        'Fasole verde, cruda',
+        'Green beans, raw',
         33.60,
         1.97,
         7.41,
@@ -449,7 +449,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2346400/nutrients'
     ),
     (
-        'Mazare verde, cruda',
+        'Green peas, raw',
         81.00,
         5.42,
         14.45,
@@ -461,7 +461,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709797/nutrients'
     ),
     (
-        'Porumb dulce, crud',
+        'Sweet corn, raw',
         86.00,
         3.22,
         19.00,
@@ -473,7 +473,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168538/nutrients'
     ),
     (
-        'Piept de pui, crud',
+        'Chicken breast, raw',
         112.00,
         22.50,
         0.00,
@@ -485,7 +485,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2646170/nutrients'
     ),
     (
-        'Pulpa de pui, cruda',
+        'Chicken thigh, raw',
         440.00,
         9.58,
         0.79,
@@ -497,7 +497,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/172855/nutrients'
     ),
     (
-        'Piept de curcan, gatit',
+        'Turkey breast, cooked',
         126.00,
         22.20,
         0.00,
@@ -509,7 +509,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/171501/nutrients'
     ),
     (
-        'Carne tocata de vita, cruda',
+        'Ground beef, raw',
         198.00,
         19.40,
         0.00,
@@ -521,7 +521,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168608/nutrients'
     ),
     (
-        'Friptura de vita, cruda',
+        'Beef steak, raw',
         170.00,
         20.10,
         0.00,
@@ -533,7 +533,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2646175/nutrients'
     ),
     (
-        'Cotlet de porc, crud',
+        'Pork chop, raw',
         145.00,
         22.80,
         0.00,
@@ -545,7 +545,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2727575/nutrients'
     ),
     (
-        'Muschi de porc, crud',
+        'Pork tenderloin, raw',
         120.00,
         20.60,
         0.00,
@@ -557,7 +557,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168312/nutrients'
     ),
     (
-        'Carne de miel, cruda',
+        'Lamb, raw',
         282.00,
         16.60,
         0.00,
@@ -569,7 +569,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/174370/nutrients'
     ),
     (
-        'Carne de rata, cruda',
+        'Duck, raw',
         404.00,
         11.50,
         0.00,
@@ -581,7 +581,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/172408/nutrients'
     ),
     (
-        'Carne de vitel, cruda',
+        'Veal, raw',
         301.00,
         14.00,
         2.95,
@@ -593,7 +593,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/171619/nutrients'
     ),
     (
-        'Ficat de pui, crud',
+        'Chicken liver, raw',
         119.00,
         16.90,
         0.73,
@@ -605,7 +605,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/171060/nutrients'
     ),
     (
-        'Ficat de vita, crud',
+        'Beef liver, raw',
         133.00,
         20.50,
         3.60,
@@ -617,7 +617,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/174729/nutrients'
     ),
     (
-        'Somon, crud',
+        'Salmon, raw',
         179.00,
         19.90,
         0.00,
@@ -629,7 +629,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/173688/nutrients'
     ),
     (
-        'Ton, crud',
+        'Tuna, raw',
         144.00,
         23.30,
         0.00,
@@ -641,7 +641,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/173706/nutrients'
     ),
     (
-        'Cod, crud',
+        'Cod, raw',
         82.00,
         17.80,
         0.00,
@@ -653,7 +653,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/171955/nutrients'
     ),
     (
-        'Pastrav, crud',
+        'Trout, raw',
         148.00,
         20.80,
         0.00,
@@ -665,7 +665,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/175153/nutrients'
     ),
     (
-        'Sardine la conserva',
+        'Canned sardines',
         208.00,
         24.60,
         0.00,
@@ -677,7 +677,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/175139/nutrients'
     ),
     (
-        'Creveti, cruzi',
+        'Shrimp, raw',
         75.70,
         15.60,
         0.48,
@@ -689,7 +689,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2684443/nutrients'
     ),
     (
-        'Macrou, crud',
+        'Mackerel, raw',
         205.00,
         18.60,
         0.00,
@@ -701,7 +701,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/175119/nutrients'
     ),
     (
-        'Tilapia, cruda',
+        'Tilapia, raw',
         100.00,
         19.00,
         0.00,
@@ -713,7 +713,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2684442/nutrients'
     ),
     (
-        'Halibut, crud',
+        'Halibut, raw',
         91.00,
         18.60,
         0.00,
@@ -725,7 +725,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/174200/nutrients'
     ),
     (
-        'Crab, crud',
+        'Crab, raw',
         87.00,
         18.10,
         0.04,
@@ -737,7 +737,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/174204/nutrients'
     ),
     (
-        'Scoici, crude',
+        'Clams, raw',
         86.00,
         14.67,
         3.57,
@@ -749,7 +749,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2706338/nutrients'
     ),
     (
-        'Midii, crude',
+        'Mussels, raw',
         86.00,
         11.90,
         3.69,
@@ -761,7 +761,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/174216/nutrients'
     ),
     (
-        'Ou intreg, crud',
+        'Whole egg, raw',
         185.00,
         12.80,
         1.45,
@@ -773,7 +773,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/172189/nutrients'
     ),
     (
-        'Albus de ou, crud',
+        'Egg white, raw',
         52.00,
         10.70,
         2.36,
@@ -785,7 +785,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707168/nutrients'
     ),
     (
-        'Galbenus de ou, crud',
+        'Egg yolk, raw',
         328.00,
         16.20,
         1.02,
@@ -797,7 +797,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707172/nutrients'
     ),
     (
-        'Oua jumari',
+        'Scrambled eggs',
         149.00,
         9.99,
         1.61,
@@ -809,7 +809,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/172187/nutrients'
     ),
     (
-        'Omleta',
+        'Omelet',
         252.00,
         20.81,
         1.61,
@@ -821,7 +821,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710781/nutrients'
     ),
     (
-        'Lapte integral',
+        'Whole milk',
         83.00,
         3.17,
         10.34,
@@ -833,7 +833,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2705467/nutrients'
     ),
     (
-        'Lapte semidegresat',
+        'Semi-skimmed milk',
         147.00,
         4.41,
         32.00,
@@ -845,7 +845,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/170890/nutrients'
     ),
     (
-        'Iaurt simplu',
+        'Plain yogurt',
         78.00,
         3.82,
         5.57,
@@ -857,7 +857,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2705464/nutrients'
     ),
     (
-        'Iaurt grecesc simplu',
+        'Plain Greek yogurt',
         59.00,
         10.30,
         3.64,
@@ -869,7 +869,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2705424/nutrients'
     ),
     (
-        'Branza cheddar',
+        'Cheddar cheese',
         409.00,
         23.30,
         2.44,
@@ -893,7 +893,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/172198/nutrients'
     ),
     (
-        'Branza cottage',
+        'Cottage cheese',
         148.00,
         10.96,
         4.33,
@@ -905,7 +905,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2705749/nutrients'
     ),
     (
-        'Branza feta',
+        'Feta cheese',
         265.00,
         14.20,
         3.88,
@@ -917,7 +917,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/173420/nutrients'
     ),
     (
-        'Parmezan',
+        'Parmesan',
         420.00,
         28.40,
         13.90,
@@ -929,7 +929,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/171247/nutrients'
     ),
     (
-        'Crema de branza',
+        'Cream cheese',
         264.00,
         9.09,
         5.59,
@@ -941,7 +941,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2705762/nutrients'
     ),
     (
-        'Smantana',
+        'Sour cream',
         208.00,
         2.40,
         6.63,
@@ -965,7 +965,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2705394/nutrients'
     ),
     (
-        'Fulgi de ovaz, cruzi',
+        'Rolled oats, raw',
         246.00,
         17.30,
         66.20,
@@ -977,7 +977,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168872/nutrients'
     ),
     (
-        'Fulgi de porumb',
+        'Corn flakes',
         375.00,
         4.77,
         84.68,
@@ -1001,7 +1001,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2708099/nutrients'
     ),
     (
-        'Quinoa, gatita',
+        'Quinoa, cooked',
         152.00,
         3.23,
         31.10,
@@ -1013,7 +1013,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/172027/nutrients'
     ),
     (
-        'Orz, gatit',
+        'Barley, cooked',
         123.00,
         2.26,
         28.20,
@@ -1025,7 +1025,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/170285/nutrients'
     ),
     (
-        'Hrisca',
+        'Buckwheat',
         343.00,
         13.20,
         71.50,
@@ -1037,7 +1037,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/170286/nutrients'
     ),
     (
-        'Bulgur, gatit',
+        'Bulgur, cooked',
         83.00,
         3.08,
         18.60,
@@ -1049,7 +1049,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/170287/nutrients'
     ),
     (
-        'Paine alba',
+        'White bread',
         267.00,
         9.43,
         49.20,
@@ -1061,7 +1061,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707598/nutrients'
     ),
     (
-        'Paine integrala',
+        'Wholegrain bread',
         262.00,
         9.80,
         55.89,
@@ -1073,7 +1073,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707730/nutrients'
     ),
     (
-        'Paine pita',
+        'Pita bread',
         275.00,
         9.10,
         55.70,
@@ -1109,7 +1109,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707823/nutrients'
     ),
     (
-        'Chifla',
+        'Bread roll',
         307.00,
         9.50,
         52.00,
@@ -1133,7 +1133,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707678/nutrients'
     ),
     (
-        'Briose englezesti',
+        'English muffins',
         227.00,
         8.87,
         44.17,
@@ -1145,7 +1145,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707698/nutrients'
     ),
     (
-        'Paine naan',
+        'Naan bread',
         311.00,
         11.09,
         50.23,
@@ -1157,7 +1157,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707613/nutrients'
     ),
     (
-        'Orez alb, gatit',
+        'White rice, cooked',
         130.00,
         2.54,
         28.98,
@@ -1169,7 +1169,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710788/nutrients'
     ),
     (
-        'Orez brun, gatit',
+        'Brown rice, cooked',
         124.00,
         2.45,
         25.89,
@@ -1181,7 +1181,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710789/nutrients'
     ),
     (
-        'Spaghete, gatite',
+        'Spaghetti, cooked',
         49.00,
         0.65,
         6.26,
@@ -1193,7 +1193,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710001/nutrients'
     ),
     (
-        'Paste, gatite',
+        'Pasta, cooked',
         157.00,
         5.76,
         30.68,
@@ -1205,7 +1205,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2708357/nutrients'
     ),
     (
-        'Macaroane, gatite',
+        'Macaroni, cooked',
         128.00,
         4.53,
         26.60,
@@ -1217,7 +1217,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168904/nutrients'
     ),
     (
-        'Taitei cu ou, gatiti',
+        'Egg noodles, cooked',
         138.00,
         4.54,
         25.20,
@@ -1229,7 +1229,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168919/nutrients'
     ),
     (
-        'Taitei de orez, gatiti',
+        'Rice noodles, cooked',
         84.00,
         0.04,
         20.66,
@@ -1241,7 +1241,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2708355/nutrients'
     ),
     (
-        'Orez salbatic, gatit',
+        'Wild rice, cooked',
         112.00,
         2.17,
         20.62,
@@ -1253,7 +1253,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2708428/nutrients'
     ),
     (
-        'Cuscus, gatit',
+        'Couscous, cooked',
         112.00,
         3.79,
         23.20,
@@ -1265,7 +1265,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/169700/nutrients'
     ),
     (
-        'Linte, gatita',
+        'Lentils, cooked',
         114.00,
         9.02,
         19.50,
@@ -1277,7 +1277,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/175254/nutrients'
     ),
     (
-        'Naut, gatit',
+        'Chickpeas, cooked',
         164.00,
         8.86,
         27.40,
@@ -1289,7 +1289,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/173799/nutrients'
     ),
     (
-        'Fasole neagra, gatita',
+        'Black beans, cooked',
         130.00,
         8.18,
         24.40,
@@ -1301,7 +1301,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/175239/nutrients'
     ),
     (
-        'Fasole rosie, gatita',
+        'Red beans, cooked',
         127.00,
         8.67,
         22.80,
@@ -1313,7 +1313,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/173792/nutrients'
     ),
     (
-        'Fasole pinto, gatita',
+        'Pinto beans, cooked',
         162.00,
         9.31,
         30.90,
@@ -1325,7 +1325,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168501/nutrients'
     ),
     (
-        'Boabe de soia, gatite',
+        'Soybeans, cooked',
         218.00,
         16.92,
         7.77,
@@ -1337,7 +1337,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707388/nutrients'
     ),
     (
-        'Tofu ferm',
+        'Firm tofu',
         85.00,
         10.90,
         0.97,
@@ -1361,7 +1361,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/174289/nutrients'
     ),
     (
-        'Mazare uscata, gatita',
+        'Dried peas, cooked',
         116.00,
         8.34,
         20.50,
@@ -1373,7 +1373,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/175257/nutrients'
     ),
     (
-        'Edamame, gatit',
+        'Edamame, cooked',
         140.00,
         11.54,
         8.63,
@@ -1385,7 +1385,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707436/nutrients'
     ),
     (
-        'Migdale',
+        'Almonds',
         641.00,
         20.67,
         21.11,
@@ -1397,7 +1397,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707533/nutrients'
     ),
     (
-        'Nuci',
+        'Walnuts',
         654.00,
         15.20,
         13.70,
@@ -1409,7 +1409,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/170187/nutrients'
     ),
     (
-        'Arahide',
+        'Peanuts',
         598.00,
         22.21,
         22.31,
@@ -1421,7 +1421,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707537/nutrients'
     ),
     (
-        'Caju',
+        'Cashews',
         574.00,
         15.31,
         32.69,
@@ -1433,7 +1433,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707493/nutrients'
     ),
     (
-        'Fistic',
+        'Pistachios',
         572.00,
         21.05,
         28.28,
@@ -1445,7 +1445,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707527/nutrients'
     ),
     (
-        'Alune de padure',
+        'Hazelnuts',
         628.00,
         14.95,
         16.70,
@@ -1457,7 +1457,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707502/nutrients'
     ),
     (
-        'Seminte de chia',
+        'Chia seeds',
         486.00,
         16.54,
         42.12,
@@ -1469,7 +1469,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707590/nutrients'
     ),
     (
-        'Seminte de in',
+        'Flax seeds',
         884.00,
         0.11,
         0.00,
@@ -1481,7 +1481,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710185/nutrients'
     ),
     (
-        'Seminte de dovleac',
+        'Pumpkin seeds',
         574.00,
         29.84,
         14.71,
@@ -1493,7 +1493,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707579/nutrients'
     ),
     (
-        'Seminte de floarea-soarelui',
+        'Sunflower seeds',
         567.00,
         18.45,
         25.92,
@@ -1505,7 +1505,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707584/nutrients'
     ),
     (
-        'Seminte de susan',
+        'Sesame seeds',
         631.00,
         20.45,
         11.73,
@@ -1517,7 +1517,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707586/nutrients'
     ),
     (
-        'Unt de arahide',
+        'Peanut butter',
         382.00,
         13.88,
         39.85,
@@ -1529,7 +1529,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707550/nutrients'
     ),
     (
-        'Ulei de masline',
+        'Olive oil',
         900.00,
         0.00,
         0.00,
@@ -1541,7 +1541,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710186/nutrients'
     ),
     (
-        'Ulei de rapita',
+        'Rapeseed oil',
         900.00,
         0.00,
         0.00,
@@ -1553,7 +1553,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710188/nutrients'
     ),
     (
-        'Ulei de floarea-soarelui',
+        'Sunflower oil',
         900.00,
         0.00,
         0.00,
@@ -1565,7 +1565,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710192/nutrients'
     ),
     (
-        'Ulei de cocos',
+        'Coconut oil',
         895.00,
         0.00,
         0.84,
@@ -1577,7 +1577,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710182/nutrients'
     ),
     (
-        'Unt',
+        'Butter',
         900.00,
         0.00,
         0.00,
@@ -1589,7 +1589,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/171314/nutrients'
     ),
     (
-        'Margarina',
+        'Margarine',
         579.00,
         0.17,
         0.82,
@@ -1601,7 +1601,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710158/nutrients'
     ),
     (
-        'Untura',
+        'Lard',
         902.00,
         0.00,
         0.00,
@@ -1613,7 +1613,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710166/nutrients'
     ),
     (
-        'Maioneza',
+        'Mayonnaise',
         238.00,
         0.37,
         9.23,
@@ -1625,7 +1625,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710220/nutrients'
     ),
     (
-        'Salam',
+        'Salami',
         319.00,
         16.07,
         23.84,
@@ -1649,7 +1649,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2706185/nutrients'
     ),
     (
-        'Sunca',
+        'Ham',
         117.00,
         19.04,
         1.58,
@@ -1661,7 +1661,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2705878/nutrients'
     ),
     (
-        'Carnati de porc',
+        'Pork sausages',
         325.00,
         18.53,
         1.42,
@@ -1673,7 +1673,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2706191/nutrients'
     ),
     (
-        'Cremvursti',
+        'Frankfurters',
         310.00,
         11.70,
         2.89,
@@ -1697,7 +1697,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2705879/nutrients'
     ),
     (
-        'Parizer',
+        'Bologna sausage',
         281.00,
         10.34,
         6.31,
@@ -1709,7 +1709,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2706176/nutrients'
     ),
     (
-        'Ciocolata neagra',
+        'Dark chocolate',
         550.00,
         5.09,
         59.97,
@@ -1721,7 +1721,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710336/nutrients'
     ),
     (
-        'Ciocolata cu lapte',
+        'Milk chocolate',
         535.00,
         7.65,
         59.40,
@@ -1733,7 +1733,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/167587/nutrients'
     ),
     (
-        'Inghetata de vanilie',
+        'Vanilla ice cream',
         207.00,
         3.50,
         23.60,
@@ -1745,7 +1745,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2705630/nutrients'
     ),
     (
-        'Prajitura cu ciocolata',
+        'Chocolate cake',
         410.00,
         4.87,
         37.93,
@@ -1757,7 +1757,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707871/nutrients'
     ),
     (
-        'Fursec cu ciocolata',
+        'Chocolate cookie',
         492.00,
         5.10,
         65.36,
@@ -1769,7 +1769,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707909/nutrients'
     ),
     (
-        'Negresa',
+        'Brownie',
         401.00,
         2.94,
         63.55,
@@ -1781,7 +1781,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707905/nutrients'
     ),
     (
-        'Miere',
+        'Honey',
         304.00,
         0.30,
         82.40,
@@ -1793,7 +1793,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/169640/nutrients'
     ),
     (
-        'Budinca de vanilie',
+        'Vanilla pudding',
         377.00,
         0.00,
         92.90,
@@ -1817,7 +1817,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707863/nutrients'
     ),
     (
-        'Chipsuri de cartofi',
+        'Potato chips',
         532.00,
         6.39,
         53.83,
@@ -1829,7 +1829,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709421/nutrients'
     ),
     (
-        'Covrigei',
+        'Pretzels',
         384.00,
         10.04,
         80.39,
@@ -1841,7 +1841,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2708247/nutrients'
     ),
     (
-        'Biscuiti sarati',
+        'Salted crackers',
         455.00,
         7.30,
         70.73,
@@ -1865,7 +1865,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2708165/nutrients'
     ),
     (
-        'Chipsuri tortilla',
+        'Tortilla chips',
         519.00,
         7.36,
         60.81,
@@ -1877,7 +1877,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2708204/nutrients'
     ),
     (
-        'Baton de granola',
+        'Granola bar',
         408.00,
         4.17,
         79.17,
@@ -1889,7 +1889,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2708096/nutrients'
     ),
     (
-        'Mix de nuci si fructe',
+        'Nut and fruit mix',
         503.00,
         11.65,
         48.27,
@@ -1901,7 +1901,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2707577/nutrients'
     ),
     (
-        'Rondele de orez',
+        'Rice cakes',
         392.00,
         7.10,
         81.10,
@@ -1913,7 +1913,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/168107/nutrients'
     ),
     (
-        'Chipsuri de porumb',
+        'Corn chips',
         543.00,
         6.11,
         56.70,
@@ -1925,7 +1925,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2708197/nutrients'
     ),
     (
-        'Suc de portocale',
+        'Orange juice',
         45.00,
         0.60,
         10.20,
@@ -1937,7 +1937,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/171354/nutrients'
     ),
     (
-        'Suc de mere',
+        'Apple juice',
         48.00,
         0.09,
         11.34,
@@ -1961,7 +1961,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710663/nutrients'
     ),
     (
-        'Cafea',
+        'Coffee',
         6.00,
         0.10,
         1.30,
@@ -1973,7 +1973,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710486/nutrients'
     ),
     (
-        'Ceai',
+        'Tea',
         55.00,
         0.39,
         10.35,
@@ -1985,7 +1985,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710508/nutrients'
     ),
     (
-        'Limonada',
+        'Lemonade',
         46.00,
         0.00,
         12.08,
@@ -2009,7 +2009,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709339/nutrients'
     ),
     (
-        'Bautura izotonica',
+        'Isotonic drink',
         26.00,
         0.00,
         6.43,
@@ -2021,7 +2021,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710769/nutrients'
     ),
     (
-        'Lapte de migdale',
+        'Almond milk',
         43.00,
         0.57,
         7.44,
@@ -2033,7 +2033,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2705408/nutrients'
     ),
     (
-        'Bere',
+        'Beer',
         43.00,
         0.46,
         3.55,
@@ -2045,7 +2045,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710616/nutrients'
     ),
     (
-        'Vin rosu',
+        'Red wine',
         19.00,
         0.04,
         0.27,
@@ -2057,7 +2057,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/172240/nutrients'
     ),
     (
-        'Vin alb',
+        'White wine',
         82.00,
         0.07,
         2.60,
@@ -2069,7 +2069,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/174837/nutrients'
     ),
     (
-        'Vodca',
+        'Vodka',
         89.00,
         0.00,
         7.80,
@@ -2105,7 +2105,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709733/nutrients'
     ),
     (
-        'Mustar',
+        'Mustard',
         69.00,
         4.25,
         5.30,
@@ -2117,7 +2117,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710085/nutrients'
     ),
     (
-        'Sos de soia',
+        'Soy sauce',
         53.00,
         8.14,
         4.93,
@@ -2141,7 +2141,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709743/nutrients'
     ),
     (
-        'Sos barbeque',
+        'Barbecue sauce',
         172.00,
         0.82,
         40.77,
@@ -2153,7 +2153,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709750/nutrients'
     ),
     (
-        'Dressing pentru salata',
+        'Salad dressing',
         430.00,
         1.32,
         5.90,
@@ -2165,7 +2165,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2710195/nutrients'
     ),
     (
-        'Otet',
+        'Vinegar',
         21.00,
         0.00,
         0.93,
@@ -2177,7 +2177,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/2709351/nutrients'
     ),
     (
-        'Piper negru',
+        'Black pepper',
         251.00,
         10.40,
         64.00,
@@ -2189,7 +2189,7 @@ VALUES
         'https://fdc.nal.usda.gov/fdc-app.html#/food-details/170931/nutrients'
     ),
     (
-        'Sos de rosii',
+        'Tomato sauce',
         149.00,
         21.72,
         1.58,

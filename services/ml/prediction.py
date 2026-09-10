@@ -453,7 +453,14 @@ def _calculate_activity_calories(
     met = float(activity["met_multiplier"])
     sets = activity.get("sets")
     reps = activity.get("reps")
-    if _is_strength_category(activity.get("category")) and sets and reps:
+    # Mixed numeric/NULL database columns can contain Pandas NaN instead of None.
+    if (
+        _is_strength_category(activity.get("category"))
+        and pd.notna(sets)
+        and pd.notna(reps)
+        and sets > 0
+        and reps > 0
+    ):
         sets_value = int(sets)
         reps_value = int(reps)
         active_time = min(duration, (sets_value * reps_value * 3.0) / 60.0)

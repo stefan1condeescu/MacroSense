@@ -1,8 +1,10 @@
 import inspect
+from itertools import permutations
 import unittest
 
 from services.what_if import loaders, simulator
 from services.what_if.simulator import (
+    WhatIfActivityEntry,
     build_activity_entry,
     build_custom_meal_entry,
     build_food_entry,
@@ -289,6 +291,52 @@ class WhatIfSimulatorTests(unittest.TestCase):
         self.assertEqual(totals.activity_calories, 20.01)
         self.assertEqual(totals.estimated_tdee, 1620.01)
         self.assertIsNone(totals.estimated_balance)
+
+    def test_food_totals_do_not_depend_on_entry_order(self):
+        # Sequential addition can cross the two-decimal rounding boundary at 58.155.
+        values = (50.0, 8.0, 0.1, 0.05, 0.005)
+        entries = [
+            build_food_entry(
+                entry_id=f"food-{index}",
+                label=f"Test food {index}",
+                entry_type="Aliment",
+                quantity_g=100,
+                calories_100g=value,
+                protein_100g=value,
+                carbs_100g=value,
+                fats_100g=value,
+            )
+            for index, value in enumerate(values)
+        ]
+
+        for ordered_entries in permutations(entries):
+            with self.subTest(order=[entry.entry_id for entry in ordered_entries]):
+                totals = calculate_totals(ordered_entries, [], base_tdee=1600)
+                self.assertEqual(totals.calories_in, 58.16)
+                self.assertEqual(totals.protein_g, 58.16)
+                self.assertEqual(totals.carbs_g, 58.16)
+                self.assertEqual(totals.fats_g, 58.16)
+                self.assertEqual(totals.estimated_balance, -1541.84)
+
+    def test_activity_totals_do_not_depend_on_entry_order(self):
+        entries = [
+            WhatIfActivityEntry(
+                entry_id=f"activity-{index}",
+                label=f"Test activity {index}",
+                category="Cardio",
+                duration_min=30,
+                calories_burned=value,
+                met=5,
+            )
+            for index, value in enumerate((50.0, 8.0, 0.1, 0.05, 0.005))
+        ]
+
+        for ordered_entries in permutations(entries):
+            with self.subTest(order=[entry.entry_id for entry in ordered_entries]):
+                totals = calculate_totals([], ordered_entries, base_tdee=1600)
+                self.assertEqual(totals.activity_calories, 58.16)
+                self.assertEqual(totals.estimated_tdee, 1658.16)
+                self.assertIsNone(totals.estimated_balance)
 
     def test_identical_scenario_is_detected_explicitly(self):
         food = [

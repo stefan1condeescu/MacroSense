@@ -1,17 +1,18 @@
 -- Demo users and synthetic tracking history for MacroSense dashboards and ML flows.
 -- Run after schema.sql, seed_food_items_usda_starter.sql and activity seeds.
--- All demo accounts use password: test123
+-- Use an isolated demo database. Rerunning replaces the accounts listed below and their history.
+-- All demo accounts use password: MacroSenseDemo2026!
 -- The data is deterministic: it uses profile plans, meal patterns and activity schedules
 -- instead of random values, so every run produces the same presentation dataset.
 
 BEGIN;
 
 DELETE FROM users WHERE email IN (
-    'demo.slabire@test.com',
-    'demo.masa@test.com',
-    'demo.mentinere@test.com',
-    'demo.activ@test.com',
-    'demo.rar@test.com'
+    'demo.weightloss@example.com',
+    'demo.musclegain@example.com',
+    'demo.maintenance@example.com',
+    'demo.active@example.com',
+    'demo.sparse@example.com'
 );
 
 CREATE TEMP TABLE demo_profiles (
@@ -45,11 +46,11 @@ INSERT INTO demo_profiles (
     food_scale,
     food_pattern_count
 ) VALUES
-    ('demo.slabire@test.com', 'Ana Demo', DATE '2026-02-06', 168, 29, 'F', 'Slabire', DATE '2026-02-07', DATE '2026-05-27', 82.32, 75.98, 1.18, 4),
-    ('demo.masa@test.com', 'Mihai Demo', DATE '2026-02-23', 181, 25, 'M', 'Crestere', DATE '2026-02-23', DATE '2026-05-27', 70.98, 76.55, 1.20, 4),
-    ('demo.mentinere@test.com', 'Ioana Demo', DATE '2026-02-23', 165, 34, 'F', 'Mentinere', DATE '2026-02-23', DATE '2026-05-27', 61.82, 62.50, 1.12, 4),
-    ('demo.activ@test.com', 'Andrei Demo', DATE '2026-02-23', 178, 31, 'M', 'Mentinere', DATE '2026-02-23', DATE '2026-05-27', 78.36, 77.70, 1.28, 4),
-    ('demo.rar@test.com', 'Radu Demo', DATE '2026-02-23', 175, 40, 'M', 'Slabire', DATE '2026-02-23', DATE '2026-05-27', 96.42, 93.05, 1.08, 3);
+    ('demo.weightloss@example.com', 'Anna Demo', DATE '2026-02-06', 168, 29, 'F', 'Slabire', DATE '2026-02-07', DATE '2026-05-27', 82.32, 75.98, 1.18, 4),
+    ('demo.musclegain@example.com', 'Michael Demo', DATE '2026-02-23', 181, 25, 'M', 'Crestere', DATE '2026-02-23', DATE '2026-05-27', 70.98, 76.55, 1.20, 4),
+    ('demo.maintenance@example.com', 'Joanna Demo', DATE '2026-02-23', 165, 34, 'F', 'Mentinere', DATE '2026-02-23', DATE '2026-05-27', 61.82, 62.50, 1.12, 4),
+    ('demo.active@example.com', 'Andrew Demo', DATE '2026-02-23', 178, 31, 'M', 'Mentinere', DATE '2026-02-23', DATE '2026-05-27', 78.36, 77.70, 1.28, 4),
+    ('demo.sparse@example.com', 'Ryan Demo', DATE '2026-02-23', 175, 40, 'M', 'Slabire', DATE '2026-02-23', DATE '2026-05-27', 96.42, 93.05, 1.08, 3);
 
 INSERT INTO users (
     email,
@@ -63,7 +64,7 @@ INSERT INTO users (
 )
 SELECT
     email,
-    encode(sha256('test123'::bytea), 'hex'),
+    encode(sha256('MacroSenseDemo2026!'::bytea), 'hex'),
     registration_date,
     full_name,
     height_cm,
@@ -86,10 +87,10 @@ CREATE TEMP TABLE demo_custom_meals (
 ) ON COMMIT DROP;
 
 INSERT INTO demo_custom_meals (email, recipe_name) VALUES
-    ('demo.slabire@test.com', 'Bol proteic demo'),
-    ('demo.masa@test.com', 'Pui cu orez demo'),
-    ('demo.mentinere@test.com', 'Omleta verde demo'),
-    ('demo.activ@test.com', 'Curcan demo');
+    ('demo.weightloss@example.com', 'Demo protein bowl'),
+    ('demo.musclegain@example.com', 'Demo chicken and rice'),
+    ('demo.maintenance@example.com', 'Demo green omelette'),
+    ('demo.active@example.com', 'Demo turkey meal');
 
 INSERT INTO custom_meals (user_id, recipe_name, status)
 SELECT
@@ -107,18 +108,18 @@ CREATE TEMP TABLE demo_recipe_ingredients (
 ) ON COMMIT DROP;
 
 INSERT INTO demo_recipe_ingredients (email, recipe_name, food_external_id, quantity_g) VALUES
-    ('demo.slabire@test.com', 'Bol proteic demo', '2705424', 180.00),
-    ('demo.slabire@test.com', 'Bol proteic demo', '2709224', 80.00),
-    ('demo.slabire@test.com', 'Bol proteic demo', '2707590', 12.00),
-    ('demo.masa@test.com', 'Pui cu orez demo', '2646170', 220.00),
-    ('demo.masa@test.com', 'Pui cu orez demo', '2710788', 260.00),
-    ('demo.masa@test.com', 'Pui cu orez demo', '2709643', 120.00),
-    ('demo.mentinere@test.com', 'Omleta verde demo', '172189', 120.00),
-    ('demo.mentinere@test.com', 'Omleta verde demo', '168438', 70.00),
-    ('demo.mentinere@test.com', 'Omleta verde demo', '173420', 35.00),
-    ('demo.activ@test.com', 'Curcan demo', '171501', 180.00),
-    ('demo.activ@test.com', 'Curcan demo', '2710789', 220.00),
-    ('demo.activ@test.com', 'Curcan demo', '2710186', 10.00);
+    ('demo.weightloss@example.com', 'Demo protein bowl', '2705424', 180.00),
+    ('demo.weightloss@example.com', 'Demo protein bowl', '2709224', 80.00),
+    ('demo.weightloss@example.com', 'Demo protein bowl', '2707590', 12.00),
+    ('demo.musclegain@example.com', 'Demo chicken and rice', '2646170', 220.00),
+    ('demo.musclegain@example.com', 'Demo chicken and rice', '2710788', 260.00),
+    ('demo.musclegain@example.com', 'Demo chicken and rice', '2709643', 120.00),
+    ('demo.maintenance@example.com', 'Demo green omelette', '172189', 120.00),
+    ('demo.maintenance@example.com', 'Demo green omelette', '168438', 70.00),
+    ('demo.maintenance@example.com', 'Demo green omelette', '173420', 35.00),
+    ('demo.active@example.com', 'Demo turkey meal', '171501', 180.00),
+    ('demo.active@example.com', 'Demo turkey meal', '2710789', 220.00),
+    ('demo.active@example.com', 'Demo turkey meal', '2710186', 10.00);
 
 INSERT INTO recipe_ingredients (meal_id, food_id, quantity_g)
 SELECT
@@ -210,172 +211,172 @@ INSERT INTO demo_food_patterns (
     meal_type,
     meal_time
 ) VALUES
-    ('demo.slabire@test.com', 0, 1, NULL, 'Bol proteic demo', 230.00, 'Mic dejun', TIME '08:10'),
-    ('demo.slabire@test.com', 0, 2, '2646170', NULL, 160.00, 'Prânz', TIME '13:00'),
-    ('demo.slabire@test.com', 0, 3, '2710789', NULL, 130.00, 'Prânz', TIME '13:00'),
-    ('demo.slabire@test.com', 0, 4, '2709643', NULL, 180.00, 'Prânz', TIME '13:00'),
-    ('demo.slabire@test.com', 0, 5, '173688', NULL, 130.00, 'Cină', TIME '19:30'),
-    ('demo.slabire@test.com', 0, 6, '169303', NULL, 180.00, 'Cină', TIME '19:30'),
-    ('demo.slabire@test.com', 0, 7, '168438', NULL, 90.00, 'Cină', TIME '19:30'),
-    ('demo.slabire@test.com', 0, 8, '2709215', NULL, 180.00, 'Gustare', TIME '16:30'),
-    ('demo.slabire@test.com', 0, 9, '2707533', NULL, 14.00, 'Gustare', TIME '16:30'),
+    ('demo.weightloss@example.com', 0, 1, NULL, 'Demo protein bowl', 230.00, 'Mic dejun', TIME '08:10'),
+    ('demo.weightloss@example.com', 0, 2, '2646170', NULL, 160.00, 'Prânz', TIME '13:00'),
+    ('demo.weightloss@example.com', 0, 3, '2710789', NULL, 130.00, 'Prânz', TIME '13:00'),
+    ('demo.weightloss@example.com', 0, 4, '2709643', NULL, 180.00, 'Prânz', TIME '13:00'),
+    ('demo.weightloss@example.com', 0, 5, '173688', NULL, 130.00, 'Cină', TIME '19:30'),
+    ('demo.weightloss@example.com', 0, 6, '169303', NULL, 180.00, 'Cină', TIME '19:30'),
+    ('demo.weightloss@example.com', 0, 7, '168438', NULL, 90.00, 'Cină', TIME '19:30'),
+    ('demo.weightloss@example.com', 0, 8, '2709215', NULL, 180.00, 'Gustare', TIME '16:30'),
+    ('demo.weightloss@example.com', 0, 9, '2707533', NULL, 14.00, 'Gustare', TIME '16:30'),
 
-    ('demo.slabire@test.com', 1, 1, '2705424', NULL, 210.00, 'Mic dejun', TIME '08:00'),
-    ('demo.slabire@test.com', 1, 2, '2709275', NULL, 90.00, 'Mic dejun', TIME '08:00'),
-    ('demo.slabire@test.com', 1, 3, '2707590', NULL, 12.00, 'Mic dejun', TIME '08:00'),
-    ('demo.slabire@test.com', 1, 4, '171501', NULL, 155.00, 'Prânz', TIME '13:10'),
-    ('demo.slabire@test.com', 1, 5, '2710788', NULL, 120.00, 'Prânz', TIME '13:10'),
-    ('demo.slabire@test.com', 1, 6, '321360', NULL, 150.00, 'Prânz', TIME '13:10'),
-    ('demo.slabire@test.com', 1, 7, '172189', NULL, 110.00, 'Cină', TIME '19:15'),
-    ('demo.slabire@test.com', 1, 8, '168438', NULL, 120.00, 'Cină', TIME '19:15'),
-    ('demo.slabire@test.com', 1, 9, '173420', NULL, 25.00, 'Cină', TIME '19:15'),
+    ('demo.weightloss@example.com', 1, 1, '2705424', NULL, 210.00, 'Mic dejun', TIME '08:00'),
+    ('demo.weightloss@example.com', 1, 2, '2709275', NULL, 90.00, 'Mic dejun', TIME '08:00'),
+    ('demo.weightloss@example.com', 1, 3, '2707590', NULL, 12.00, 'Mic dejun', TIME '08:00'),
+    ('demo.weightloss@example.com', 1, 4, '171501', NULL, 155.00, 'Prânz', TIME '13:10'),
+    ('demo.weightloss@example.com', 1, 5, '2710788', NULL, 120.00, 'Prânz', TIME '13:10'),
+    ('demo.weightloss@example.com', 1, 6, '321360', NULL, 150.00, 'Prânz', TIME '13:10'),
+    ('demo.weightloss@example.com', 1, 7, '172189', NULL, 110.00, 'Cină', TIME '19:15'),
+    ('demo.weightloss@example.com', 1, 8, '168438', NULL, 120.00, 'Cină', TIME '19:15'),
+    ('demo.weightloss@example.com', 1, 9, '173420', NULL, 25.00, 'Cină', TIME '19:15'),
 
-    ('demo.slabire@test.com', 2, 1, '172187', NULL, 160.00, 'Mic dejun', TIME '08:20'),
-    ('demo.slabire@test.com', 2, 2, '2707598', NULL, 70.00, 'Mic dejun', TIME '08:20'),
-    ('demo.slabire@test.com', 2, 3, '2646170', NULL, 150.00, 'Prânz', TIME '13:00'),
-    ('demo.slabire@test.com', 2, 4, '2707616', NULL, 95.00, 'Prânz', TIME '13:00'),
-    ('demo.slabire@test.com', 2, 5, '174289', NULL, 100.00, 'Prânz', TIME '13:00'),
-    ('demo.slabire@test.com', 2, 6, '173688', NULL, 125.00, 'Cină', TIME '19:40'),
-    ('demo.slabire@test.com', 2, 7, '2709643', NULL, 190.00, 'Cină', TIME '19:40'),
-    ('demo.slabire@test.com', 2, 8, '2709283', NULL, 180.00, 'Gustare', TIME '16:20'),
+    ('demo.weightloss@example.com', 2, 1, '172187', NULL, 160.00, 'Mic dejun', TIME '08:20'),
+    ('demo.weightloss@example.com', 2, 2, '2707598', NULL, 70.00, 'Mic dejun', TIME '08:20'),
+    ('demo.weightloss@example.com', 2, 3, '2646170', NULL, 150.00, 'Prânz', TIME '13:00'),
+    ('demo.weightloss@example.com', 2, 4, '2707616', NULL, 95.00, 'Prânz', TIME '13:00'),
+    ('demo.weightloss@example.com', 2, 5, '174289', NULL, 100.00, 'Prânz', TIME '13:00'),
+    ('demo.weightloss@example.com', 2, 6, '173688', NULL, 125.00, 'Cină', TIME '19:40'),
+    ('demo.weightloss@example.com', 2, 7, '2709643', NULL, 190.00, 'Cină', TIME '19:40'),
+    ('demo.weightloss@example.com', 2, 8, '2709283', NULL, 180.00, 'Gustare', TIME '16:20'),
 
-    ('demo.slabire@test.com', 3, 1, '2705424', NULL, 180.00, 'Mic dejun', TIME '08:05'),
-    ('demo.slabire@test.com', 3, 2, '2709224', NULL, 80.00, 'Mic dejun', TIME '08:05'),
-    ('demo.slabire@test.com', 3, 3, '2707590', NULL, 10.00, 'Mic dejun', TIME '08:05'),
-    ('demo.slabire@test.com', 3, 4, '2646170', NULL, 165.00, 'Prânz', TIME '13:20'),
-    ('demo.slabire@test.com', 3, 5, '169303', NULL, 200.00, 'Prânz', TIME '13:20'),
-    ('demo.slabire@test.com', 3, 6, '321360', NULL, 140.00, 'Prânz', TIME '13:20'),
-    ('demo.slabire@test.com', 3, 7, '172189', NULL, 105.00, 'Cină', TIME '19:10'),
-    ('demo.slabire@test.com', 3, 8, '168438', NULL, 110.00, 'Cină', TIME '19:10'),
-    ('demo.slabire@test.com', 3, 9, '2709215', NULL, 170.00, 'Gustare', TIME '16:45'),
+    ('demo.weightloss@example.com', 3, 1, '2705424', NULL, 180.00, 'Mic dejun', TIME '08:05'),
+    ('demo.weightloss@example.com', 3, 2, '2709224', NULL, 80.00, 'Mic dejun', TIME '08:05'),
+    ('demo.weightloss@example.com', 3, 3, '2707590', NULL, 10.00, 'Mic dejun', TIME '08:05'),
+    ('demo.weightloss@example.com', 3, 4, '2646170', NULL, 165.00, 'Prânz', TIME '13:20'),
+    ('demo.weightloss@example.com', 3, 5, '169303', NULL, 200.00, 'Prânz', TIME '13:20'),
+    ('demo.weightloss@example.com', 3, 6, '321360', NULL, 140.00, 'Prânz', TIME '13:20'),
+    ('demo.weightloss@example.com', 3, 7, '172189', NULL, 105.00, 'Cină', TIME '19:10'),
+    ('demo.weightloss@example.com', 3, 8, '168438', NULL, 110.00, 'Cină', TIME '19:10'),
+    ('demo.weightloss@example.com', 3, 9, '2709215', NULL, 170.00, 'Gustare', TIME '16:45'),
 
-    ('demo.masa@test.com', 0, 1, '172187', NULL, 220.00, 'Mic dejun', TIME '08:00'),
-    ('demo.masa@test.com', 0, 2, '2707598', NULL, 120.00, 'Mic dejun', TIME '08:00'),
-    ('demo.masa@test.com', 0, 3, '2709224', NULL, 120.00, 'Mic dejun', TIME '08:00'),
-    ('demo.masa@test.com', 0, 4, NULL, 'Pui cu orez demo', 420.00, 'Prânz', TIME '13:00'),
-    ('demo.masa@test.com', 0, 5, '173688', NULL, 180.00, 'Cină', TIME '20:00'),
-    ('demo.masa@test.com', 0, 6, '169303', NULL, 260.00, 'Cină', TIME '20:00'),
-    ('demo.masa@test.com', 0, 7, '2707533', NULL, 30.00, 'Gustare', TIME '17:00'),
+    ('demo.musclegain@example.com', 0, 1, '172187', NULL, 220.00, 'Mic dejun', TIME '08:00'),
+    ('demo.musclegain@example.com', 0, 2, '2707598', NULL, 120.00, 'Mic dejun', TIME '08:00'),
+    ('demo.musclegain@example.com', 0, 3, '2709224', NULL, 120.00, 'Mic dejun', TIME '08:00'),
+    ('demo.musclegain@example.com', 0, 4, NULL, 'Demo chicken and rice', 420.00, 'Prânz', TIME '13:00'),
+    ('demo.musclegain@example.com', 0, 5, '173688', NULL, 180.00, 'Cină', TIME '20:00'),
+    ('demo.musclegain@example.com', 0, 6, '169303', NULL, 260.00, 'Cină', TIME '20:00'),
+    ('demo.musclegain@example.com', 0, 7, '2707533', NULL, 30.00, 'Gustare', TIME '17:00'),
 
-    ('demo.masa@test.com', 1, 1, '2705424', NULL, 260.00, 'Mic dejun', TIME '08:15'),
-    ('demo.masa@test.com', 1, 2, '2709275', NULL, 120.00, 'Mic dejun', TIME '08:15'),
-    ('demo.masa@test.com', 1, 3, '2707590', NULL, 18.00, 'Mic dejun', TIME '08:15'),
-    ('demo.masa@test.com', 1, 4, '2646170', NULL, 240.00, 'Prânz', TIME '13:10'),
-    ('demo.masa@test.com', 1, 5, '2710788', NULL, 310.00, 'Prânz', TIME '13:10'),
-    ('demo.masa@test.com', 1, 6, '2709643', NULL, 140.00, 'Prânz', TIME '13:10'),
-    ('demo.masa@test.com', 1, 7, '171501', NULL, 210.00, 'Cină', TIME '20:15'),
-    ('demo.masa@test.com', 1, 8, '2707616', NULL, 130.00, 'Cină', TIME '20:15'),
-    ('demo.masa@test.com', 1, 9, '174289', NULL, 120.00, 'Cină', TIME '20:15'),
+    ('demo.musclegain@example.com', 1, 1, '2705424', NULL, 260.00, 'Mic dejun', TIME '08:15'),
+    ('demo.musclegain@example.com', 1, 2, '2709275', NULL, 120.00, 'Mic dejun', TIME '08:15'),
+    ('demo.musclegain@example.com', 1, 3, '2707590', NULL, 18.00, 'Mic dejun', TIME '08:15'),
+    ('demo.musclegain@example.com', 1, 4, '2646170', NULL, 240.00, 'Prânz', TIME '13:10'),
+    ('demo.musclegain@example.com', 1, 5, '2710788', NULL, 310.00, 'Prânz', TIME '13:10'),
+    ('demo.musclegain@example.com', 1, 6, '2709643', NULL, 140.00, 'Prânz', TIME '13:10'),
+    ('demo.musclegain@example.com', 1, 7, '171501', NULL, 210.00, 'Cină', TIME '20:15'),
+    ('demo.musclegain@example.com', 1, 8, '2707616', NULL, 130.00, 'Cină', TIME '20:15'),
+    ('demo.musclegain@example.com', 1, 9, '174289', NULL, 120.00, 'Cină', TIME '20:15'),
 
-    ('demo.masa@test.com', 2, 1, '172189', NULL, 150.00, 'Mic dejun', TIME '08:05'),
-    ('demo.masa@test.com', 2, 2, '2707598', NULL, 130.00, 'Mic dejun', TIME '08:05'),
-    ('demo.masa@test.com', 2, 3, '2646170', NULL, 230.00, 'Prânz', TIME '13:00'),
-    ('demo.masa@test.com', 2, 4, '2710789', NULL, 320.00, 'Prânz', TIME '13:00'),
-    ('demo.masa@test.com', 2, 5, '321360', NULL, 150.00, 'Prânz', TIME '13:00'),
-    ('demo.masa@test.com', 2, 6, '173688', NULL, 190.00, 'Cină', TIME '20:00'),
-    ('demo.masa@test.com', 2, 7, '169303', NULL, 280.00, 'Cină', TIME '20:00'),
-    ('demo.masa@test.com', 2, 8, '2709255', NULL, 180.00, 'Gustare', TIME '17:30'),
+    ('demo.musclegain@example.com', 2, 1, '172189', NULL, 150.00, 'Mic dejun', TIME '08:05'),
+    ('demo.musclegain@example.com', 2, 2, '2707598', NULL, 130.00, 'Mic dejun', TIME '08:05'),
+    ('demo.musclegain@example.com', 2, 3, '2646170', NULL, 230.00, 'Prânz', TIME '13:00'),
+    ('demo.musclegain@example.com', 2, 4, '2710789', NULL, 320.00, 'Prânz', TIME '13:00'),
+    ('demo.musclegain@example.com', 2, 5, '321360', NULL, 150.00, 'Prânz', TIME '13:00'),
+    ('demo.musclegain@example.com', 2, 6, '173688', NULL, 190.00, 'Cină', TIME '20:00'),
+    ('demo.musclegain@example.com', 2, 7, '169303', NULL, 280.00, 'Cină', TIME '20:00'),
+    ('demo.musclegain@example.com', 2, 8, '2709255', NULL, 180.00, 'Gustare', TIME '17:30'),
 
-    ('demo.masa@test.com', 3, 1, '2705424', NULL, 250.00, 'Mic dejun', TIME '08:10'),
-    ('demo.masa@test.com', 3, 2, '2709224', NULL, 140.00, 'Mic dejun', TIME '08:10'),
-    ('demo.masa@test.com', 3, 3, '2707590', NULL, 16.00, 'Mic dejun', TIME '08:10'),
-    ('demo.masa@test.com', 3, 4, NULL, 'Pui cu orez demo', 460.00, 'Prânz', TIME '13:20'),
-    ('demo.masa@test.com', 3, 5, '171501', NULL, 220.00, 'Cină', TIME '20:10'),
-    ('demo.masa@test.com', 3, 6, '2707616', NULL, 120.00, 'Cină', TIME '20:10'),
-    ('demo.masa@test.com', 3, 7, '174289', NULL, 110.00, 'Cină', TIME '20:10'),
-    ('demo.masa@test.com', 3, 8, '2707533', NULL, 35.00, 'Gustare', TIME '17:00'),
+    ('demo.musclegain@example.com', 3, 1, '2705424', NULL, 250.00, 'Mic dejun', TIME '08:10'),
+    ('demo.musclegain@example.com', 3, 2, '2709224', NULL, 140.00, 'Mic dejun', TIME '08:10'),
+    ('demo.musclegain@example.com', 3, 3, '2707590', NULL, 16.00, 'Mic dejun', TIME '08:10'),
+    ('demo.musclegain@example.com', 3, 4, NULL, 'Demo chicken and rice', 460.00, 'Prânz', TIME '13:20'),
+    ('demo.musclegain@example.com', 3, 5, '171501', NULL, 220.00, 'Cină', TIME '20:10'),
+    ('demo.musclegain@example.com', 3, 6, '2707616', NULL, 120.00, 'Cină', TIME '20:10'),
+    ('demo.musclegain@example.com', 3, 7, '174289', NULL, 110.00, 'Cină', TIME '20:10'),
+    ('demo.musclegain@example.com', 3, 8, '2707533', NULL, 35.00, 'Gustare', TIME '17:00'),
 
-    ('demo.mentinere@test.com', 0, 1, NULL, 'Omleta verde demo', 210.00, 'Mic dejun', TIME '08:20'),
-    ('demo.mentinere@test.com', 0, 2, '2707598', NULL, 70.00, 'Mic dejun', TIME '08:20'),
-    ('demo.mentinere@test.com', 0, 3, '2646170', NULL, 155.00, 'Prânz', TIME '13:00'),
-    ('demo.mentinere@test.com', 0, 4, '2710789', NULL, 160.00, 'Prânz', TIME '13:00'),
-    ('demo.mentinere@test.com', 0, 5, '321360', NULL, 140.00, 'Prânz', TIME '13:00'),
-    ('demo.mentinere@test.com', 0, 6, '173688', NULL, 130.00, 'Cină', TIME '19:30'),
-    ('demo.mentinere@test.com', 0, 7, '2709643', NULL, 160.00, 'Cină', TIME '19:30'),
-    ('demo.mentinere@test.com', 0, 8, '2709215', NULL, 160.00, 'Gustare', TIME '16:30'),
+    ('demo.maintenance@example.com', 0, 1, NULL, 'Demo green omelette', 210.00, 'Mic dejun', TIME '08:20'),
+    ('demo.maintenance@example.com', 0, 2, '2707598', NULL, 70.00, 'Mic dejun', TIME '08:20'),
+    ('demo.maintenance@example.com', 0, 3, '2646170', NULL, 155.00, 'Prânz', TIME '13:00'),
+    ('demo.maintenance@example.com', 0, 4, '2710789', NULL, 160.00, 'Prânz', TIME '13:00'),
+    ('demo.maintenance@example.com', 0, 5, '321360', NULL, 140.00, 'Prânz', TIME '13:00'),
+    ('demo.maintenance@example.com', 0, 6, '173688', NULL, 130.00, 'Cină', TIME '19:30'),
+    ('demo.maintenance@example.com', 0, 7, '2709643', NULL, 160.00, 'Cină', TIME '19:30'),
+    ('demo.maintenance@example.com', 0, 8, '2709215', NULL, 160.00, 'Gustare', TIME '16:30'),
 
-    ('demo.mentinere@test.com', 1, 1, '2705424', NULL, 220.00, 'Mic dejun', TIME '08:00'),
-    ('demo.mentinere@test.com', 1, 2, '2709275', NULL, 100.00, 'Mic dejun', TIME '08:00'),
-    ('demo.mentinere@test.com', 1, 3, '2707590', NULL, 12.00, 'Mic dejun', TIME '08:00'),
-    ('demo.mentinere@test.com', 1, 4, '171501', NULL, 160.00, 'Prânz', TIME '13:15'),
-    ('demo.mentinere@test.com', 1, 5, '2707616', NULL, 90.00, 'Prânz', TIME '13:15'),
-    ('demo.mentinere@test.com', 1, 6, '174289', NULL, 90.00, 'Prânz', TIME '13:15'),
-    ('demo.mentinere@test.com', 1, 7, '172189', NULL, 110.00, 'Cină', TIME '19:15'),
-    ('demo.mentinere@test.com', 1, 8, '168438', NULL, 110.00, 'Cină', TIME '19:15'),
-    ('demo.mentinere@test.com', 1, 9, '173420', NULL, 30.00, 'Cină', TIME '19:15'),
+    ('demo.maintenance@example.com', 1, 1, '2705424', NULL, 220.00, 'Mic dejun', TIME '08:00'),
+    ('demo.maintenance@example.com', 1, 2, '2709275', NULL, 100.00, 'Mic dejun', TIME '08:00'),
+    ('demo.maintenance@example.com', 1, 3, '2707590', NULL, 12.00, 'Mic dejun', TIME '08:00'),
+    ('demo.maintenance@example.com', 1, 4, '171501', NULL, 160.00, 'Prânz', TIME '13:15'),
+    ('demo.maintenance@example.com', 1, 5, '2707616', NULL, 90.00, 'Prânz', TIME '13:15'),
+    ('demo.maintenance@example.com', 1, 6, '174289', NULL, 90.00, 'Prânz', TIME '13:15'),
+    ('demo.maintenance@example.com', 1, 7, '172189', NULL, 110.00, 'Cină', TIME '19:15'),
+    ('demo.maintenance@example.com', 1, 8, '168438', NULL, 110.00, 'Cină', TIME '19:15'),
+    ('demo.maintenance@example.com', 1, 9, '173420', NULL, 30.00, 'Cină', TIME '19:15'),
 
-    ('demo.mentinere@test.com', 2, 1, '172187', NULL, 170.00, 'Mic dejun', TIME '08:10'),
-    ('demo.mentinere@test.com', 2, 2, '2707598', NULL, 80.00, 'Mic dejun', TIME '08:10'),
-    ('demo.mentinere@test.com', 2, 3, '2646170', NULL, 150.00, 'Prânz', TIME '13:00'),
-    ('demo.mentinere@test.com', 2, 4, '169303', NULL, 200.00, 'Prânz', TIME '13:00'),
-    ('demo.mentinere@test.com', 2, 5, '2709643', NULL, 150.00, 'Prânz', TIME '13:00'),
-    ('demo.mentinere@test.com', 2, 6, '173688', NULL, 125.00, 'Cină', TIME '19:45'),
-    ('demo.mentinere@test.com', 2, 7, '321360', NULL, 160.00, 'Cină', TIME '19:45'),
-    ('demo.mentinere@test.com', 2, 8, '2709283', NULL, 160.00, 'Gustare', TIME '16:15'),
+    ('demo.maintenance@example.com', 2, 1, '172187', NULL, 170.00, 'Mic dejun', TIME '08:10'),
+    ('demo.maintenance@example.com', 2, 2, '2707598', NULL, 80.00, 'Mic dejun', TIME '08:10'),
+    ('demo.maintenance@example.com', 2, 3, '2646170', NULL, 150.00, 'Prânz', TIME '13:00'),
+    ('demo.maintenance@example.com', 2, 4, '169303', NULL, 200.00, 'Prânz', TIME '13:00'),
+    ('demo.maintenance@example.com', 2, 5, '2709643', NULL, 150.00, 'Prânz', TIME '13:00'),
+    ('demo.maintenance@example.com', 2, 6, '173688', NULL, 125.00, 'Cină', TIME '19:45'),
+    ('demo.maintenance@example.com', 2, 7, '321360', NULL, 160.00, 'Cină', TIME '19:45'),
+    ('demo.maintenance@example.com', 2, 8, '2709283', NULL, 160.00, 'Gustare', TIME '16:15'),
 
-    ('demo.mentinere@test.com', 3, 1, '2705424', NULL, 200.00, 'Mic dejun', TIME '08:05'),
-    ('demo.mentinere@test.com', 3, 2, '2709224', NULL, 90.00, 'Mic dejun', TIME '08:05'),
-    ('demo.mentinere@test.com', 3, 3, '2707590', NULL, 11.00, 'Mic dejun', TIME '08:05'),
-    ('demo.mentinere@test.com', 3, 4, '171501', NULL, 165.00, 'Prânz', TIME '13:20'),
-    ('demo.mentinere@test.com', 3, 5, '2710788', NULL, 160.00, 'Prânz', TIME '13:20'),
-    ('demo.mentinere@test.com', 3, 6, '2709643', NULL, 140.00, 'Prânz', TIME '13:20'),
-    ('demo.mentinere@test.com', 3, 7, NULL, 'Omleta verde demo', 190.00, 'Cină', TIME '19:10'),
-    ('demo.mentinere@test.com', 3, 8, '2709215', NULL, 150.00, 'Gustare', TIME '16:40'),
+    ('demo.maintenance@example.com', 3, 1, '2705424', NULL, 200.00, 'Mic dejun', TIME '08:05'),
+    ('demo.maintenance@example.com', 3, 2, '2709224', NULL, 90.00, 'Mic dejun', TIME '08:05'),
+    ('demo.maintenance@example.com', 3, 3, '2707590', NULL, 11.00, 'Mic dejun', TIME '08:05'),
+    ('demo.maintenance@example.com', 3, 4, '171501', NULL, 165.00, 'Prânz', TIME '13:20'),
+    ('demo.maintenance@example.com', 3, 5, '2710788', NULL, 160.00, 'Prânz', TIME '13:20'),
+    ('demo.maintenance@example.com', 3, 6, '2709643', NULL, 140.00, 'Prânz', TIME '13:20'),
+    ('demo.maintenance@example.com', 3, 7, NULL, 'Demo green omelette', 190.00, 'Cină', TIME '19:10'),
+    ('demo.maintenance@example.com', 3, 8, '2709215', NULL, 150.00, 'Gustare', TIME '16:40'),
 
-    ('demo.activ@test.com', 0, 1, NULL, 'Curcan demo', 430.00, 'Prânz', TIME '13:00'),
-    ('demo.activ@test.com', 0, 2, '2705424', NULL, 260.00, 'Mic dejun', TIME '07:45'),
-    ('demo.activ@test.com', 0, 3, '2709224', NULL, 130.00, 'Mic dejun', TIME '07:45'),
-    ('demo.activ@test.com', 0, 4, '173688', NULL, 190.00, 'Cină', TIME '20:00'),
-    ('demo.activ@test.com', 0, 5, '169303', NULL, 280.00, 'Cină', TIME '20:00'),
-    ('demo.activ@test.com', 0, 6, '2707533', NULL, 30.00, 'Gustare', TIME '17:00'),
+    ('demo.active@example.com', 0, 1, NULL, 'Demo turkey meal', 430.00, 'Prânz', TIME '13:00'),
+    ('demo.active@example.com', 0, 2, '2705424', NULL, 260.00, 'Mic dejun', TIME '07:45'),
+    ('demo.active@example.com', 0, 3, '2709224', NULL, 130.00, 'Mic dejun', TIME '07:45'),
+    ('demo.active@example.com', 0, 4, '173688', NULL, 190.00, 'Cină', TIME '20:00'),
+    ('demo.active@example.com', 0, 5, '169303', NULL, 280.00, 'Cină', TIME '20:00'),
+    ('demo.active@example.com', 0, 6, '2707533', NULL, 30.00, 'Gustare', TIME '17:00'),
 
-    ('demo.activ@test.com', 1, 1, '172187', NULL, 220.00, 'Mic dejun', TIME '07:50'),
-    ('demo.activ@test.com', 1, 2, '2707598', NULL, 120.00, 'Mic dejun', TIME '07:50'),
-    ('demo.activ@test.com', 1, 3, '2646170', NULL, 230.00, 'Prânz', TIME '13:10'),
-    ('demo.activ@test.com', 1, 4, '2710789', NULL, 300.00, 'Prânz', TIME '13:10'),
-    ('demo.activ@test.com', 1, 5, '2709643', NULL, 160.00, 'Prânz', TIME '13:10'),
-    ('demo.activ@test.com', 1, 6, '171501', NULL, 220.00, 'Cină', TIME '20:15'),
-    ('demo.activ@test.com', 1, 7, '2707616', NULL, 130.00, 'Cină', TIME '20:15'),
-    ('demo.activ@test.com', 1, 8, '174289', NULL, 120.00, 'Cină', TIME '20:15'),
+    ('demo.active@example.com', 1, 1, '172187', NULL, 220.00, 'Mic dejun', TIME '07:50'),
+    ('demo.active@example.com', 1, 2, '2707598', NULL, 120.00, 'Mic dejun', TIME '07:50'),
+    ('demo.active@example.com', 1, 3, '2646170', NULL, 230.00, 'Prânz', TIME '13:10'),
+    ('demo.active@example.com', 1, 4, '2710789', NULL, 300.00, 'Prânz', TIME '13:10'),
+    ('demo.active@example.com', 1, 5, '2709643', NULL, 160.00, 'Prânz', TIME '13:10'),
+    ('demo.active@example.com', 1, 6, '171501', NULL, 220.00, 'Cină', TIME '20:15'),
+    ('demo.active@example.com', 1, 7, '2707616', NULL, 130.00, 'Cină', TIME '20:15'),
+    ('demo.active@example.com', 1, 8, '174289', NULL, 120.00, 'Cină', TIME '20:15'),
 
-    ('demo.activ@test.com', 2, 1, '2705424', NULL, 250.00, 'Mic dejun', TIME '08:00'),
-    ('demo.activ@test.com', 2, 2, '2709275', NULL, 120.00, 'Mic dejun', TIME '08:00'),
-    ('demo.activ@test.com', 2, 3, '2707590', NULL, 18.00, 'Mic dejun', TIME '08:00'),
-    ('demo.activ@test.com', 2, 4, NULL, 'Curcan demo', 460.00, 'Prânz', TIME '13:00'),
-    ('demo.activ@test.com', 2, 5, '2646170', NULL, 220.00, 'Cină', TIME '20:00'),
-    ('demo.activ@test.com', 2, 6, '169303', NULL, 270.00, 'Cină', TIME '20:00'),
-    ('demo.activ@test.com', 2, 7, '2709255', NULL, 180.00, 'Gustare', TIME '17:30'),
+    ('demo.active@example.com', 2, 1, '2705424', NULL, 250.00, 'Mic dejun', TIME '08:00'),
+    ('demo.active@example.com', 2, 2, '2709275', NULL, 120.00, 'Mic dejun', TIME '08:00'),
+    ('demo.active@example.com', 2, 3, '2707590', NULL, 18.00, 'Mic dejun', TIME '08:00'),
+    ('demo.active@example.com', 2, 4, NULL, 'Demo turkey meal', 460.00, 'Prânz', TIME '13:00'),
+    ('demo.active@example.com', 2, 5, '2646170', NULL, 220.00, 'Cină', TIME '20:00'),
+    ('demo.active@example.com', 2, 6, '169303', NULL, 270.00, 'Cină', TIME '20:00'),
+    ('demo.active@example.com', 2, 7, '2709255', NULL, 180.00, 'Gustare', TIME '17:30'),
 
-    ('demo.activ@test.com', 3, 1, '172189', NULL, 150.00, 'Mic dejun', TIME '08:05'),
-    ('demo.activ@test.com', 3, 2, '2707598', NULL, 130.00, 'Mic dejun', TIME '08:05'),
-    ('demo.activ@test.com', 3, 3, '171501', NULL, 220.00, 'Prânz', TIME '13:15'),
-    ('demo.activ@test.com', 3, 4, '2710788', NULL, 280.00, 'Prânz', TIME '13:15'),
-    ('demo.activ@test.com', 3, 5, '321360', NULL, 150.00, 'Prânz', TIME '13:15'),
-    ('demo.activ@test.com', 3, 6, '173688', NULL, 180.00, 'Cină', TIME '20:10'),
-    ('demo.activ@test.com', 3, 7, '2709643', NULL, 180.00, 'Cină', TIME '20:10'),
-    ('demo.activ@test.com', 3, 8, '2707533', NULL, 32.00, 'Gustare', TIME '17:00'),
+    ('demo.active@example.com', 3, 1, '172189', NULL, 150.00, 'Mic dejun', TIME '08:05'),
+    ('demo.active@example.com', 3, 2, '2707598', NULL, 130.00, 'Mic dejun', TIME '08:05'),
+    ('demo.active@example.com', 3, 3, '171501', NULL, 220.00, 'Prânz', TIME '13:15'),
+    ('demo.active@example.com', 3, 4, '2710788', NULL, 280.00, 'Prânz', TIME '13:15'),
+    ('demo.active@example.com', 3, 5, '321360', NULL, 150.00, 'Prânz', TIME '13:15'),
+    ('demo.active@example.com', 3, 6, '173688', NULL, 180.00, 'Cină', TIME '20:10'),
+    ('demo.active@example.com', 3, 7, '2709643', NULL, 180.00, 'Cină', TIME '20:10'),
+    ('demo.active@example.com', 3, 8, '2707533', NULL, 32.00, 'Gustare', TIME '17:00'),
 
-    ('demo.rar@test.com', 0, 1, '172187', NULL, 160.00, 'Mic dejun', TIME '09:00'),
-    ('demo.rar@test.com', 0, 2, '2707598', NULL, 70.00, 'Mic dejun', TIME '09:00'),
-    ('demo.rar@test.com', 0, 3, '174289', NULL, 120.00, 'Prânz', TIME '14:00'),
-    ('demo.rar@test.com', 0, 4, '2707616', NULL, 90.00, 'Prânz', TIME '14:00'),
-    ('demo.rar@test.com', 0, 5, '2646170', NULL, 150.00, 'Cină', TIME '20:00'),
-    ('demo.rar@test.com', 0, 6, '2709643', NULL, 200.00, 'Cină', TIME '20:00'),
+    ('demo.sparse@example.com', 0, 1, '172187', NULL, 160.00, 'Mic dejun', TIME '09:00'),
+    ('demo.sparse@example.com', 0, 2, '2707598', NULL, 70.00, 'Mic dejun', TIME '09:00'),
+    ('demo.sparse@example.com', 0, 3, '174289', NULL, 120.00, 'Prânz', TIME '14:00'),
+    ('demo.sparse@example.com', 0, 4, '2707616', NULL, 90.00, 'Prânz', TIME '14:00'),
+    ('demo.sparse@example.com', 0, 5, '2646170', NULL, 150.00, 'Cină', TIME '20:00'),
+    ('demo.sparse@example.com', 0, 6, '2709643', NULL, 200.00, 'Cină', TIME '20:00'),
 
-    ('demo.rar@test.com', 1, 1, '2705424', NULL, 210.00, 'Mic dejun', TIME '09:15'),
-    ('demo.rar@test.com', 1, 2, '2709224', NULL, 100.00, 'Mic dejun', TIME '09:15'),
-    ('demo.rar@test.com', 1, 3, '171501', NULL, 160.00, 'Prânz', TIME '14:00'),
-    ('demo.rar@test.com', 1, 4, '2710789', NULL, 170.00, 'Prânz', TIME '14:00'),
-    ('demo.rar@test.com', 1, 5, '321360', NULL, 120.00, 'Prânz', TIME '14:00'),
-    ('demo.rar@test.com', 1, 6, '173688', NULL, 135.00, 'Cină', TIME '20:15'),
-    ('demo.rar@test.com', 1, 7, '168438', NULL, 100.00, 'Cină', TIME '20:15'),
+    ('demo.sparse@example.com', 1, 1, '2705424', NULL, 210.00, 'Mic dejun', TIME '09:15'),
+    ('demo.sparse@example.com', 1, 2, '2709224', NULL, 100.00, 'Mic dejun', TIME '09:15'),
+    ('demo.sparse@example.com', 1, 3, '171501', NULL, 160.00, 'Prânz', TIME '14:00'),
+    ('demo.sparse@example.com', 1, 4, '2710789', NULL, 170.00, 'Prânz', TIME '14:00'),
+    ('demo.sparse@example.com', 1, 5, '321360', NULL, 120.00, 'Prânz', TIME '14:00'),
+    ('demo.sparse@example.com', 1, 6, '173688', NULL, 135.00, 'Cină', TIME '20:15'),
+    ('demo.sparse@example.com', 1, 7, '168438', NULL, 100.00, 'Cină', TIME '20:15'),
 
-    ('demo.rar@test.com', 2, 1, '172189', NULL, 120.00, 'Mic dejun', TIME '09:05'),
-    ('demo.rar@test.com', 2, 2, '2707598', NULL, 80.00, 'Mic dejun', TIME '09:05'),
-    ('demo.rar@test.com', 2, 3, '2646170', NULL, 160.00, 'Prânz', TIME '14:10'),
-    ('demo.rar@test.com', 2, 4, '169303', NULL, 190.00, 'Prânz', TIME '14:10'),
-    ('demo.rar@test.com', 2, 5, '2709643', NULL, 160.00, 'Prânz', TIME '14:10'),
-    ('demo.rar@test.com', 2, 6, '2709215', NULL, 160.00, 'Gustare', TIME '17:00');
+    ('demo.sparse@example.com', 2, 1, '172189', NULL, 120.00, 'Mic dejun', TIME '09:05'),
+    ('demo.sparse@example.com', 2, 2, '2707598', NULL, 80.00, 'Mic dejun', TIME '09:05'),
+    ('demo.sparse@example.com', 2, 3, '2646170', NULL, 160.00, 'Prânz', TIME '14:10'),
+    ('demo.sparse@example.com', 2, 4, '169303', NULL, 190.00, 'Prânz', TIME '14:10'),
+    ('demo.sparse@example.com', 2, 5, '2709643', NULL, 160.00, 'Prânz', TIME '14:10'),
+    ('demo.sparse@example.com', 2, 6, '2709215', NULL, 160.00, 'Gustare', TIME '17:00');
 
 INSERT INTO food_logs (
     log_id,
@@ -424,7 +425,7 @@ LEFT JOIN demo_meal_snapshots ms
   ON ms.email = d.email
  AND ms.recipe_name = fp.custom_meal_name
 WHERE (fp.food_external_id IS NOT NULL OR fp.custom_meal_name IS NOT NULL)
-  AND (d.email <> 'demo.rar@test.com' OR MOD(d.day_index, 3) <> 1 OR d.log_date >= DATE '2026-05-20');
+  AND (d.email <> 'demo.sparse@example.com' OR MOD(d.day_index, 3) <> 1 OR d.log_date >= DATE '2026-05-20');
 
 CREATE TEMP TABLE demo_activity_schedule (
     email TEXT,
@@ -449,28 +450,28 @@ INSERT INTO demo_activity_schedule (
     reps,
     base_manual_calories
 ) VALUES
-    ('demo.slabire@test.com', 1, 1, 'MacroSense', 'MS-MAP-STR-004', 34.00, 4, 12, NULL),
-    ('demo.slabire@test.com', 3, 1, 'Compendium', '17200', 42.00, NULL, NULL, NULL),
-    ('demo.slabire@test.com', 5, 1, 'Compendium', '02035', 35.00, 4, 12, NULL),
-    ('demo.slabire@test.com', 7, 1, 'Compendium', '17190', 50.00, NULL, NULL, NULL),
+    ('demo.weightloss@example.com', 1, 1, 'MacroSense', 'MS-MAP-STR-004', 34.00, 4, 12, NULL),
+    ('demo.weightloss@example.com', 3, 1, 'Compendium', '17200', 42.00, NULL, NULL, NULL),
+    ('demo.weightloss@example.com', 5, 1, 'Compendium', '02035', 35.00, 4, 12, NULL),
+    ('demo.weightloss@example.com', 7, 1, 'Compendium', '17190', 50.00, NULL, NULL, NULL),
 
-    ('demo.masa@test.com', 1, 1, 'MacroSense', 'MS-MAP-STR-001', 55.00, 4, 10, NULL),
-    ('demo.masa@test.com', 3, 1, 'MacroSense', 'MS-MAP-STR-018', 58.00, 4, 8, NULL),
-    ('demo.masa@test.com', 5, 1, 'MacroSense', 'MS-MAP-STR-007', 52.00, 4, 10, NULL),
-    ('demo.masa@test.com', 6, 1, 'Compendium', '01020', 35.00, NULL, NULL, NULL),
+    ('demo.musclegain@example.com', 1, 1, 'MacroSense', 'MS-MAP-STR-001', 55.00, 4, 10, NULL),
+    ('demo.musclegain@example.com', 3, 1, 'MacroSense', 'MS-MAP-STR-018', 58.00, 4, 8, NULL),
+    ('demo.musclegain@example.com', 5, 1, 'MacroSense', 'MS-MAP-STR-007', 52.00, 4, 10, NULL),
+    ('demo.musclegain@example.com', 6, 1, 'Compendium', '01020', 35.00, NULL, NULL, NULL),
 
-    ('demo.mentinere@test.com', 2, 1, 'Compendium', '02150', 35.00, NULL, NULL, NULL),
-    ('demo.mentinere@test.com', 4, 1, 'Compendium', '17200', 36.00, NULL, NULL, NULL),
-    ('demo.mentinere@test.com', 6, 1, 'Compendium', '02054', 32.00, 3, 12, NULL),
+    ('demo.maintenance@example.com', 2, 1, 'Compendium', '02150', 35.00, NULL, NULL, NULL),
+    ('demo.maintenance@example.com', 4, 1, 'Compendium', '17200', 36.00, NULL, NULL, NULL),
+    ('demo.maintenance@example.com', 6, 1, 'Compendium', '02054', 32.00, 3, 12, NULL),
 
-    ('demo.activ@test.com', 1, 1, 'Compendium', '02040', 45.00, 5, 10, NULL),
-    ('demo.activ@test.com', 2, 1, 'Compendium', '12030', 35.00, NULL, NULL, NULL),
-    ('demo.activ@test.com', 4, 1, 'MacroSense', 'MS-MAP-STR-020', 50.00, 4, 10, NULL),
-    ('demo.activ@test.com', 5, 1, 'Compendium', '01030', 45.00, NULL, NULL, 430.00),
-    ('demo.activ@test.com', 7, 1, 'Compendium', '18240', 40.00, NULL, NULL, NULL),
+    ('demo.active@example.com', 1, 1, 'Compendium', '02040', 45.00, 5, 10, NULL),
+    ('demo.active@example.com', 2, 1, 'Compendium', '12030', 35.00, NULL, NULL, NULL),
+    ('demo.active@example.com', 4, 1, 'MacroSense', 'MS-MAP-STR-020', 50.00, 4, 10, NULL),
+    ('demo.active@example.com', 5, 1, 'Compendium', '01030', 45.00, NULL, NULL, 430.00),
+    ('demo.active@example.com', 7, 1, 'Compendium', '18240', 40.00, NULL, NULL, NULL),
 
-    ('demo.rar@test.com', 1, 1, 'Compendium', '17200', 30.00, NULL, NULL, NULL),
-    ('demo.rar@test.com', 4, 1, 'Compendium', '17190', 35.00, NULL, NULL, NULL);
+    ('demo.sparse@example.com', 1, 1, 'Compendium', '17200', 30.00, NULL, NULL, NULL),
+    ('demo.sparse@example.com', 4, 1, 'Compendium', '17190', 35.00, NULL, NULL, NULL);
 
 INSERT INTO activity_logs (
     log_id,
@@ -505,7 +506,7 @@ JOIN demo_activity_schedule s
 JOIN activities a
   ON a.source = s.activity_source
  AND a.external_id = s.activity_external_id
-WHERE (d.email <> 'demo.rar@test.com' OR MOD(d.day_index, 6) IN (0, 3));
+WHERE (d.email <> 'demo.sparse@example.com' OR MOD(d.day_index, 6) IN (0, 3));
 
 -- Final total recalculation keeps daily_logs aligned with food and activity rows.
 WITH demo_daily_logs AS (

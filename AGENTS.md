@@ -1,59 +1,59 @@
 # MacroSense — AGENTS.md
 
-## Stack tehnic
+## Technical stack
 
 - Backend/UI: Python 3.x + Streamlit
-- Baza de date: PostgreSQL via psycopg2 (niciodată ORM)
-- Arhitectură: monolit modular; paginile UI apelează modelele și serviciile
-  din același proces Streamlit.
-- Structura fișierelor:
-  - app.py — entrypoint Streamlit: configurează aplicația și rutează pe roluri
-  - assets/style.css — stiluri CSS locale pentru polish UI
-  - ui/config.py — configurare Streamlit și încărcare CSS local
-  - ui/language.py — limba sesiunii, selector EN/RO și `translate()`
-  - ui/translations_ro.py — traduceri din textele sursă engleze în română
-  - ui/page_theme.py — tema vizuală asociată fiecărei pagini
-  - ui/catalog_constants.py — categoriile locale MacroSense folosite în
-    Admin UI și în testele de seed
-  - ui/activity_selection.py — helper-e comune pentru selecție activități cu
-    search fără diacritice, filtru categorie și afișare sursă/metodă MET
-  - ui/activity_validation.py — validare comună pentru durată, seturi și
-    repetări fără clamp automat Streamlit
-  - ui/food_selection.py — helper-e comune pentru selecție alimente cu search
-    fără diacritice, filtru categorie și afișare sursă
-  - ui/quantity_validation.py — validare comună pentru cantități în grame
-    fără clamp automat Streamlit
-  - ui/tables.py — randare tabele și `column_config`-uri comune
-  - ui/formatters.py — helper-e de formatare pentru afișare
-  - ui/journal_energy_summary.py — carduri energetice comune celor două jurnale
-  - ui/pages/ — paginile Streamlit separate pe flux:
-    - auth_page.py — autentificare și creare cont
-    - admin_routes.py — rutare meniu Administrator
-    - admin_catalog_pages.py — gestiune cataloage Administrator
-    - user_routes.py — rutare meniu Utilizator
-    - dashboard_page.py — pagina Acasă
-    - food_journal_page.py — Jurnal Alimentar
-    - activity_journal_page.py — Jurnal Activități
-    - weight_journal_page.py — Jurnal Greutate
-    - custom_meals_page.py — Mese Personalizate
-    - what_if_page.py — scenarii calorice păstrate doar în sesiune
-    - user_catalog_pages.py — cataloage vizibile utilizatorului
-  - services/ — integrări externe controlate și analytics:
-    - usda_food_data.py — client USDA FoodData Central pentru import alimente
-    - analytics/energy.py — formule pure pentru BMI, BMR, TDEE estimat și
-      balanță calorică estimată
-    - analytics/dashboard_data.py — agregări read-only pentru dashboard și jurnale,
-      fără creare de `daily_logs`
-    - ml/ — date sintetice, feature engineering, training, evaluare și
-      predicții de greutate la 14/30 zile; artefacte locale în `artifacts/ml/`
-    - recommendations/simple_recommendations.py — reguli explicabile pentru
-      alimentație, proteine, activitate și progres, afișate în dashboard
-    - what_if/ — încărcări read-only și calcule pure pentru scenarii
-  - models/profile_constants.py — valorile canonice pentru câmpurile de profil
-    persistate, inclusiv `USER_GOALS`
-  - models/text_validation.py — helper-e comune pentru validarea textelor persistente
-  - models/tracking.py — fațadă de compatibilitate care re-exportă clasele din pachetul tracking
-  - models/tracking_models/ — pachet domeniu Tracking, separat pe clase:
+- Database: PostgreSQL via psycopg2 (never an ORM)
+- Architecture: modular monolith; UI pages call models and services within
+  the same Streamlit process.
+- File structure:
+  - app.py — Streamlit entrypoint: configures the application and routes by role
+  - assets/style.css — local CSS styles for UI polish
+  - ui/config.py — Streamlit configuration and local CSS loading
+  - ui/language.py — session language, EN/RO selector and `translate()`
+  - ui/translations_ro.py — Romanian translations of English source text
+  - ui/page_theme.py — visual theme for each page
+  - ui/catalog_constants.py — local MacroSense categories used in the Admin
+    UI and seed tests
+  - ui/activity_selection.py — shared activity selection helpers with
+    accent-insensitive search, category filtering and source/MET method display
+  - ui/activity_validation.py — shared duration, sets and reps validation
+    without automatic Streamlit clamping
+  - ui/food_selection.py — shared food selection helpers with accent-insensitive
+    search, category filtering and source display
+  - ui/quantity_validation.py — shared quantity validation in grams
+    without automatic Streamlit clamping
+  - ui/tables.py — table rendering and shared `column_config` definitions
+  - ui/formatters.py — display formatting helpers
+  - ui/journal_energy_summary.py — energy cards shared by both journals
+  - ui/pages/ — Streamlit pages separated by workflow:
+    - auth_page.py — authentication and account creation
+    - admin_routes.py — Administrator menu routing
+    - admin_catalog_pages.py — Administrator catalog management
+    - user_routes.py — User menu routing
+    - dashboard_page.py — Home page
+    - food_journal_page.py — Food Journal
+    - activity_journal_page.py — Activity Journal
+    - weight_journal_page.py — Weight Journal
+    - custom_meals_page.py — Custom Meals
+    - what_if_page.py — calorie scenarios kept only in the session
+    - user_catalog_pages.py — catalogs visible to users
+  - services/ — controlled external integrations and analytics:
+    - usda_food_data.py — USDA FoodData Central client for food imports
+    - analytics/energy.py — pure formulas for BMI, BMR, estimated TDEE and
+      estimated calorie balance
+    - analytics/dashboard_data.py — read-only dashboard and journal
+      aggregations, without creating `daily_logs`
+    - ml/ — synthetic data, feature engineering, training, evaluation and
+      14/30-day weight predictions; local artifacts in `artifacts/ml/`
+    - recommendations/simple_recommendations.py — explainable rules for
+      food intake, protein, activity and progress, displayed in the dashboard
+    - what_if/ — read-only loaders and pure scenario calculations
+  - models/profile_constants.py — canonical values for persisted profile
+    fields, including `USER_GOALS`
+  - models/text_validation.py — shared validation helpers for persisted text
+  - models/tracking.py — compatibility facade that re-exports tracking package classes
+  - models/tracking_models/ — Tracking domain package, separated by class:
     - food_item.py — FoodItem
     - activity.py — Activity
     - food_log.py — FoodLog
@@ -64,293 +64,300 @@
     - weight_log.py — WeightLog
   - models/authentication.py — User, Admin
   - database.py — get_connection()
-  - schema.sql — schema completă a bazei de date
-  - database/seeds/ — scripturi SQL opționale pentru populare catalog
-  - tests/ — teste `unittest` pentru modele, servicii, UI, traduceri și schema SQL
-  - STATUS.md — starea curentă a proiectului (ce e gata, ce e în progres, backlog)
-  - README.md — instalare, utilizare și diagrama arhitecturii curente
-- Referințe istorice ale licenței: `docs/DiagramaClase_UPDATED.png`,
-  `docs/ERD_UPDATED.png`, `docs/LICENTA_faranumev12.docx` și
-  `docs/STRUCTURA LUCRĂRII DE LICENŢĂ.docx`. Directorul `docs/` nu este
-  disponibil în acest checkout; conformitatea acestor fișiere nu este verificată.
+  - schema.sql — complete database schema
+  - database/seeds/ — optional SQL scripts for catalog population
+  - tests/ — `unittest` tests for models, services, UI, translations and SQL schema
+  - STATUS.md — current project status (completed work, work in progress, backlog)
+  - README.md — installation, usage and current architecture diagram
+- Historical thesis references: `docs/DiagramaClase_UPDATED.png`,
+  `docs/ERD_UPDATED.png`, `docs/LICENTA_faranumev12.docx` and
+  `docs/STRUCTURA LUCRĂRII DE LICENŢĂ.docx`. The `docs/` directory is not
+  available in this checkout; consistency with these files has not been verified.
 
-## Reguli stricte
+## Strict rules
 
-- Tot codul (variabile, clase, metode, comentarii) exclusiv în ENGLEZĂ
-- Textele sursă din interfața Streamlit sunt în ENGLEZĂ și se afișează prin
-  `ui.language.translate()`. Traducerile românești se păstrează în
-  `ui/translations_ro.py`; interfața suportă EN și RO.
-- Pattern DB obligatoriu: try/except/finally cu conn.close() în finally
-- Nu folosi st.form() în Jurnal Alimentar sau Jurnal Activități
-- Folosește st.button() cu key explicit pentru submit
-- Niciodată cod parțial sau pseudocod — doar cod funcțional complet
-- Testele automate din `tests/` se păstrează în proiect și se extind la fiecare
-  funcționalitate importantă; nu se șterg după validare.
-- Comandă teste pe macOS/Linux: `./.venv/bin/python -m unittest discover -s tests -v`.
-- Comenzile oferite pentru rulare manuală folosesc sintaxă Bash. Pentru mediul
-  Windows existent: `./venv/Scripts/python.exe -m unittest discover -s tests -v`.
-- Commit-urile sunt făcute MANUAL de developer după fiecare modificare
-  aprobată; AI-ul nu face niciodată commit sau push automat.
-  Excepție: AI-ul poate face commit doar când developerul cere explicit acest lucru.
+- All code (variables, classes, methods, comments) must be in ENGLISH.
+- Streamlit UI source text is in ENGLISH and displayed through
+  `ui.language.translate()`. Romanian translations are stored in
+  `ui/translations_ro.py`; the UI supports EN and RO.
+- Required DB pattern: try/except/finally with conn.close() in finally.
+- Do not use st.form() in the Food Journal or Activity Journal.
+- Use st.button() with an explicit key for submission.
+- Never provide partial code or pseudocode — only complete, working code.
+- Keep automated tests in `tests/` and extend them for every significant
+  feature; do not delete them after validation.
+- Test command on macOS/Linux: `./.venv/bin/python -m unittest discover -s tests -v`.
+- Commands provided for manual execution use Bash syntax. For the existing
+  Windows environment: `./venv/Scripts/python.exe -m unittest discover -s tests -v`.
+- The developer makes commits MANUALLY after each approved change; the AI
+  must never commit or push automatically.
+  Exception: the AI may commit only when the developer explicitly requests it.
 
-## Regula de Aur
+## Golden rule
 
-Verifică documentația arhitecturală față de cod și `schema.sql` înainte de
-modificări de arhitectură. Semnalează discrepanțele înainte de a scrie cod.
-Când fișierele licenței din `docs/` sunt disponibile, verifică și UML/ERD;
-dacă lipsesc, menționează limita fără a declara documentația sincronizată.
+Check architectural documentation against the code and `schema.sql` before
+making architectural changes. Flag discrepancies before writing code.
+When the thesis files in `docs/` are available, also check UML/ERD;
+if they are missing, state this limitation without claiming the documentation is synchronized.
 
-## Arhitectură OOP
+## OOP architecture
 
 - DailyLog: get_or_create, get_for_date, recalculate_totals, get_food_entries,
   get_activity_entries, calculate_hybrid_calories (static),
   get_latest_weight (static), get_by_id, delete_if_empty,
   calculate_energy_balance
-  (`get_food_entries()` și `get_activity_entries()` trebuie apelate cu
-  `user_id` din UI, pentru a păstra izolarea între utilizatori chiar dacă un
-  `log_id` ajunge accidental într-un context greșit; `log_date` nu poate fi
-  în viitor față de ziua curentă)
+  (`get_food_entries()` and `get_activity_entries()` must be called with
+  `user_id` from the UI to preserve user isolation even if a `log_id`
+  accidentally reaches the wrong context; `log_date` cannot be later than today)
 - FoodLog: save(), update(), delete()
-  (`meal_type` trebuie să fie una dintre valorile canonice DB: `Mic dejun`,
-  `Prânz`, `Cină`, `Gustare`; `meal_time` trebuie să fie un `datetime.time`
-  valid, nu `None`; `quantity_g` trebuie să rămână în intervalul 1-5000g;
-  pentru `custom_meal_id`, `save()` salvează snapshot nutrițional per 100g
-  în `food_logs`, iar `update()` păstrează snapshot-ul existent)
+  (`meal_type` must be one of the canonical DB values: `Mic dejun`,
+  `Prânz`, `Cină`, `Gustare`; `meal_time` must be a valid `datetime.time`,
+  not `None`; `quantity_g` must remain within 1-5000g;
+  for `custom_meal_id`, `save()` stores a nutritional snapshot per 100g
+  in `food_logs`, and `update()` preserves the existing snapshot)
 - ActivityLog: save(), update(), delete()
-  (`sets` și `reps` trebuie validate împreună și la constructor, nu doar la
-  update/UI; fie sunt ambele nule, fie respectă intervalele 1-50 seturi și
-  1-200 repetări;
-  `duration_min` trebuie să rămână în intervalul 0.1-600 minute;
-  `manual_calories_burned` este opțional și, când există, înlocuiește formula
-  MET/TUT pentru acea înregistrare)
-- RecipeIngredient: metoda save()
-  (`quantity_g` trebuie să rămână în intervalul 1-5000g, la fel ca în UI și DB)
+  (`sets` and `reps` must also be validated together in the constructor,
+  not only during update/in the UI; either both are null or they satisfy
+  the ranges of 1-50 sets and 1-200 reps;
+  `duration_min` must remain within 0.1-600 minutes;
+  `manual_calories_burned` is optional and, when provided, replaces the
+  MET/TUT formula for that entry)
+- RecipeIngredient: save() method
+  (`quantity_g` must remain within 1-5000g, matching the UI and DB)
 - CustomMeal: save, add_ingredient, create_with_ingredients,
   update_with_ingredients, set_status, archive, restore,
   calculate_total_macros, calculateTotalMacros,
   get_user_meal_options(include_archived=False), get_affected_daily_log_ids,
   get_all_as_dataframe, get_ingredients, get_ingredients_as_dataframe
-  (`update_with_ingredients()` modifică doar rețeta curentă; nu completează
-  snapshot-uri istorice și nu recalculează jurnalele deja salvate)
+  (`update_with_ingredients()` changes only the current recipe; it does not
+  backfill historical snapshots or recalculate previously saved journals)
 - WeightLog: save(), update(), delete(), get_user_entries(),
   get_reference_for_user(), get_latest_for_user(),
   get_activity_day_weight_references(), get_changed_reference_ids(),
   recalculate_user_daily_logs()
-  (`recalculate_user_daily_logs()` recalculează doar zilele cu antrenamente
-  calculate prin MET/TUT, ignorând intrările cu `manual_calories_burned`, iar
-  cu snapshot anterior recalculează doar zilele unde referința de greutate s-a
-  schimbat efectiv; `log_date` nu poate fi în viitor față de ziua curentă)
+  (`recalculate_user_daily_logs()` recalculates only days with workouts
+  calculated through MET/TUT, ignoring entries with `manual_calories_burned`;
+  when given a previous snapshot, it recalculates only days whose weight
+  reference actually changed; `log_date` cannot be later than today)
 - User: register(password, weight), authenticate(password)
-  (`goal` trebuie să fie una dintre valorile canonice fără diacritice:
-  `Slabire`, `Mentinere`, `Crestere`, definite în `models.profile_constants`)
+  (`goal` must be one of the canonical values without diacritics:
+  `Slabire`, `Mentinere`, `Crestere`, defined in `models.profile_constants`)
 - Admin: authenticate(password)
 - FoodItem, Activity: save(), get_all_as_dataframe(), get_catalog_options()
 - FoodItem: external_reference_exists()
-- FoodItem.get_catalog_options() trebuie să includă și `source_label`, pentru
-  ca selecțiile din Jurnal Alimentar și Mese Personalizate să distingă
-  alimentele MacroSense de cele USDA.
-- Activity validează la nivel de model denumirea nenulă, categoria nenulă și
-  coeficientul MET minim `Activity.MIN_MET_MULTIPLIER`; UI-ul Admin trebuie
-  să afișeze erori înainte de salvare pentru aceste cazuri.
-- Activity acceptă metadate opționale de sursă pentru catalog:
+- FoodItem.get_catalog_options() must also include `source_label` so that
+  selections in the Food Journal and Custom Meals distinguish MacroSense
+  foods from USDA foods.
+- Activity validates a nonempty name, a nonempty category and the minimum
+  MET coefficient `Activity.MIN_MET_MULTIPLIER` at model level; the Admin
+  UI must display errors for these cases before saving.
+- Activity accepts optional catalog source metadata:
   `source`, `source_type`, `external_id`, `source_url`, `met_source_code`,
-  `met_source_description`, `met_estimation_method`. Metodele permise sunt
-  `official_compendium`, `compendium_mapping` și `manual_admin`; activitățile
-  oficiale Compendium și mapările MacroSense trebuie diferențiate clar în UI
-  și în seed-uri.
-- FoodItem validează la nivel de model denumirea nenulă, categoria nenulă,
-  valorile nutriționale nenegative, calorii strict pozitive și existența a cel
-  puțin unui macronutrient pozitiv; denumirea nu poate conține caractere HTML
-  evidente (`<` sau `>`) și trebuie să conțină cel puțin o literă.
-- Activity și User blochează caractere HTML evidente (`<` sau `>`) în
-  câmpurile text persistente (`name`, `full_name`, `email`); denumirile de
-  activități trebuie să conțină cel puțin o literă, iar `full_name` acceptă
-  doar litere, spații, cratimă și apostrof.
-- FoodItem acceptă metadate opționale de sursă pentru alimente importate:
+  `met_source_description`, `met_estimation_method`. Allowed methods are
+  `official_compendium`, `compendium_mapping` and `manual_admin`; official
+  Compendium activities and MacroSense mappings must be clearly distinguished
+  in the UI and seeds.
+- FoodItem validates a nonempty name, a nonempty category, nonnegative
+  nutritional values, strictly positive calories and at least one positive
+  macronutrient at model level; the name cannot contain obvious HTML characters
+  (`<` or `>`) and must contain at least one letter.
+- Activity and User block obvious HTML characters (`<` or `>`) in persisted
+  text fields (`name`, `full_name`, `email`); activity names must contain at
+  least one letter, and `full_name` accepts only letters, spaces, hyphens
+  and apostrophes.
+- FoodItem accepts optional source metadata for imported foods:
   `source`, `source_type`, `external_id`, `source_url`;
-  importul USDA trebuie să rămână disponibil doar pentru Administrator.
-- Email-urile utilizatorilor și administratorilor se curăță prin `strip()`,
-  dar nu se convertesc automat la lowercase; autentificarea este sensibilă la
-  diferența majuscule/minuscule.
+  USDA import must remain available only to the Administrator.
+- User and administrator emails are trimmed with `strip()` but are not
+  automatically lowercased; authentication is case-sensitive.
 
-## Convenții UI
+## UI conventions
 
-- Limba se păstrează în `st.session_state["language"]` (`en`/`ro`), inclusiv
-  după logout. Valoarea implicită este `en`; `MACROSENSE_DEFAULT_LANGUAGE=ro`
-  poate schimba limba inițială. Selectorul folosește steaguri SVG locale.
-- Navigarea Auth/User/Admin folosește ID-uri stabile, iar `format_func`
-  traduce numai eticheta. Selecțiile cu etichete traduse se înregistrează prin
-  `translated_selection_key()` pentru resincronizare la schimbarea limbii;
-  sesiunile vechi cu etichete în loc de ID se normalizează înainte de randare.
-- Schimbarea limbii păstrează selecțiile și valorile nesalvate din pagina
-  curentă. Auth și formularele manuale Admin folosesc containere reactive;
-  validarea și salvarea rulează doar după apăsarea butonului explicit.
-- Traducerea schimbă afișarea, nu valorile persistate: obiectivele, tipurile
-  de masă, categoriile și statusurile își păstrează valorile canonice.
-  Denumirile din catalog și textele introduse de utilizator nu se traduc automat.
-- Jurnal Alimentar și Jurnal Activități folosesc `ui.journal_energy_summary`
-  pentru patru carduri: calorii consumate, calorii din activități, TDEE estimat
-  și balanță estimată. Zilele fără alimente afișează lipsa datelor.
-- Navigarea principală pentru Utilizator se afișează ca listă radio în sidebar,
-  astfel încât `Acasă` și celelalte pagini să rămână vizibile permanent.
-- hide_index=True pe toate st.dataframe()
-- Listele zilnice din Jurnal Alimentar, Jurnal Activități și Jurnal Greutate se
-  afișează ca rânduri/carduri compacte definite prin CSS local, cu toate
-  valorile user-entered escapate înainte de HTML custom.
-- Preview caloric live cu st.caption() înainte de butonul de salvare
-- În Jurnal Activități, utilizatorul poate introduce opțional caloriile
-  raportate de ceas/aparat cardio; această valoare se salvează în
-  `activity_logs.manual_calories_burned` și înlocuiește estimarea MET/TUT doar
-  pentru înregistrarea respectivă.
-- Dashboard-ul `Acasă` este read-only și consumă `services.analytics`,
-  `services.ml` și `services.recommendations`; nu
-  folosește `DailyLog.get_or_create()` și nu creează/modifică date. În
-  dashboard, `daily_logs.total_calories_burned` se interpretează ca total
-  calorii arse prin activități logate, iar TDEE-ul estimat este derivat prin
+- The language is stored in `st.session_state["language"]` (`en`/`ro`),
+  including after logout. The default is `en`; `MACROSENSE_DEFAULT_LANGUAGE=ro`
+  can change the initial language. The selector uses local SVG flags.
+- Auth/User/Admin navigation uses stable IDs, and `format_func` translates
+  only the label. Selections with translated labels are registered through
+  `translated_selection_key()` for resynchronization when the language changes;
+  older sessions with labels instead of IDs are normalized before rendering.
+- Switching language preserves selections and unsaved values on the current
+  page. Auth and manual Admin forms use reactive containers; validation and
+  saving run only after the explicit button is pressed.
+- Translation changes the display, not persisted values: goals, meal types,
+  categories and statuses retain their canonical values.
+  Catalog names and user-entered text are not translated automatically.
+- The Food Journal and Activity Journal use `ui.journal_energy_summary`
+  for four cards: calories consumed, activity calories, estimated TDEE
+  and estimated balance. Days without food entries show missing data.
+- Main User navigation is displayed as a sidebar radio list so that
+  `Home` and the other pages remain visible at all times.
+- Use hide_index=True on every st.dataframe().
+- Daily lists in the Food Journal, Activity Journal and Weight Journal are
+  displayed as compact rows/cards defined through local CSS, with all
+  user-entered values escaped before use in custom HTML.
+- Show a live calorie preview with st.caption() before the save button.
+- In the Activity Journal, users can optionally enter calories reported by
+  a wearable/cardio machine; the value is stored in
+  `activity_logs.manual_calories_burned` and replaces the MET/TUT estimate
+  only for that entry.
+- The `Home` dashboard is read-only and consumes `services.analytics`,
+  `services.ml` and `services.recommendations`; it does not use
+  `DailyLog.get_or_create()` or create/modify data. In the dashboard,
+  `daily_logs.total_calories_burned` is interpreted as the total calories
+  burned through logged activities, and estimated TDEE is derived as
   `BMR * 1.2 + activity_calories_burned`.
-- Dashboard-ul tratează zilele fără alimente ca zile cu date lipsă, nu ca zile
-  cu 0 kcal consumate; balanța calorică estimată se calculează doar pentru zile
-  cu alimentație logată.
-- Dashboard-ul păstrează metadate pentru greutatea de referință zilnică:
-  data sursă, dacă valoarea este imputată, dacă folosește fallback din viitor
-  și distanța în zile. Fallback-ul din viitor este permis doar pentru afișare
-  read-only în dashboard; dataset-urile ML trebuie să folosească doar referințe
-  din trecut pentru a evita data leakage.
-- Dashboard-ul raportează separat consistența alimentelor, activităților,
-  greutății și consistența generală; aceste valori devin baza pentru feature
-  engineering și nu trebuie recombinate implicit în ML fără justificare.
-- Predicțiile de greutate folosesc artefacte locale pentru 14/30 zile și
-  semnalează datele insuficiente sau folosirea unei date istorice. Recomandările
-  din dashboard sunt reguli explicabile, fără generare de meniuri sau programe
-  de antrenament.
-- Simulatorul What-if încarcă ziua reală read-only și păstrează scenariul în
-  sesiune. Calculul impactului 14/30 zile este determinist; nu salvează în DB
-  și nu reprezintă o nouă predicție ML.
-- În Jurnal Activități, alegerea activității din catalog nu folosește selectbox
-  pentru liste mari; se face prin căutare, filtru de categorie și tabel
-  selectabil, păstrând ID-ul activității doar intern.
-- Durata, seturile și repetările din Jurnal Activități se validează manual prin
-  `ui.activity_validation`; nu folosi `min_value`/`max_value` pe aceste
-  `st.number_input`, ca Streamlit să nu salveze valoarea veche după un warning
-  nativ.
-- Formulare reactive: st.button() cu key= explicit
-- În Jurnal Alimentar și Jurnal Activități, panourile reactive cu multe
-  widget-uri pot folosi st.fragment() pentru a limita rerender-ul vizual
-  și a evita flicker-ul.
-- Vizualizarea unei date în Jurnal Alimentar sau Jurnal Activități nu trebuie
-  să creeze rânduri goale în `daily_logs`; `DailyLog.get_or_create()` se
-  folosește doar la salvarea primei înregistrări reale.
-- Jurnal Alimentar, Jurnal Activități și Jurnal Greutate acceptă salvări doar
-  pentru ziua curentă sau date din trecut; datele viitoare se blochează în UI,
-  model și DB.
-- Mesajele de succes care urmează după operații cu rerun trebuie păstrate
-  în st.session_state și afișate ca st.toast(), fără să mute tabelul.
-- Selectbox-urile pentru alimente și mese personalizate folosesc ID intern,
-  dar afișează utilizatorului doar denumirea, fără sufixe tehnice de tip #id
-- În Jurnal Alimentar, alegerea unui aliment din catalog nu mai folosește
-  selectbox pentru liste mari; se face prin căutare, filtru de categorie și
-  tabel selectabil, păstrând ID-ul alimentului doar intern.
-- În Mese Personalizate, alegerea ingredientelor folosește aceeași logică de
-  selecție ca Jurnal Alimentar: căutare fără diacritice, filtru categorie,
-  tabel selectabil și coloană de sursă.
-- Căutările locale de alimente/ingrediente trebuie să fie tolerante la
-  diacritice: `capsuni` trebuie să găsească `Căpșuni`.
-- Denumirea unei mese personalizate trebuie să înceapă cu literă;
-  nu sunt acceptate denumiri care încep cu cifră sau caracter special
-- Greutatea inițială din formularul de creare cont se validează manual
-  împotriva intervalului `WeightLog.MIN_WEIGHT_KG` - `WeightLog.MAX_WEIGHT_KG`;
-  nu se folosește clamp automat prin `min_value/max_value`.
-- Cantitățile în grame din Jurnal Alimentar și Mese Personalizate se validează
-  manual prin `ui.quantity_validation`; nu folosi `min_value`/`max_value` pe
-  `st.number_input`, ca Streamlit să nu salveze valoarea veche după un warning
-  nativ.
-- Înălțimea și vârsta din formularul de creare cont se validează manual
-  împotriva intervalelor `User.MIN_HEIGHT_CM` - `User.MAX_HEIGHT_CM` și
-  `User.MIN_AGE` - `User.MAX_AGE`; nu se folosește clamp automat prin
+- The dashboard treats days without food entries as missing-data days, not
+  days with 0 kcal consumed; estimated calorie balance is calculated only
+  for days with logged food.
+- The dashboard retains metadata for the daily reference weight:
+  source date, whether the value is imputed, whether it uses a future
+  fallback and the distance in days. Future fallback is allowed only for
+  read-only dashboard display; ML datasets must use only past references
+  to avoid data leakage.
+- The dashboard reports food, activity, weight and overall consistency
+  separately; these values form the basis for feature engineering and must
+  not be implicitly recombined in ML without justification.
+- Weight predictions use local artifacts for 14/30 days and flag insufficient
+  data or the use of a historical date. Dashboard recommendations are
+  explainable rules without meal-plan or workout-program generation.
+- The What-if simulator loads the real day read-only and keeps the scenario
+  in the session. The 14/30-day impact calculation is deterministic; it does
+  not save to the DB or represent a new ML prediction.
+- In the Activity Journal, catalog activity selection does not use a selectbox
+  for large lists; it uses search, a category filter and a selectable table,
+  keeping the activity ID internal.
+- Duration, sets and reps in the Activity Journal are validated manually
+  through `ui.activity_validation`; do not use `min_value`/`max_value`
+  on these `st.number_input` widgets, so Streamlit does not save the old
+  value after a native warning.
+- Reactive forms: st.button() with an explicit key=.
+- In the Food Journal and Activity Journal, reactive panels with many
+  widgets may use st.fragment() to limit visual rerendering and avoid flicker.
+- Viewing a date in the Food Journal or Activity Journal must not create
+  empty `daily_logs` rows; `DailyLog.get_or_create()` is used only when
+  saving the first real entry.
+- The Food Journal, Activity Journal and Weight Journal accept saves only
+  for today or past dates; future dates are blocked in the UI, model and DB.
+- Success messages following operations with a rerun must be kept in
+  st.session_state and displayed as st.toast(), without moving the table.
+- Food and custom-meal selectboxes use internal IDs but show users only
+  the name, without technical suffixes such as #id.
+- In the Food Journal, selecting a catalog food no longer uses a selectbox
+  for large lists; it uses search, a category filter and a selectable table,
+  keeping the food ID internal.
+- In Custom Meals, ingredient selection uses the same logic as the Food
+  Journal: accent-insensitive search, category filtering, a selectable
+  table and a source column.
+- Local food/ingredient searches must be accent-insensitive:
+  `capsuni` must find `Căpșuni`.
+- A custom meal name must start with a letter;
+  names starting with a digit or special character are not accepted.
+- Initial weight in the account creation form is validated manually
+  against `WeightLog.MIN_WEIGHT_KG` - `WeightLog.MAX_WEIGHT_KG`;
+  do not use automatic clamping through `min_value/max_value`.
+- Quantities in grams in the Food Journal and Custom Meals are validated
+  manually through `ui.quantity_validation`; do not use `min_value`/`max_value`
+  on `st.number_input`, so Streamlit does not save the old value after a
+  native warning.
+- Height and age in the account creation form are validated manually
+  against `User.MIN_HEIGHT_CM` - `User.MAX_HEIGHT_CM` and
+  `User.MIN_AGE` - `User.MAX_AGE`; do not use automatic clamping through
   `min_value/max_value`.
-- CSS-ul custom se păstrează în `assets/style.css`, nu inline în `app.py`;
-  folosește doar selectori Streamlit stabili sau tag-uri HTML standard,
-  niciodată clase generate de tip `st-emotion-cache-*`
-- Orice text introdus de utilizator și afișat prin HTML custom cu
-  `unsafe_allow_html=True` trebuie escap-at înainte de interpolare.
-- Denumirile introduse de utilizator nu trebuie să accepte caractere HTML
-  evidente (`<` sau `>`) dacă sunt folosite ca titluri/carduri în UI.
+- Custom CSS belongs in `assets/style.css`, not inline in `app.py`;
+  use only stable Streamlit selectors or standard HTML tags, never generated
+  classes such as `st-emotion-cache-*`.
+- Any user-entered text displayed through custom HTML with
+  `unsafe_allow_html=True` must be escaped before interpolation.
+- User-entered names must not accept obvious HTML characters (`<` or `>`)
+  if they are used as titles/cards in the UI.
 
-## Baza de date
+## Database
 
-- PostgreSQL local via pgAdmin 4 (localhost:5432)
-- Nu executa comenzi psql direct — generează fișiere .sql pentru rulare manuală
-- schema.sql este sursa de adevăr pentru structura DB
-- `database/seeds/seed_food_items_usda_starter.sql` este seed opțional pentru
-  catalog alimentar extins, cu alimente reale USDA, rulat manual după
-  `schema.sql` în pgAdmin.
-- `database/seeds/seed_activities_compendium_official.sql` este seed opțional
-  pentru activități MET oficiale din 2024 Adult Compendium of Physical
+- Local PostgreSQL via pgAdmin 4 (localhost:5432).
+- Do not execute psql commands directly — generate .sql files for manual execution.
+- schema.sql is the source of truth for the DB structure.
+- The English demo uses the isolated `macrosense_demo_en` database, selected
+  locally through `DB_NAME` in the ignored secrets file. The code's fallback
+  remains `macrosense_db`; see `STATUS.md` for validation results and limits.
+- Run schema and seed scripts manually in the explicitly selected new demo
+  database, not against the existing database. Preserve the existing demo
+  until it has been backed up, extra imports have been inventoried, and the
+  new demo has passed live numerical parity and UI checks. Any later cleanup
+  requires explicit approval of the exact target to remove.
+- The seed files now use English descriptive names for foods, activities,
+  demo people and recipes, with demo accounts under `example.com`. Names
+  are descriptive only; preserve canonical categories, goals, meal types
+  and statuses, along with IDs, numerical values and historical snapshots.
+- The public Demo Admin is intended for the disposable synthetic demo database
+  and retains all existing Administrator functions. Document public demo
+  login credentials in `README.md`; technical `DB_PASSWORD` and
+  `FDC_API_KEY` credentials remain private.
+- `database/seeds/seed_food_items_usda_starter.sql` is an optional seed for
+  an expanded food catalog with real USDA foods, run manually after
+  `schema.sql` in pgAdmin.
+- `database/seeds/seed_activities_compendium_official.sql` is an optional
+  seed for official MET activities from the 2024 Adult Compendium of Physical
   Activities.
-- `database/seeds/seed_activities_macrosense_mappings.sql` este seed opțional
-  pentru exerciții practice MacroSense mapate explicit pe coduri generale
-  Compendium; aceste exerciții nu trebuie prezentate ca rânduri oficiale
-  granulate din Compendium.
-- Seed-urile pentru activități se rulează manual după `schema.sql`: mai întâi
-  `seed_activities_compendium_official.sql`, apoi
+- `database/seeds/seed_activities_macrosense_mappings.sql` is an optional
+  seed for practical MacroSense exercises explicitly mapped to generic
+  Compendium codes; these exercises must not be presented as individually
+  specified official Compendium rows.
+- Activity seeds run manually after `schema.sql`: first
+  `seed_activities_compendium_official.sql`, then
   `seed_activities_macrosense_mappings.sql`.
-- `database/seeds/seed_demo_users.sql` este seed opțional pentru utilizatori
-  demo sintetici, cu istoric de greutate, jurnale alimentare, jurnale de
-  activități și mese personalizate. Se rulează ultimul, după seed-urile de
-  alimente și activități.
-  Obiectivele demo trebuie să folosească strict valorile canonice
+- `database/seeds/seed_demo_users.sql` is an optional seed for synthetic
+  demo users with weight history, food logs, activity logs and custom meals.
+  It runs last, after the food and activity seeds.
+  Demo goals must use strictly the canonical values
   `Slabire`, `Mentinere`, `Crestere`.
-- Importul USDA folosește cheia `FDC_API_KEY` din `.streamlit/secrets.toml`
-  sau din variabilele de mediu; cheia nu se comite niciodată în Git.
-- Pentru importul de alimente sunt permise inițial doar sursele USDA
-  `SR Legacy`, `Foundation` și `Survey (FNDDS)`; `Branded` rămâne exclus
-  pentru a evita duplicatele comerciale.
-- Alimentele adăugate manual din Admin sunt afișate în UI cu sursa
-  `MacroSense`; în DB pot avea `source = NULL`.
-- Adăugarea manuală de alimente din Admin trebuie să blocheze denumirea goală,
-  denumirile cu caractere HTML evidente (`<`, `>`) și cazul în care toate
-  macronutrientele sunt 0 sau caloriile sunt 0.
-- Câmpurile nutriționale din formularul Admin pentru alimente se validează
-  manual; nu folosi `min_value`/clamp automat care ar putea transforma valori
-  invalide negative în 0 înainte de validare. Pentru lizibilitate, formularul
-  afișează doar prima eroare de validare la un moment dat.
-- Categoriile alimentare sunt categorii locale MacroSense, nu categoriile brute
-  USDA; la importul USDA aplicația poate sugera automat categoria, iar Adminul
-  o poate ajusta înainte de salvare.
-- Categoriile locale de alimente și activități se definesc în
-  `ui.catalog_constants`; seed-urile trebuie verificate prin teste să nu
-  introducă categorii care nu există în UI.
-- Căutarea USDA din Admin trebuie explicată ca fiind în engleză și trebuie să
-  filtreze rezultatele irelevante prin potrivirea termenilor căutați în
-  descrierea USDA, pentru a evita rezultate de tip `cream of potato` la
-  căutarea `ice cream`.
+- USDA import uses `FDC_API_KEY` from `.streamlit/secrets.toml` or
+  environment variables; the key must never be committed to Git.
+- Initially, only USDA sources `SR Legacy`, `Foundation` and
+  `Survey (FNDDS)` are allowed for food imports; `Branded` remains
+  excluded to avoid commercial duplicates.
+- Foods added manually through Admin are displayed in the UI with the
+  `MacroSense` source; they may have `source = NULL` in the DB.
+- Manual food creation through Admin must block empty names, names with
+  obvious HTML characters (`<`, `>`) and cases where all macronutrients
+  are 0 or calories are 0.
+- Nutritional fields in the Admin food form are validated manually; do not
+  use `min_value`/automatic clamping that could convert invalid negative
+  values to 0 before validation. For readability, the form displays only
+  the first validation error at a time.
+- Food categories are local MacroSense categories, not raw USDA categories;
+  during USDA import, the application may suggest a category automatically,
+  and the Administrator can adjust it before saving.
+- Local food and activity categories are defined in `ui.catalog_constants`;
+  tests must verify that seeds do not introduce categories absent from the UI.
+- Admin USDA search must be explained as requiring English and must filter
+  irrelevant results by matching the search terms against the USDA description,
+  avoiding results such as `cream of potato` when searching for `ice cream`.
 
-## Constrângeri speciale DB
+## Special DB constraints
 
-- FoodLog folosește o constrângere XOR: are fie food_id,
-  fie custom_meal_id (nu ambele simultan)
-- Mesele personalizate nu se șterg fizic din UI; se arhivează prin
-  `status = 'Arhivată'` pentru a păstra istoricul din Jurnal Alimentar
-- Mesele personalizate salvate în Jurnal Alimentar păstrează snapshot
-  nutrițional per înregistrare în `food_logs`, astfel încât editarea unei
-  rețete afectează doar folosirile viitoare, nu istoricul deja logat.
-- Pentru intrările cu `custom_meal_id`, snapshot-ul nutrițional este
-  obligatoriu la nivel de DB; aplicația nu menține fluxuri de compatibilitate
-  pentru intrări incomplete fără snapshot.
-- `schema.sql` trebuie să păstreze constrângeri explicite pentru intervale și
-  integritate de bază: email normalizat, valori nutriționale nenegative,
-  calorii pozitive și cel puțin un macronutrient pozitiv pentru alimente,
-  categorie aliment nenulă, denumiri de catalog cu cel puțin o literă, blocare
-  caractere HTML evidente în câmpurile text persistente, nume complet fără
-  caractere speciale arbitrare, obiectiv utilizator în lista
-  `Slabire`/`Mentinere`/`Crestere`, greutate 30-300 kg, MET minim 0.9,
-  durată antrenament pozitivă în intervalul 0.1-600 minute, pereche validă
-  `sets`/`reps` cu 1-50 seturi și 1-200 repetări, calorii manuale antrenament
-  1-5000 kcal când sunt completate, cantități alimentare/ingrediente 1-5000g,
-  plus tip/oră de masă obligatorii pentru înregistrările alimentare și trigger-e
-  care blochează `daily_logs.log_date` și `weight_logs.log_date` din viitor.
+- FoodLog uses an XOR constraint: it has either food_id or custom_meal_id
+  (not both at the same time).
+- Custom meals are not physically deleted through the UI; they are archived
+  through `status = 'Arhivată'` to preserve Food Journal history.
+- Custom meals saved in the Food Journal retain a nutritional snapshot per
+  entry in `food_logs`, so editing a recipe affects only future uses,
+  not previously logged history.
+- For entries with `custom_meal_id`, the nutritional snapshot is mandatory
+  at DB level; the application does not maintain compatibility flows for
+  incomplete entries without a snapshot.
+- `schema.sql` must preserve explicit range and basic integrity constraints:
+  normalized email, nonnegative nutritional values, positive calories and
+  at least one positive macronutrient for foods, a nonempty food category,
+  catalog names containing at least one letter, blocking obvious HTML
+  characters in persisted text fields, full names without arbitrary special
+  characters, user goals in `Slabire`/`Mentinere`/`Crestere`, weight 30-300 kg,
+  minimum MET 0.9, positive workout duration within 0.1-600 minutes, valid
+  `sets`/`reps` pairs with 1-50 sets and 1-200 reps, manual workout calories
+  of 1-5000 kcal when provided, food/ingredient quantities of 1-5000g, required
+  meal type/time for food entries, and triggers blocking future
+  `daily_logs.log_date` and `weight_logs.log_date`.
 
-## Ce NU este implementat încă
+## Not implemented yet
 
-- Recomandări personalizate de mese
-- Recomandări personalizate de antrenamente
+- Personalized meal recommendations
+- Personalized workout recommendations

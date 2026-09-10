@@ -31,6 +31,17 @@ class FoodCatalogSeedTests(unittest.TestCase):
     def test_food_seed_does_not_contain_negative_nutrition_values(self):
         self.assertNotRegex(self.food_seed, r"^\s*-[0-9]+\.[0-9]+,", msg="Food seed contains negative nutrition values.")
 
+    def test_food_seed_names_fit_catalog_constraints(self):
+        names = re.findall(r"^\s*\(\s*'((?:''|[^'])*)'", self.food_seed, re.MULTILINE)
+        self.assertEqual(len(names), 182)
+        for sql_name in names:
+            name = sql_name.replace("''", "'")
+            with self.subTest(name=name):
+                self.assertTrue(name.strip())
+                self.assertLessEqual(len(name), 100)
+                self.assertTrue(any(character.isalpha() for character in name))
+                self.assertNotRegex(name, r"[<>]")
+
 
 class DemoUserSeedTests(unittest.TestCase):
     def setUp(self):
@@ -76,7 +87,7 @@ class DemoUserSeedTests(unittest.TestCase):
 
     def test_demo_seed_is_repeatable_and_documents_password(self):
         self.assertIn("DELETE FROM users WHERE email IN", self.demo_seed)
-        self.assertIn("All demo accounts use password: test123", self.demo_seed)
+        self.assertIn("All demo accounts use password: MacroSenseDemo2026!", self.demo_seed)
         self.assertIn("deterministic", self.demo_seed)
         self.assertIn("BEGIN;", self.demo_seed)
         self.assertIn("COMMIT;", self.demo_seed)
@@ -85,15 +96,41 @@ class DemoUserSeedTests(unittest.TestCase):
     def test_demo_seed_creates_multiple_user_profiles(self):
         profiles = self.profile_rows()
         for email in [
-            "demo.slabire@test.com",
-            "demo.masa@test.com",
-            "demo.mentinere@test.com",
-            "demo.activ@test.com",
-            "demo.rar@test.com",
+            "demo.weightloss@example.com",
+            "demo.musclegain@example.com",
+            "demo.maintenance@example.com",
+            "demo.active@example.com",
+            "demo.sparse@example.com",
         ]:
             self.assertIn(email, profiles)
         self.assertEqual(len(profiles), 5)
         self.assertEqual(self.count_inserts("users"), 1)
+
+    def test_demo_seed_reuses_the_same_email_keys_everywhere(self):
+        referenced_emails = set(re.findall(r"'([^']+@[^']+)'", self.demo_seed))
+        self.assertEqual(referenced_emails, set(self.profile_rows()))
+
+    def test_demo_seed_reset_targets_only_the_declared_accounts(self):
+        reset = re.search(r"DELETE FROM users WHERE email IN \((.*?)\);", self.demo_seed, re.DOTALL)
+        self.assertIsNotNone(reset)
+        reset_emails = re.findall(r"'([^']+)'", reset.group(1))
+        self.assertEqual(len(reset_emails), 5)
+        self.assertEqual(set(reset_emails), set(self.profile_rows()))
+
+    def test_demo_seed_password_matches_its_documented_value(self):
+        documented = re.search(r"All demo accounts use password: (\S+)", self.demo_seed)
+        self.assertIsNotNone(documented)
+        self.assertIn(f"encode(sha256('{documented.group(1)}'::bytea), 'hex')", self.demo_seed)
+
+    def test_demo_seed_preserves_sparse_profile_scheduling(self):
+        self.assertIn(
+            "AND (d.email <> 'demo.sparse@example.com' OR MOD(d.day_index, 3) <> 1 OR d.log_date >= DATE '2026-05-20');",
+            self.demo_seed,
+        )
+        self.assertIn(
+            "WHERE (d.email <> 'demo.sparse@example.com' OR MOD(d.day_index, 6) IN (0, 3));",
+            self.demo_seed,
+        )
 
     def test_demo_seed_uses_supported_user_goals(self):
         seed_goals = {profile["goal"] for profile in self.profile_rows().values()}
@@ -110,8 +147,8 @@ class DemoUserSeedTests(unittest.TestCase):
         self.assertIn("CREATE TEMP TABLE demo_food_patterns", self.demo_seed)
         self.assertIn("CREATE TEMP TABLE demo_activity_schedule", self.demo_seed)
 
-        food_pattern_rows = re.findall(r"\('demo\.[^']+@test\.com', [0-9], [0-9]+,", self.values_block("demo_food_patterns"))
-        activity_schedule_rows = re.findall(r"\('demo\.[^']+@test\.com', [1-7], [0-9]+,", self.values_block("demo_activity_schedule"))
+        food_pattern_rows = re.findall(r"\('demo\.[^']+@example\.com', [0-9], [0-9]+,", self.values_block("demo_food_patterns"))
+        activity_schedule_rows = re.findall(r"\('demo\.[^']+@example\.com', [1-7], [0-9]+,", self.values_block("demo_activity_schedule"))
         self.assertGreaterEqual(len(food_pattern_rows), 120)
         self.assertGreaterEqual(len(activity_schedule_rows), 18)
 
@@ -127,11 +164,11 @@ class DemoUserSeedTests(unittest.TestCase):
         profiles = self.profile_rows()
 
         for email in [
-            "demo.slabire@test.com",
-            "demo.masa@test.com",
-            "demo.mentinere@test.com",
-            "demo.activ@test.com",
-            "demo.rar@test.com",
+            "demo.weightloss@example.com",
+            "demo.musclegain@example.com",
+            "demo.maintenance@example.com",
+            "demo.active@example.com",
+            "demo.sparse@example.com",
         ]:
             with self.subTest(email=email):
                 self.assertLessEqual(profiles[email]["registration_date"], "2026-02-23")
@@ -168,24 +205,24 @@ class DemoUserSeedTests(unittest.TestCase):
     def test_demo_seed_weight_trends_follow_profile_goals(self):
         profiles = self.profile_rows()
         self.assertGreater(
-            profiles["demo.slabire@test.com"]["start_weight"],
-            profiles["demo.slabire@test.com"]["end_weight"],
+            profiles["demo.weightloss@example.com"]["start_weight"],
+            profiles["demo.weightloss@example.com"]["end_weight"],
         )
         self.assertLess(
-            profiles["demo.masa@test.com"]["start_weight"],
-            profiles["demo.masa@test.com"]["end_weight"],
+            profiles["demo.musclegain@example.com"]["start_weight"],
+            profiles["demo.musclegain@example.com"]["end_weight"],
         )
         self.assertLess(
-            abs(profiles["demo.mentinere@test.com"]["end_weight"] - profiles["demo.mentinere@test.com"]["start_weight"]),
+            abs(profiles["demo.maintenance@example.com"]["end_weight"] - profiles["demo.maintenance@example.com"]["start_weight"]),
             1.00,
         )
         self.assertLess(
-            abs(profiles["demo.activ@test.com"]["end_weight"] - profiles["demo.activ@test.com"]["start_weight"]),
+            abs(profiles["demo.active@example.com"]["end_weight"] - profiles["demo.active@example.com"]["start_weight"]),
             1.00,
         )
         self.assertGreater(
-            profiles["demo.rar@test.com"]["start_weight"],
-            profiles["demo.rar@test.com"]["end_weight"],
+            profiles["demo.sparse@example.com"]["start_weight"],
+            profiles["demo.sparse@example.com"]["end_weight"],
         )
 
     def test_demo_seed_varies_food_quantities_without_randomness(self):
@@ -243,8 +280,30 @@ class DemoUserSeedTests(unittest.TestCase):
         self.assertIn("INSERT INTO custom_meals", self.demo_seed)
         self.assertIn("INSERT INTO recipe_ingredients", self.demo_seed)
         self.assertIn("snapshot_calories_100g", self.demo_seed)
-        self.assertIn("Bol proteic demo", self.demo_seed)
-        self.assertIn("Pui cu orez demo", self.demo_seed)
+        self.assertIn("Demo protein bowl", self.demo_seed)
+        self.assertIn("Demo chicken and rice", self.demo_seed)
+
+    def test_demo_seed_recipe_names_match_ingredient_and_journal_references(self):
+        meal_keys = set(re.findall(r"\('([^']+)', '([^']+)'\)", self.values_block("demo_custom_meals")))
+        ingredient_keys = set(re.findall(r"\('([^']+)', '([^']+)',", self.values_block("demo_recipe_ingredients")))
+        journal_keys = set(re.findall(
+            r"\('([^']+)', \d+, \d+, NULL, '([^']+)',",
+            self.values_block("demo_food_patterns"),
+        ))
+        self.assertEqual(len(meal_keys), 4)
+        self.assertEqual(ingredient_keys, meal_keys)
+        self.assertEqual(journal_keys, meal_keys)
+
+
+class AdminDemoSeedTests(unittest.TestCase):
+    def test_schema_creates_the_documented_public_demo_admin(self):
+        schema = Path("schema.sql").read_text(encoding="utf-8")
+        self.assertRegex(
+            schema,
+            r"INSERT INTO admins \(email, password_hash, access_level\)\s*"
+            r"VALUES\s*\(\s*'admin@example.com',\s*"
+            r"encode\(sha256\('MacroSenseAdmin2026!'::bytea\), 'hex'\),\s*1\s*\);",
+        )
 
 
 class ActivityCatalogSeedTests(unittest.TestCase):
