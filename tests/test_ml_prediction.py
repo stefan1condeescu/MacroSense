@@ -137,6 +137,48 @@ class MLPredictionTests(unittest.TestCase):
         self.assertEqual(cardio_row["calories_burned"], 320.0)
         self.assertEqual(strength_row["calories_burned"], 67.0)
 
+    def test_missing_strength_sets_and_reps_use_met_without_mutating_inputs(self):
+        for missing_value, dtype in (
+            (None, None),  # PostgreSQL NULL becomes NaN beside numeric values.
+            (None, "object"),
+            (float("nan"), "object"),
+            (pd.NA, "object"),
+            (pd.NA, "Int64"),
+        ):
+            with self.subTest(missing_value=repr(missing_value), dtype=dtype):
+                raw_rows = pd.DataFrame(
+                    {
+                        "user_id": [1] * 5,
+                        "log_date": [date(2026, 5, 5)] * 3 + [date(2026, 5, 1)] * 2,
+                        "activity_name": [
+                            "Strength with sets", "Strength without sets", "Cardio",
+                            "Manual strength before weight", "Strength before weight",
+                        ],
+                        "category": ["Forță", "Forță", "Cardio", "Forță", "Forță"],
+                        "duration_min": [30] * 5,
+                        "sets": pd.Series([3] + [missing_value] * 4, dtype=dtype),
+                        "reps": pd.Series([10] + [missing_value] * 4, dtype=dtype),
+                        "manual_calories_burned": [None, None, None, 250, None],
+                        "met_multiplier": [5, 5, 8, 5, 5],
+                    }
+                )
+                weights = pd.DataFrame(
+                    [{"user_id": 1, "log_date": date(2026, 5, 3), "weight_kg": 80.0}]
+                )
+                original_rows = raw_rows.copy(deep=True)
+                original_weights = weights.copy(deep=True)
+
+                prepared = prepare_activity_rows_for_ml(raw_rows, weights)
+
+                self.assertEqual(
+                    prepared["activity_name"].tolist(),
+                    ["Strength with sets", "Strength without sets", "Cardio",
+                     "Manual strength before weight"],
+                )
+                self.assertEqual(prepared["calories_burned"].tolist(), [67.0, 200.0, 320.0, 250.0])
+                pd.testing.assert_frame_equal(raw_rows, original_rows)
+                pd.testing.assert_frame_equal(weights, original_weights)
+
     def test_missing_user_reason_uses_english_source_text(self):
         with patch(
             "services.ml.prediction.fetch_user_prediction_frames",

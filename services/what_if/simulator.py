@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import fsum
 from typing import Any, Iterable
 
 import pandas as pd
@@ -315,9 +316,7 @@ def _normalize_optional_int(value: Any, field_name: str) -> int | None:
 
 
 def _sum_entry_values(entries: Iterable[Any], field_name: str) -> float:
-    total = 0.0
-    for entry in entries:
-        total += _as_float(getattr(entry, field_name), field_name)
+    total = fsum(_as_float(getattr(entry, field_name), field_name) for entry in entries)
     return round(total, 2)
 
 
