@@ -22,7 +22,7 @@ Login screen with local branding, a subtle fruit background and English/Romanian
 
 ### Dashboard predictions and recommendations
 
-Experimental 14/30-day weight predictions alongside explainable, rule-based recommendations.
+14/30-day weight predictions alongside explainable, rule-based recommendations.
 
 ![Dashboard showing weight predictions and meal, protein, activity and progress recommendations](assets/screenshots/dashboard-predictions.jpg)
 
